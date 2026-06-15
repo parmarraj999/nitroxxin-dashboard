@@ -1,0 +1,70 @@
+.top-performing-card {
+  background: linear-gradient(135deg, #dbeafe 0%, #c7d2fe 100%);
+  border: none;
+  display: flex;
+  flex-direction: column;
+}
+
+.top-event-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #4f46e5; /* indigo */
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.top-event-name {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: var(--primary-blue);
+  margin-bottom: 24px;
+}
+
+.top-event-stats {
+  display: flex;
+  gap: 32px;
+  margin-bottom: 24px;
+}
+
+.stat-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.highlight-orange {
+  color: var(--primary-orange);
+}
+
+.highlight-dark {
+  color: var(--text-main);
+}
+
+.stat-label {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #4b5563;
+}
+
+.manage-event-btn {
+  background-color: white;
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 0.95rem;
+  padding: 12px;
+  border-radius: var(--radius-md);
+  transition: all 0.2s ease;
+  width: 100%;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.manage-event-btn:hover {
+  background-color: #f8f9fc;
+  box-shadow: var(--shadow-sm);
+}

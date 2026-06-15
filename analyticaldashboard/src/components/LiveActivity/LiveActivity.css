@@ -1,0 +1,123 @@
+.live-activity-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 40px; /* space for fab */
+}
+
+.live-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.live-indicator {
+  width: 8px;
+  height: 8px;
+  background-color: var(--success);
+  border-radius: 50%;
+  position: relative;
+}
+
+.live-indicator::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  background-color: var(--success);
+  border-radius: 50%;
+  opacity: 0.3;
+  animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% { transform: scale(0.8); opacity: 0.5; }
+  50% { transform: scale(1.5); opacity: 0; }
+  100% { transform: scale(0.8); opacity: 0; }
+}
+
+.activity-timeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.activity-item {
+  display: flex;
+  gap: 16px;
+}
+
+.activity-icon-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.activity-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+}
+
+.timeline-line {
+  width: 2px;
+  background-color: var(--border-color);
+  flex: 1;
+  margin: 4px 0;
+  min-height: 24px;
+}
+
+.activity-content {
+  padding-top: 4px;
+  padding-bottom: 24px;
+}
+
+.activity-item:last-child .activity-content {
+  padding-bottom: 0;
+}
+
+.activity-text {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  margin-bottom: 4px;
+  line-height: 1.4;
+}
+
+.activity-highlight {
+  font-weight: 600;
+}
+
+.activity-time {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}
+
+.fab-btn {
+  position: absolute;
+  bottom: -20px;
+  right: 24px;
+  width: 56px;
+  height: 56px;
+  background-color: var(--primary-blue);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(37, 99, 235, 0.3);
+  transition: transform 0.2s ease, background-color 0.2s ease;
+  z-index: 10;
+}
+
+.fab-btn:hover {
+  transform: scale(1.05);
+  background-color: var(--primary-blue-hover);
+}

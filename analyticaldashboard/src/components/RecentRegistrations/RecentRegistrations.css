@@ -1,0 +1,121 @@
+.recent-registrations-card {
+  padding: 0;
+  overflow: hidden;
+}
+
+.recent-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+}
+
+.view-all-link {
+  color: var(--primary-blue);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+.table-container {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.registrations-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.registrations-table th {
+  text-align: left;
+  padding: 12px 24px;
+  background-color: var(--bg-body);
+  color: var(--text-muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-top: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.registrations-table td {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border-color);
+  vertical-align: middle;
+}
+
+.registrations-table tr:last-child td {
+  border-bottom: none;
+}
+
+.rider-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.rider-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.rider-name {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-main);
+}
+
+.event-name {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-width: 150px;
+  display: block;
+}
+
+.status-badge {
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 4px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.05em;
+  display: inline-block;
+}
+
+.status-success {
+  background-color: var(--success-light);
+  color: #047857; /* dark green */
+  border: 1px solid #a7f3d0;
+}
+
+.status-primary {
+  background-color: var(--primary-blue-light);
+  color: var(--primary-blue-hover);
+  border: 1px solid #bfdbfe;
+}
+
+.date-cell {
+  display: flex;
+  flex-direction: column;
+}
+
+.date-day {
+  font-size: 0.85rem;
+  color: var(--text-main);
+  font-family: monospace;
+}
+
+.date-time {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-family: monospace;
+}

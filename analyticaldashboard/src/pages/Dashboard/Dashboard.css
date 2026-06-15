@@ -1,0 +1,125 @@
+.app-layout {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-body);
+}
+
+.main-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+.dashboard-content {
+  padding: 32px;
+  max-width: 1600px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 32px;
+}
+
+.dashboard-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.dashboard-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.dashboard-actions {
+  display: flex;
+  gap: 16px;
+}
+
+.date-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.date-filter-btn:hover {
+  background-color: var(--bg-body);
+  border-color: var(--text-light);
+}
+
+.date-filter-btn .icon {
+  width: 18px;
+  height: 18px;
+  color: var(--text-muted);
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background-color: var(--primary-blue);
+  color: white;
+  border-radius: var(--radius-md);
+  font-weight: 500;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease;
+}
+
+.export-btn:hover {
+  background-color: var(--primary-blue-hover);
+}
+
+.export-btn .icon {
+  width: 18px;
+  height: 18px;
+}
+
+/* Common Card Styles */
+.card {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--border-color);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+/* Grid Layout */
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+  margin-top: 24px;
+}
+
+.grid-left {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.grid-right {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+@media (max-width: 1200px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
+  }
+}

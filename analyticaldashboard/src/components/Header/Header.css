@@ -1,0 +1,111 @@
+.header {
+  height: 80px;
+  background-color: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 32px;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  background-color: var(--bg-body);
+  border: 1px solid var(--border-color);
+  border-radius: 999px;
+  padding: 8px 16px;
+  width: 400px;
+  gap: 12px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.search-container:focus-within {
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 2px var(--primary-blue-light);
+}
+
+.search-icon {
+  color: var(--text-muted);
+}
+
+.search-input {
+  border: none;
+  background: none;
+  outline: none;
+  width: 100%;
+  font-size: 0.95rem;
+  color: var(--text-main);
+  font-family: inherit;
+}
+
+.search-input::placeholder {
+  color: var(--text-light);
+}
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.action-btn {
+  color: var(--text-muted);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+}
+
+.action-btn:hover {
+  color: var(--text-main);
+}
+
+.notification-dot {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 8px;
+  height: 8px;
+  background-color: var(--primary-orange);
+  border-radius: 50%;
+  border: 2px solid var(--bg-sidebar);
+}
+
+.header-profile {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: 12px;
+  border-left: 1px solid var(--border-color);
+  padding-left: 24px;
+}
+
+.header-profile-info {
+  text-align: right;
+}
+
+.header-profile-info h4 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 2px;
+}
+
+.header-profile-info p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-family: monospace;
+  letter-spacing: 0.5px;
+}
+
+.header-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  object-fit: cover;
+}
