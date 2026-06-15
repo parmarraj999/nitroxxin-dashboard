@@ -26,8 +26,7 @@ const Header = ({
         <button className="action-btn">
           <Settings size={20} />
         </button>
-        
-        
+
         {showProfile && (
           <div className="header-profile">
             <div className="header-profile-info">

@@ -4,7 +4,6 @@
   gap: 24px;
 }
 
-/* Titles */
 .bottom-card-title {
   font-size: 0.75rem;
   font-weight: 700;
@@ -25,7 +24,6 @@
   color: var(--danger);
 }
 
-/* Quick Actions */
 .actions-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -53,7 +51,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Latest Reviews */
 .reviews-header {
   display: flex;
   justify-content: space-between;
@@ -107,7 +104,6 @@
   line-height: 1.4;
 }
 
-/* Low Stock Alerts */
 .alerts-header {
   display: flex;
   justify-content: space-between;

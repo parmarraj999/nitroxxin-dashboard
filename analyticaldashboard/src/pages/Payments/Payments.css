@@ -1,0 +1,144 @@
+.payments-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+  margin-bottom: 24px;
+}
+
+.payment-stat-card {
+  padding: 24px;
+}
+
+.stat-inner-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.p-stat-lbl {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted, #64748b);
+  letter-spacing: 0.05em;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.p-stat-val {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main, #1e293b);
+  margin-bottom: 8px;
+}
+
+.p-stat-change {
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.text-danger-bold {
+  color: #ef4444;
+}
+
+.stat-icon-wrapper-blue {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stat-icon-wrapper-blue.green {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.stat-icon-wrapper-blue.blue {
+  background-color: #e0f2fe;
+  color: #0284c7;
+}
+
+.stat-icon-wrapper-blue.orange {
+  background-color: #ffedd5;
+  color: #ea580c;
+}
+
+.payments-layout-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 24px;
+}
+
+.bar-chart-container {
+  width: 100%;
+}
+
+.payments-table-el {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.payments-table-el th {
+  text-align: left;
+  padding: 12px 16px;
+  background-color: var(--bg-body, #f8fafc);
+  color: var(--text-muted, #64748b);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+
+.payments-table-el td {
+  padding: 16px;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+  font-size: 0.9rem;
+}
+
+.tx-id-cell {
+  font-weight: 700;
+  color: var(--primary, #0284c7);
+}
+
+.tx-date-cell {
+  color: var(--text-muted, #64748b);
+}
+
+.tx-name-cell {
+  font-weight: 600;
+  color: var(--text-main, #1e293b);
+}
+
+.tx-event-cell {
+  color: var(--text-muted, #64748b);
+}
+
+.tx-amount-cell {
+  font-weight: 800;
+  color: var(--text-main, #1e293b);
+}
+
+.tx-method-cell {
+  font-weight: 500;
+  color: var(--text-muted, #64748b);
+}
+
+.status-pill-blue.status-paid {
+  background-color: #dcfce7;
+  color: #16a34a;
+}
+
+.status-pill-blue.status-processing {
+  background-color: #fef9c3;
+  color: #ca8a04;
+}
+
+@media (max-width: 1024px) {
+  .payments-stats-grid {
+    grid-template-columns: 1fr;
+  }
+}

@@ -15,14 +15,14 @@ const EventManagement = () => {
           showProfile={false}
           showQuickCreate={true}
         />
-        
+
         <main className="event-management-content">
           <div className="page-header">
             <div>
               <h1 className="page-title">Event Management</h1>
               <p className="page-subtitle">Review, moderate and manage the pulse of Nitroxx community rides.</p>
             </div>
-            
+
             <div className="header-actions">
               <button className="outline-btn">
                 <Download size={18} />
@@ -53,20 +53,20 @@ const EventManagement = () => {
                 <Search size={16} className="filter-icon" />
                 <input type="text" placeholder="Filter by title or ID..." className="filter-input" />
               </div>
-              
+
               <div className="filter-select-wrapper">
                 <select className="filter-select">
                   <option>All Categories</option>
                 </select>
                 <ChevronDown size={16} className="select-icon" />
               </div>
-              
+
               <div className="filter-date-wrapper">
                 <input type="text" placeholder="Date Range" className="filter-date" readOnly />
                 <Calendar size={16} className="date-icon" />
               </div>
             </div>
-            
+
             <button className="apply-filter-btn">
               Apply Filter
             </button>
@@ -76,7 +76,6 @@ const EventManagement = () => {
             <EventTable />
           </div>
 
-          {/* Floating Action Button */}
           <button className="fab-btn-orange">
             <Plus size={24} />
           </button>

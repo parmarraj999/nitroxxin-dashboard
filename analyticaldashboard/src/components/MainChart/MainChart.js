@@ -24,7 +24,7 @@ const MainChart = () => {
           <span className="legend-text">Growth Rate</span>
         </div>
       </div>
-      
+
       <div className="chart-wrapper">
         <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={data} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>

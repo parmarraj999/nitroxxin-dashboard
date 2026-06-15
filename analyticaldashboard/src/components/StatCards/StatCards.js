@@ -19,8 +19,8 @@ const StatCards = () => {
       badge: '+12%',
       badgeType: 'success',
       icon: Users,
-      iconBg: '#fef3c7', // light amber
-      iconColor: '#b45309' // amber
+      iconBg: '#fef3c7', 
+      iconColor: '#b45309' 
     },
     {
       title: 'REVENUE',
@@ -28,8 +28,8 @@ const StatCards = () => {
       badge: '+18.5%',
       badgeType: 'warning',
       icon: Wallet,
-      iconBg: '#fee2e2', // light red
-      iconColor: '#ef4444' // red
+      iconBg: '#fee2e2', 
+      iconColor: '#ef4444' 
     },
     {
       title: 'UPCOMING EVENTS',
@@ -37,8 +37,8 @@ const StatCards = () => {
       badge: 'Next 14d',
       badgeType: 'neutral',
       icon: Flag,
-      iconBg: '#f3f4f6', // light gray
-      iconColor: '#4b5563' // gray
+      iconBg: '#f3f4f6', 
+      iconColor: '#4b5563' 
     }
   ];
 

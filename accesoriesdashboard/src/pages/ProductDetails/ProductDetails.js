@@ -16,11 +16,9 @@ const ProductDetails = () => {
       </div>
 
       <div className="details-layout">
-        
-        {/* Left Column: Gallery & Details */}
+
         <div className="left-column">
-          
-          {/* Gallery */}
+
           <div className="product-gallery">
             <div className="main-image dark">
               <span className="view-badge">360° VIEW</span>
@@ -33,14 +31,13 @@ const ProductDetails = () => {
             </div>
           </div>
 
-          {/* Specs Tabs */}
           <div className="specs-container card">
             <div className="specs-tabs">
               <span className="tab active">Specifications</span>
               <span className="tab">Fit & Guide</span>
               <span className="tab">Compatibility</span>
             </div>
-            
+
             <div className="specs-content">
               <div className="spec-row">
                 <span className="spec-label">Outer Shell</span>
@@ -66,7 +63,6 @@ const ProductDetails = () => {
             </div>
           </div>
 
-          {/* Customer Reviews */}
           <div className="reviews-section">
             <div className="reviews-header-flex">
               <div>
@@ -112,14 +108,13 @@ const ProductDetails = () => {
           </div>
         </div>
 
-        {/* Right Column: Purchasing & Info */}
         <div className="right-column">
           <div className="product-buy-card card">
             <div className="title-price-flex">
               <h1 className="product-title-large">Apex V3 Carbon Aero</h1>
               <span className="product-price-large">$599.00</span>
             </div>
-            
+
             <p className="product-desc-text">
               The Apex V3 is the pinnacle of racing helmets. Engineered in the wind tunnel and tested on the track, it offers unmatched aerodynamics, ventilation, and safety in a stunning 3K carbon shell.
             </p>

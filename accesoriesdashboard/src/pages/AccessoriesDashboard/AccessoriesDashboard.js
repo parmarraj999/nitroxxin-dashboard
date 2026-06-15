@@ -8,7 +8,7 @@ import './AccessoriesDashboard.css';
 const AccessoriesDashboard = () => {
   return (
     <div className="dashboard-home">
-      {/* Header section */}
+
       <div className="dashboard-header">
             <div>
               <h1 className="dashboard-title">Good morning, Nitroxx Moto Gear.</h1>
@@ -16,7 +16,7 @@ const AccessoriesDashboard = () => {
                 Your store is performing at <span className="highlight-orange">98% efficiency</span> today. All systems green.
               </p>
             </div>
-            
+
             <div className="header-actions-main">
               <button className="export-btn">Export Daily Report</button>
               <button className="quick-add-btn">
@@ -28,22 +28,18 @@ const AccessoriesDashboard = () => {
             </div>
           </div>
 
-          {/* Stats Row */}
           <div className="stats-row">
             <StatCards />
           </div>
 
-          {/* Charts Row */}
           <div className="charts-row">
             <Charts />
           </div>
 
-          {/* Middle Row (Table + Timeline) */}
           <div className="middle-row">
             <MiddleRow />
           </div>
 
-      {/* Bottom Row (Widgets) */}
       <div className="bottom-row">
         <BottomRow />
       </div>

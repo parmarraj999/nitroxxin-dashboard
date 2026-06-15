@@ -5,7 +5,7 @@ import './StatCards.css';
 const StatCards = () => {
   return (
     <div className="accessories-stats-grid">
-      {/* Card 1: Total Orders */}
+
       <div className="stat-card card">
         <div className="stat-header">
           <span className="stat-title">TOTAL<br/>ORDERS</span>
@@ -17,7 +17,6 @@ const StatCards = () => {
         </div>
       </div>
 
-      {/* Card 2: Pending Orders */}
       <div className="stat-card card">
         <div className="stat-header">
           <span className="stat-title">PENDING ORDERS</span>
@@ -31,7 +30,6 @@ const StatCards = () => {
         <div className="stat-subtitle">Avg. fulfillment: 2.4 hrs</div>
       </div>
 
-      {/* Card 3: Delivered Orders */}
       <div className="stat-card card">
         <div className="stat-header">
           <span className="stat-title">DELIVERED ORDERS</span>
@@ -45,7 +43,6 @@ const StatCards = () => {
         <div className="stat-subtitle text-green-bold">99.2% success rate</div>
       </div>
 
-      {/* Card 4: Return Requests */}
       <div className="stat-card card">
         <div className="stat-header">
           <span className="stat-title">RETURN REQUESTS</span>

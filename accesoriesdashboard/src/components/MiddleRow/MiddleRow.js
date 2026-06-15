@@ -11,7 +11,7 @@ const gearData = [
     revenue: '$122,500',
     growth: '+18%',
     growthColor: 'var(--success)',
-    imgBg: '#1f2937' // dark grey placeholder
+    imgBg: '#1f2937' 
   },
   {
     rank: '02',
@@ -69,14 +69,13 @@ const ordersData = [
 const MiddleRow = () => {
   return (
     <div className="middle-row-container">
-      
-      {/* Top Performing Gear */}
+
       <div className="top-gear-card card">
         <div className="card-header-flex">
           <h2 className="card-title">Top Performing Gear</h2>
           <Link to="/products" className="view-all-link">View All Products</Link>
         </div>
-        
+
         <div className="table-responsive">
           <table className="gear-table">
             <thead>
@@ -108,10 +107,9 @@ const MiddleRow = () => {
         </div>
       </div>
 
-      {/* Recent Orders */}
       <div className="recent-orders-card card">
         <h2 className="card-title" style={{ marginBottom: '24px' }}>Recent Orders</h2>
-        
+
         <div className="orders-timeline">
           {ordersData.map((order, index) => {
             const Icon = order.icon;
@@ -137,7 +135,7 @@ const MiddleRow = () => {
             );
           })}
         </div>
-        
+
         <button className="manage-activity-btn">Manage All Activity</button>
       </div>
 

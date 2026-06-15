@@ -88,7 +88,7 @@ const ProductManagement = () => {
             <ChevronDown size={14} className="select-icon" />
           </div>
         </div>
-        
+
         <div className="filter-item">
           <label>STOCK STATUS</label>
           <div className="filter-select-wrapper">
@@ -98,7 +98,7 @@ const ProductManagement = () => {
             <ChevronDown size={14} className="select-icon" />
           </div>
         </div>
-        
+
         <div className="filter-item">
           <label>PRICE RANGE</label>
           <div className="filter-select-wrapper">
@@ -108,7 +108,7 @@ const ProductManagement = () => {
             <ChevronDown size={14} className="select-icon" />
           </div>
         </div>
-        
+
         <div className="filter-item">
           <label>COMPLIANCE STATUS</label>
           <div className="filter-select-wrapper">
@@ -153,7 +153,7 @@ const ProductManagement = () => {
               const CompIcon = product.complianceIcon;
               const stockPercent = (product.stock / product.stockTotal) * 100;
               const stockColor = stockPercent < 20 ? 'var(--danger)' : 'var(--success)';
-              
+
               return (
                 <tr key={product.id} className="product-row" onClick={() => navigate('/products/details')}>
                   <td className="checkbox-col" onClick={(e) => e.stopPropagation()}><input type="checkbox" /></td>

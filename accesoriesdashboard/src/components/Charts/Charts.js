@@ -10,7 +10,7 @@ const areaData = [
   { name: 'MAY', value: 800 },
   { name: 'JUN', value: 400 },
   { name: 'JUL', value: 850 },
-  { name: 'AUG', value: null } // Placeholder to extend x-axis
+  { name: 'AUG', value: null } 
 ];
 
 const barData = [
@@ -26,8 +26,7 @@ const barData = [
 const Charts = () => {
   return (
     <div className="charts-container">
-      
-      {/* Monthly Revenue Performance */}
+
       <div className="revenue-chart-card card">
         <div className="chart-header-row">
           <div>
@@ -39,7 +38,7 @@ const Charts = () => {
             <span className="chart-tab">VOLUME</span>
           </div>
         </div>
-        
+
         <div className="revenue-chart-wrapper">
           <ResponsiveContainer width="100%" height="100%">
             <AreaChart data={areaData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
@@ -69,7 +68,6 @@ const Charts = () => {
         </div>
       </div>
 
-      {/* Store Traffic */}
       <div className="traffic-chart-card">
         <div className="traffic-header">
           <h2 className="traffic-title">Store Traffic</h2>

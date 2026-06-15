@@ -17,8 +17,7 @@ function App() {
           <Route path="/" element={<AccessoriesLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<AccessoriesDashboard />} />
-            
-            {/* Placeholder routes for the new pages */}
+
             <Route path="products" element={<ProductManagement />} />
             <Route path="products/add" element={<AddProduct />} />
             <Route path="products/details" element={<ProductDetails />} />

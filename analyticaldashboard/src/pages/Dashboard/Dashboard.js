@@ -16,7 +16,7 @@ const Dashboard = () => {
       <div className="main-content">
         <Header />
         <main className="dashboard-content">
-          {/* Dashboard Header */}
+
           <div className="dashboard-header">
             <div>
               <h1 className="dashboard-title">Analytics Dashboard</h1>
@@ -43,12 +43,10 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Stat Cards Row */}
           <div className="stat-cards-row">
             <StatCards />
           </div>
 
-          {/* Main Grid Layout */}
           <div className="dashboard-grid">
             <div className="grid-left">
               <div className="chart-container">
@@ -58,7 +56,7 @@ const Dashboard = () => {
                 <RecentRegistrations />
               </div>
             </div>
-            
+
             <div className="grid-right">
               <div className="revenue-container">
                 <RevenueCategory />

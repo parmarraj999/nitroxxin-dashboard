@@ -38,7 +38,6 @@
   align-items: start;
 }
 
-/* Left Column */
 .left-column {
   display: flex;
   flex-direction: column;
@@ -91,7 +90,7 @@
   flex: 1;
   padding-bottom: 32px;
   border-left: 2px solid var(--border-color);
-  margin-left: -11px; /* Align line with centers of markers */
+  margin-left: -11px; 
   padding-left: 24px;
 }
 
@@ -128,7 +127,6 @@
   color: var(--text-muted);
 }
 
-/* Items Purchased */
 .items-list {
   display: flex;
   flex-direction: column;
@@ -217,7 +215,6 @@
   font-weight: 700;
 }
 
-/* Right Column Card Styles */
 .right-column {
   display: flex;
   flex-direction: column;

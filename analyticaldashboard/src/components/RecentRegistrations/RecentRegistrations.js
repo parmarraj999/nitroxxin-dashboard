@@ -1,12 +1,13 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import './RecentRegistrations.css';
 
 const registrations = [
   {
     id: 1,
     initials: 'JD',
-    avatarBg: '#dbeafe', // light blue
-    avatarColor: '#2563eb', // blue
+    avatarBg: '#dbeafe', 
+    avatarColor: '#2563eb', 
     name: 'James Dalton',
     event: 'Midnight Skyline Run',
     status: 'CONFIRMED',
@@ -17,8 +18,8 @@ const registrations = [
   {
     id: 2,
     initials: 'SK',
-    avatarBg: '#ffedd5', // light orange
-    avatarColor: '#ea580c', // orange
+    avatarBg: '#ffedd5', 
+    avatarColor: '#ea580c', 
     name: 'Sarah K.',
     event: 'Desert Storm Trail',
     status: 'PENDING',
@@ -45,7 +46,7 @@ const RecentRegistrations = () => {
     <div className="recent-registrations-card card">
       <div className="recent-header">
         <h2 className="card-title">Recent Registrations</h2>
-        <a href="#" className="view-all-link">View All</a>
+        <Link to="/tickets" className="view-all-link">View All</Link>
       </div>
 
       <div className="table-container">

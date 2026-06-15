@@ -76,7 +76,7 @@
 
 .nav-item.active {
   color: var(--text-main);
-  background-color: #f3f4f6; /* light gray active state like in screenshot */
+  background-color: #f3f4f6; 
 }
 
 .nav-item.active::before {
@@ -112,7 +112,7 @@
 }
 
 .add-product-btn {
-  background-color: var(--text-main); /* dark grey/black */
+  background-color: var(--text-main); 
   color: white;
   display: flex;
   align-items: center;

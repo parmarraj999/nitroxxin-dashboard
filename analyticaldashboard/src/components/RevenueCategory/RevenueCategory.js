@@ -3,15 +3,15 @@ import './RevenueCategory.css';
 
 const RevenueCategory = () => {
   const categories = [
-    { name: 'Night Rides', value: '$34.2k', progress: 85, color: '#f97316' }, // orange
-    { name: 'Adventure Tours', value: '$28.9k', progress: 65, color: '#2563eb' }, // blue
-    { name: 'Workshops', value: '$21.1k', progress: 45, color: '#c2410c' }, // dark orange
+    { name: 'Night Rides', value: '$34.2k', progress: 85, color: '#f97316' }, 
+    { name: 'Adventure Tours', value: '$28.9k', progress: 65, color: '#2563eb' }, 
+    { name: 'Workshops', value: '$21.1k', progress: 45, color: '#c2410c' }, 
   ];
 
   return (
     <div className="revenue-category-card card">
       <h2 className="card-title" style={{ marginBottom: '24px' }}>Revenue by Category</h2>
-      
+
       <div className="categories-list">
         {categories.map((category, index) => (
           <div key={index} className="category-item">

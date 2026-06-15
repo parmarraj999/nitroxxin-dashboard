@@ -3,7 +3,7 @@
   max-width: 1600px;
   margin: 0 auto;
   width: 100%;
-  position: relative; /* For FAB */
+  position: relative; 
 }
 
 .page-header {
@@ -71,7 +71,6 @@
   background-color: var(--primary-orange-hover);
 }
 
-/* Tabs */
 .tabs-container {
   display: flex;
   gap: 32px;
@@ -120,7 +119,6 @@
   font-weight: 700;
 }
 
-/* Filter Bar */
 .filter-bar {
   display: flex;
   justify-content: space-between;
@@ -196,7 +194,7 @@
 }
 
 .apply-filter-btn {
-  background-color: #374151; /* dark gray */
+  background-color: #374151; 
   color: white;
   padding: 10px 24px;
   border-radius: var(--radius-md);
@@ -208,4 +206,3 @@
 .apply-filter-btn:hover {
   background-color: #1f2937;
 }
-

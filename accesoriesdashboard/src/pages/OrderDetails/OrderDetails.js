@@ -36,9 +36,9 @@ const OrderDetails = () => {
       </div>
 
       <div className="details-layout">
-        {/* Left Column: Timeline and Items */}
+
         <div className="left-column">
-          {/* Order Timeline */}
+
           <div className="timeline-card card">
             <h3 className="section-title">Order Timeline</h3>
             <div className="timeline-steps">
@@ -95,7 +95,6 @@ const OrderDetails = () => {
             </div>
           </div>
 
-          {/* Items Purchased */}
           <div className="items-purchased-card card">
             <h3 className="section-title" style={{ marginBottom: '20px' }}>Items Purchased</h3>
             <div className="items-list">
@@ -149,9 +148,8 @@ const OrderDetails = () => {
           </div>
         </div>
 
-        {/* Right Column: Customer Info & Payment */}
         <div className="right-column">
-          {/* Customer Details */}
+
           <div className="customer-details-card card">
             <h3 className="section-title">Customer Details</h3>
             <div className="customer-info-section">
@@ -162,7 +160,7 @@ const OrderDetails = () => {
                   <p>Customer ID: #C-49021</p>
                 </div>
               </div>
-              
+
               <div className="contact-list">
                 <div className="contact-item">
                   <Mail size={16} className="text-muted" />
@@ -176,7 +174,6 @@ const OrderDetails = () => {
             </div>
           </div>
 
-          {/* Shipping Address */}
           <div className="shipping-address-card card">
             <h3 className="section-title">Shipping Address</h3>
             <div className="address-section">
@@ -190,7 +187,6 @@ const OrderDetails = () => {
             </div>
           </div>
 
-          {/* Payment Details */}
           <div className="payment-details-card card">
             <h3 className="section-title">Payment Summary</h3>
             <div className="payment-section">

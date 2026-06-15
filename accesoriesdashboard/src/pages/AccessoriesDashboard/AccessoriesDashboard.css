@@ -1,5 +1,3 @@
-
-
 .dashboard-header {
   display: flex;
   justify-content: space-between;
@@ -69,7 +67,6 @@
   height: 16px;
 }
 
-/* Card base styles used across the dashboard */
 .card {
   background-color: var(--bg-card);
   border-radius: var(--radius-lg);
@@ -78,7 +75,6 @@
   box-shadow: var(--shadow-sm);
 }
 
-/* Layout spacing */
 .stats-row {
   margin-bottom: 24px;
 }

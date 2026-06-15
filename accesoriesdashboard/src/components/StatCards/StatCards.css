@@ -36,7 +36,7 @@
 
 .badge-success {
   background-color: var(--success-light);
-  color: #047857; /* dark green */
+  color: #047857; 
 }
 
 .stat-value-large {

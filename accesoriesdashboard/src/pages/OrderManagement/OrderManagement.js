@@ -78,7 +78,7 @@ const OrderManagement = () => {
       </div>
 
       <div className="orders-container card">
-        {/* Tabs */}
+
         <div className="table-tabs">
           <span className="tab active">All Orders (1,284)</span>
           <span className="tab">Pending (42)</span>
@@ -88,7 +88,6 @@ const OrderManagement = () => {
           <span className="tab">Returned (4)</span>
         </div>
 
-        {/* Filters */}
         <div className="orders-filters">
           <div className="filter-group-left">
             <div className="filter-select-wrapper">
@@ -101,14 +100,13 @@ const OrderManagement = () => {
             </div>
             <button className="export-btn" style={{padding: '10px'}}><Filter size={16} /> More Filters</button>
           </div>
-          
+
           <div className="search-wrapper">
             <Search size={16} className="search-icon-small" />
             <input type="text" placeholder="Search by Order ID, Customer..." />
           </div>
         </div>
 
-        {/* Table */}
         <div className="table-responsive">
           <table className="orders-table">
             <thead>
@@ -167,14 +165,12 @@ const OrderManagement = () => {
             </tbody>
           </table>
         </div>
-        
-        {/* Pagination placeholder */}
+
         <div className="pagination-footer">
           <span className="showing-text">Showing 1-10 of 1,284 orders</span>
         </div>
       </div>
 
-      {/* Metrics Footer */}
       <div className="order-metrics-grid">
         <div className="metric-card card">
           <h4 className="metric-title">FULFILLMENT SPEED</h4>

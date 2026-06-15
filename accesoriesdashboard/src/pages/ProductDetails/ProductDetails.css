@@ -25,7 +25,6 @@
   align-items: start;
 }
 
-/* Left Column */
 .left-column {
   display: flex;
   flex-direction: column;
@@ -237,7 +236,6 @@
 
 .mb-2 { margin-bottom: 8px; }
 
-/* Right Column */
 .product-buy-card {
   position: sticky;
   top: 100px;

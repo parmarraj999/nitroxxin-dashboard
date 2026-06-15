@@ -17,8 +17,7 @@ const AddProduct = () => {
       </div>
 
       <div className="add-product-layout">
-        
-        {/* Left Navigation Steps */}
+
         <div className="form-sidebar">
           <div className="step-item active">
             <div className="step-icon"><CheckCircle2 size={16} /></div>
@@ -50,16 +49,14 @@ const AddProduct = () => {
           </div>
         </div>
 
-        {/* Form Content */}
         <div className="form-content">
-          
-          {/* Section 1: Product Identity */}
+
           <div className="form-section card">
             <div className="section-header">
               <h3>1. Product Identity</h3>
               <span className="required-text">*Required</span>
             </div>
-            
+
             <div className="form-group">
               <label>Product Title *</label>
               <input type="text" placeholder="e.g. Apex V3 Carbon Aero Helmet" />
@@ -90,7 +87,7 @@ const AddProduct = () => {
             <div className="form-group">
               <div className="label-flex">
                 <label>Item Description *</label>
-                <span className="ai-assist"><SparklesIcon /> Generate with AI</span>
+                <span className="auto-assist"><SparklesIcon /> Auto-generate</span>
               </div>
               <div className="wysiwyg-editor">
                 <div className="wysiwyg-toolbar">
@@ -101,12 +98,11 @@ const AddProduct = () => {
             </div>
           </div>
 
-          {/* Section 2: Pricing & Dimensions */}
           <div className="form-section card">
             <div className="section-header">
               <h3>2. Pricing & Dimensions</h3>
             </div>
-            
+
             <div className="form-row">
               <div className="form-group">
                 <label>Pricing (Retail) *</label>
@@ -130,7 +126,6 @@ const AddProduct = () => {
             </div>
           </div>
 
-          {/* Section 3: Safety & Compliance */}
           <div className="form-section card">
             <div className="section-header">
               <h3>3. Safety & Compliance</h3>
@@ -164,7 +159,6 @@ const AddProduct = () => {
             </div>
           </div>
 
-          {/* Section 4: Media Assets */}
           <div className="form-section card">
             <div className="section-header">
               <h3>4. Media Assets</h3>

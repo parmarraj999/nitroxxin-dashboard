@@ -4,7 +4,6 @@
   gap: 24px;
 }
 
-/* Common Header */
 .card-header-flex {
   display: flex;
   justify-content: space-between;
@@ -22,7 +21,6 @@
   text-decoration: underline;
 }
 
-/* Gear Table */
 .top-gear-card {
   padding: 24px 0;
 }
@@ -100,7 +98,6 @@
   font-weight: 700;
 }
 
-/* Recent Orders Timeline */
 .recent-orders-card {
   display: flex;
   flex-direction: column;

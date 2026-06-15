@@ -24,7 +24,7 @@ const activities = [
   {
     id: 3,
     icon: Edit3,
-    iconBg: '#ffedd5', // brown tint based on image
+    iconBg: '#ffedd5', 
     iconColor: '#c2410c',
     text: 'Event updated:',
     highlight: 'Alpine Route.',

@@ -93,7 +93,7 @@
 
 .status-success {
   background-color: var(--success-light);
-  color: #047857; /* dark green */
+  color: #047857; 
   border: 1px solid #a7f3d0;
 }
 

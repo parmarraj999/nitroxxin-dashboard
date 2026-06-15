@@ -43,12 +43,12 @@
 
 .badge-warning {
   background-color: var(--warning-light);
-  color: #c2410c; /* dark orange */
+  color: #c2410c; 
 }
 
 .badge-success {
   background-color: var(--success-light);
-  color: #047857; /* dark green */
+  color: #047857; 
 }
 
 .badge-neutral {

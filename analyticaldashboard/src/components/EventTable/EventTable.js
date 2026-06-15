@@ -5,11 +5,11 @@ import './EventTable.css';
 const eventsData = [
   {
     id: 'NX-4902',
-    bannerColor: '#1e293b', // Dark background placeholder
+    bannerColor: '#1e293b', 
     title: 'Midnight City Run',
     organizerInitials: 'SM',
-    organizerColor: '#dbeafe', // light blue
-    organizerText: '#2563eb', // blue
+    organizerColor: '#dbeafe', 
+    organizerText: '#2563eb', 
     organizerName: 'Shadow Moto Club',
     category: 'Night Ride',
     city: 'Tokyo, JP',
@@ -21,8 +21,8 @@ const eventsData = [
     bannerColor: '#475569',
     title: 'Rocky Ridge Pursuit',
     organizerInitials: 'AA',
-    organizerColor: '#e0e7ff', // light indigo
-    organizerText: '#4f46e5', // indigo
+    organizerColor: '#e0e7ff', 
+    organizerText: '#4f46e5', 
     organizerName: 'Apex Adventures',
     category: 'Cross Country',
     city: 'Denver, USA',
@@ -34,8 +34,8 @@ const eventsData = [
     bannerColor: '#334155',
     title: 'Redline Sprint Qualifiers',
     organizerInitials: 'RT',
-    organizerColor: '#ffedd5', // light orange
-    organizerText: '#ea580c', // orange
+    organizerColor: '#ffedd5', 
+    organizerText: '#ea580c', 
     organizerName: 'Redline Tracks',
     category: 'Race Day',
     city: 'Monza, IT',
@@ -108,13 +108,13 @@ const EventTable = () => {
                 <span className="status-badge-pending">{event.status}</span>
               </td>
               <td>
-                {/* Actions column empty in design */}
+
               </td>
             </tr>
           ))}
         </tbody>
       </table>
-      
+
       <div className="table-footer">
         <span className="showing-text">Showing 1-4 of 12 pending events</span>
         <div className="pagination-controls">

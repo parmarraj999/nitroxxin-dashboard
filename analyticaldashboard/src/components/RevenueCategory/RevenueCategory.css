@@ -48,8 +48,8 @@
 }
 
 .revenue-insight {
-  background-color: #f5f8ff; /* very light blue */
-  border: 1px dashed #c3d2f9; /* light blue border */
+  background-color: #f5f8ff; 
+  border: 1px dashed #c3d2f9; 
   border-radius: var(--radius-md);
   padding: 16px;
   margin-top: auto;

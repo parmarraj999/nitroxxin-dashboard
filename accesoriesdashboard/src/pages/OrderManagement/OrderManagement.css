@@ -119,8 +119,8 @@
 }
 
 .status-ready {
-  background-color: #e0e7ff; /* indigo light */
-  color: #4f46e5; /* indigo */
+  background-color: #e0e7ff; 
+  color: #4f46e5; 
 }
 
 .row-actions-text {
@@ -149,7 +149,6 @@
   align-items: center;
 }
 
-/* Metrics Footer */
 .order-metrics-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

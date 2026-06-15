@@ -19,7 +19,7 @@ const Header = () => {
           <span className="status-dot"></span>
           <span className="status-text">Online</span>
         </div>
-        
+
         <div className="icon-group">
           <button className="action-btn">
             <Bell size={20} />
@@ -31,7 +31,7 @@ const Header = () => {
             <Moon size={20} />
           </button>
         </div>
-        
+
         <div className="header-profile">
           <div className="header-profile-info">
             <h4>Alex Nitro</h4>
