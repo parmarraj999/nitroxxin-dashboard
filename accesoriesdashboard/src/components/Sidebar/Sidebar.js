@@ -1,4 +1,5 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   Package, 
@@ -14,12 +15,12 @@ import './Sidebar.css';
 
 const Sidebar = () => {
   const mainNav = [
-    { icon: LayoutDashboard, label: 'Dashboard', active: true },
-    { icon: Package, label: 'Products' },
-    { icon: ShoppingCart, label: 'Orders' },
-    { icon: ClipboardList, label: 'Inventory' },
-    { icon: Truck, label: 'Shipping' },
-    { icon: BarChart2, label: 'Analytics' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: Package, label: 'Products', path: '/products' },
+    { icon: ShoppingCart, label: 'Orders', path: '/orders' },
+    { icon: ClipboardList, label: 'Inventory', path: '/inventory' },
+    { icon: Truck, label: 'Shipping', path: '/shipping' },
+    { icon: BarChart2, label: 'Analytics', path: '/analytics' },
   ];
 
   const adminNav = [
@@ -51,9 +52,14 @@ const Sidebar = () => {
             {mainNav.map((item, index) => {
               const Icon = item.icon;
               return (
-                <li key={index} className={`nav-item ${item.active ? 'active' : ''}`}>
-                  <Icon className="nav-icon" size={20} />
-                  <span>{item.label}</span>
+                <li key={index}>
+                  <NavLink 
+                    to={item.path} 
+                    className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                  >
+                    <Icon className="nav-icon" size={20} />
+                    <span>{item.label}</span>
+                  </NavLink>
                 </li>
               );
             })}

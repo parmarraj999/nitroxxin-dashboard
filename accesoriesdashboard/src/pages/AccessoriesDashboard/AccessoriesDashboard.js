@@ -1,6 +1,4 @@
 import React from 'react';
-import Sidebar from '../../components/Sidebar/Sidebar';
-import Header from '../../components/Header/Header';
 import StatCards from '../../components/StatCards/StatCards';
 import Charts from '../../components/Charts/Charts';
 import MiddleRow from '../../components/MiddleRow/MiddleRow';
@@ -9,14 +7,9 @@ import './AccessoriesDashboard.css';
 
 const AccessoriesDashboard = () => {
   return (
-    <div className="accessories-layout">
-      <Sidebar />
-      <div className="main-content">
-        <Header />
-        
-        <main className="dashboard-content">
-          {/* Header section */}
-          <div className="dashboard-header">
+    <div className="dashboard-home">
+      {/* Header section */}
+      <div className="dashboard-header">
             <div>
               <h1 className="dashboard-title">Good morning, Nitroxx Moto Gear.</h1>
               <p className="dashboard-subtitle">
@@ -50,11 +43,9 @@ const AccessoriesDashboard = () => {
             <MiddleRow />
           </div>
 
-          {/* Bottom Row (Widgets) */}
-          <div className="bottom-row">
-            <BottomRow />
-          </div>
-        </main>
+      {/* Bottom Row (Widgets) */}
+      <div className="bottom-row">
+        <BottomRow />
       </div>
     </div>
   );
