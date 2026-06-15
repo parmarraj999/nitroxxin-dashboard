@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 import { Check, Truck, Hourglass } from 'lucide-react';
 import './MiddleRow.css';
 
@@ -73,7 +74,7 @@ const MiddleRow = () => {
       <div className="top-gear-card card">
         <div className="card-header-flex">
           <h2 className="card-title">Top Performing Gear</h2>
-          <a href="#" className="view-all-link">View All Products</a>
+          <Link to="/products" className="view-all-link">View All Products</Link>
         </div>
         
         <div className="table-responsive">

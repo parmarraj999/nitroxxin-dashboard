@@ -2,6 +2,11 @@ import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AccessoriesLayout from './components/AccessoriesLayout/AccessoriesLayout';
 import AccessoriesDashboard from './pages/AccessoriesDashboard/AccessoriesDashboard';
+import ProductManagement from './pages/ProductManagement/ProductManagement';
+import AddProduct from './pages/AddProduct/AddProduct';
+import ProductDetails from './pages/ProductDetails/ProductDetails';
+import OrderManagement from './pages/OrderManagement/OrderManagement';
+import OrderDetails from './pages/OrderDetails/OrderDetails';
 import './App.css';
 
 function App() {
@@ -14,11 +19,11 @@ function App() {
             <Route path="dashboard" element={<AccessoriesDashboard />} />
             
             {/* Placeholder routes for the new pages */}
-            <Route path="products" element={<div style={{padding: '32px'}}>Product Management (WIP)</div>} />
-            <Route path="products/add" element={<div style={{padding: '32px'}}>Add Product (WIP)</div>} />
-            <Route path="products/details" element={<div style={{padding: '32px'}}>Product Details (WIP)</div>} />
-            <Route path="orders" element={<div style={{padding: '32px'}}>Order Management (WIP)</div>} />
-            <Route path="orders/details" element={<div style={{padding: '32px'}}>Order Details (WIP)</div>} />
+            <Route path="products" element={<ProductManagement />} />
+            <Route path="products/add" element={<AddProduct />} />
+            <Route path="products/details" element={<ProductDetails />} />
+            <Route path="orders" element={<OrderManagement />} />
+            <Route path="orders/details" element={<OrderDetails />} />
           </Route>
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, Plus, AlertTriangle, Search, ChevronDown, CheckCircle2, XCircle, MoreVertical, Edit2, Trash2 } from 'lucide-react';
+import { Upload, Plus, AlertTriangle, Search, ChevronDown, CheckCircle2, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import './ProductManagement.css';
 

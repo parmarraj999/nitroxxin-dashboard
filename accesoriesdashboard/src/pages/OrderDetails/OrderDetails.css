@@ -1,0 +1,323 @@
+.order-details-page {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.back-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  transition: color 0.2s ease;
+  align-self: flex-start;
+}
+
+.back-btn:hover {
+  color: var(--text-main);
+}
+
+.order-title-section {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.details-layout {
+  display: grid;
+  grid-template-columns: 1fr 350px;
+  gap: 32px;
+  align-items: start;
+}
+
+/* Left Column */
+.left-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.timeline-steps {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  margin-top: 16px;
+}
+
+.timeline-step {
+  display: flex;
+  gap: 24px;
+}
+
+.step-marker {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 20px;
+}
+
+.step-marker svg {
+  z-index: 2;
+  background-color: white;
+}
+
+.timeline-step.completed .step-marker svg {
+  color: var(--success);
+}
+
+.timeline-step.pending .step-marker svg {
+  color: var(--text-light);
+}
+
+.active-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background-color: var(--primary-orange);
+  box-shadow: 0 0 0 4px var(--primary-orange-light);
+  z-index: 2;
+  margin-top: 4px;
+}
+
+.step-info {
+  flex: 1;
+  padding-bottom: 32px;
+  border-left: 2px solid var(--border-color);
+  margin-left: -11px; /* Align line with centers of markers */
+  padding-left: 24px;
+}
+
+.timeline-step:last-child .step-info {
+  border-left: none;
+  padding-bottom: 0;
+}
+
+.step-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+
+.step-header h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.timeline-step.pending .step-header h4 {
+  color: var(--text-muted);
+}
+
+.step-time {
+  font-size: 0.75rem;
+  color: var(--text-light);
+  font-weight: 500;
+}
+
+.step-desc {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* Items Purchased */
+.items-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.purchased-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.item-details-flex {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+}
+
+.item-img-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-sm);
+}
+
+.item-info h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.item-info p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.item-price-qty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.item-qty {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.item-total-price {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.order-totals-summary {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background-color: var(--bg-body);
+  padding: 24px;
+  border-radius: var(--radius-md);
+}
+
+.totals-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.totals-row.grand-total {
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+  margin-top: 4px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.text-success-bold {
+  color: var(--success);
+  font-weight: 700;
+}
+
+/* Right Column Card Styles */
+.right-column {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.customer-meta {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--primary-orange-light);
+  color: var(--primary-orange);
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.customer-meta h4 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.customer-meta p {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.contact-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.contact-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.85rem;
+  color: var(--text-main);
+  font-weight: 500;
+}
+
+.address-section {
+  display: flex;
+  gap: 12px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.recipient-name {
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 4px;
+}
+
+.payment-section {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.payment-method-title {
+  font-weight: 700;
+  color: var(--text-main);
+  font-size: 0.9rem;
+}
+
+.payment-card-desc {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.payment-status-flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid var(--border-color);
+  padding-top: 16px;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+
+.payment-status-badge {
+  background-color: var(--success-light);
+  color: var(--success);
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 4px 12px;
+  border-radius: var(--radius-sm);
+}

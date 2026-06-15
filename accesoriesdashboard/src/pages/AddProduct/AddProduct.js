@@ -1,5 +1,5 @@
 import React from 'react';
-import { Upload, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { Upload, CheckCircle2 } from 'lucide-react';
 import './AddProduct.css';
 
 const AddProduct = () => {
