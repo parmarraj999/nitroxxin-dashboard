@@ -109,3 +109,18 @@
   border-radius: 50%;
   object-fit: cover;
 }
+
+.header-quick-create-btn {
+  background-color: var(--primary-blue);
+  color: white;
+  padding: 10px 24px;
+  border-radius: var(--radius-sm);
+  font-weight: 600;
+  font-size: 0.95rem;
+  margin-left: 12px;
+  transition: background-color 0.2s ease;
+}
+
+.header-quick-create-btn:hover {
+  background-color: var(--primary-blue-hover);
+}

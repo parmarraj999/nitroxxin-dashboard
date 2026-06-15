@@ -1,4 +1,5 @@
 import React from 'react';
+import { NavLink } from 'react-router-dom';
 import { 
   LayoutDashboard, 
   CalendarDays, 
@@ -13,12 +14,12 @@ import './Sidebar.css';
 
 const Sidebar = () => {
   const menuItems = [
-    { icon: LayoutDashboard, label: 'Dashboard', active: true },
-    { icon: CalendarDays, label: 'Event management' },
-    { icon: Users, label: 'Event Host Detail' },
-    { icon: Ticket, label: 'Tickets' },
-    { icon: CreditCard, label: 'Payments' },
-    { icon: FileText, label: 'Reports' },
+    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+    { icon: CalendarDays, label: 'Event management', path: '/events' },
+    { icon: Users, label: 'Event Host Detail', path: '/hosts' },
+    { icon: Ticket, label: 'Tickets', path: '/tickets' },
+    { icon: CreditCard, label: 'Payments', path: '/payments' },
+    { icon: FileText, label: 'Reports', path: '/reports' },
   ];
 
   return (
@@ -42,9 +43,14 @@ const Sidebar = () => {
           {menuItems.map((item, index) => {
             const Icon = item.icon;
             return (
-              <li key={index} className={`nav-item ${item.active ? 'active' : ''}`}>
-                <Icon className="nav-icon" size={20} />
-                <span>{item.label}</span>
+              <li key={index}>
+                <NavLink 
+                  to={item.path} 
+                  className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
+                >
+                  <Icon className="nav-icon" size={20} />
+                  <span>{item.label}</span>
+                </NavLink>
               </li>
             );
           })}
