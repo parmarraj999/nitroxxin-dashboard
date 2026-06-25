@@ -1,17 +1,28 @@
 import React from 'react';
 import { Star, Download, ChevronRight, Edit2, Share2, Heart, Shield, Truck, RotateCcw } from 'lucide-react';
+import { useNavigate, useParams } from 'react-router-dom';
+import { useProduct } from '../../hooks/useProducts';
 import './ProductDetails.css';
 
 const ProductDetails = () => {
+  const navigate = useNavigate();
+  const { productId } = useParams();
+  const { product } = useProduct(productId);
+  const title = product?.title || 'Apex V3 Carbon Aero';
+  const price = `$${Number(product?.pricing?.sellingPrice || 599).toFixed(2)}`;
+  const description = product?.fullDescription || 'The Apex V3 is the pinnacle of racing helmets. Engineered in the wind tunnel and tested on the track, it offers unmatched aerodynamics, ventilation, and safety in a stunning 3K carbon shell.';
+  const mediaUrl = product?.media?.primaryImage;
+  const stock = Number(product?.inventory?.stockQuantity || 4);
+
   return (
     <div className="product-details-page">
       <div className="page-header">
         <div className="breadcrumb">
-          <span>Products</span> <ChevronRight size={14} /> <span>Full Face Helmets</span> <ChevronRight size={14} /> <span className="current">Apex V3 Carbon Aero</span>
+          <span>Products</span> <ChevronRight size={14} /> <span>{product?.category || 'Full Face Helmets'}</span> <ChevronRight size={14} /> <span className="current">{title}</span>
         </div>
         <div className="header-actions-main">
           <button className="export-btn"><Share2 size={16} /> Share</button>
-          <button className="quick-add-btn"><Edit2 size={16} /> Edit Product</button>
+          <button className="quick-add-btn" onClick={() => navigate(`/products/edit/${productId || ''}`)}><Edit2 size={16} /> Edit Product</button>
         </div>
       </div>
 
@@ -20,14 +31,18 @@ const ProductDetails = () => {
         <div className="left-column">
 
           <div className="product-gallery">
-            <div className="main-image dark">
+            <div className="main-image dark" style={{ backgroundImage: mediaUrl ? `url(${mediaUrl})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' }}>
               <span className="view-badge">360° VIEW</span>
             </div>
             <div className="thumbnail-list">
-              <div className="thumbnail dark active"></div>
-              <div className="thumbnail dark"></div>
-              <div className="thumbnail dark"></div>
-              <div className="thumbnail-more">+4 more</div>
+              {mediaUrl ? (
+                <div className="thumbnail dark active" style={{ backgroundImage: `url(${mediaUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+              ) : (
+                <div className="thumbnail dark active"></div>
+              )}
+              {product?.media?.galleryImages?.map((url, i) => (
+                <div className="thumbnail dark" key={i} style={{ backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
+              ))}
             </div>
           </div>
 
@@ -39,21 +54,48 @@ const ProductDetails = () => {
             </div>
 
             <div className="specs-content">
-              <div className="spec-row">
-                <span className="spec-label">Outer Shell</span>
-                <span className="spec-value">3K Carbon Fiber</span>
-              </div>
-              <div className="spec-row">
-                <span className="spec-label">Inner Liner</span>
-                <span className="spec-value">Multi-density EPS</span>
-              </div>
+              {product?.brand && (
+                <div className="spec-row">
+                  <span className="spec-label">Brand</span>
+                  <span className="spec-value">{product.brand}</span>
+                </div>
+              )}
+              {product?.category && (
+                <div className="spec-row">
+                  <span className="spec-label">Category</span>
+                  <span className="spec-value">{product.category}</span>
+                </div>
+              )}
+              {product?.sku && (
+                <div className="spec-row">
+                  <span className="spec-label">SKU</span>
+                  <span className="spec-value">{product.sku}</span>
+                </div>
+              )}
+              {product?.weight && (
+                <div className="spec-row">
+                  <span className="spec-label">Weight</span>
+                  <span className="spec-value">{product.weight}</span>
+                </div>
+              )}
+              {product?.attributes && Object.entries(product.attributes).map(([key, val]) => {
+                if (key === 'supportedAttributes' || !val) return null;
+                const label = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+                return (
+                  <div className="spec-row" key={key}>
+                    <span className="spec-label">{label}</span>
+                    <span className="spec-value">{String(val)}</span>
+                  </div>
+                );
+              })}
               <div className="spec-row">
                 <span className="spec-label">Certifications</span>
-                <span className="spec-value">DOT, ECE 22.06, SNELL</span>
-              </div>
-              <div className="spec-row">
-                <span className="spec-label">Weight</span>
-                <span className="spec-value">1350g ± 50g (Size M)</span>
+                <span className="spec-value">
+                  {Object.entries(product?.safety || {})
+                    .filter(([, enabled]) => enabled)
+                    .map(([key]) => key)
+                    .join(', ') || 'N/A'}
+                </span>
               </div>
             </div>
 
@@ -71,7 +113,7 @@ const ProductDetails = () => {
                   <div className="stars">
                     {[1,2,3,4,5].map(i => <Star key={i} size={14} fill="var(--warning)" color="var(--warning)" />)}
                   </div>
-                  <span>4.8 / 5.0 (124 reviews)</span>
+                  <span>{Number(product?.averageRating || 4.8).toFixed(1)} / 5.0 ({product?.reviewCount || 124} reviews)</span>
                 </div>
               </div>
               <button className="view-all-link" style={{background: 'none', border: 'none'}}>View All Reviews</button>
@@ -111,12 +153,12 @@ const ProductDetails = () => {
         <div className="right-column">
           <div className="product-buy-card card">
             <div className="title-price-flex">
-              <h1 className="product-title-large">Apex V3 Carbon Aero</h1>
-              <span className="product-price-large">$599.00</span>
+              <h1 className="product-title-large">{title}</h1>
+              <span className="product-price-large">{price}</span>
             </div>
 
             <p className="product-desc-text">
-              The Apex V3 is the pinnacle of racing helmets. Engineered in the wind tunnel and tested on the track, it offers unmatched aerodynamics, ventilation, and safety in a stunning 3K carbon shell.
+              {description}
             </p>
 
             <div className="options-section">
@@ -142,7 +184,7 @@ const ProductDetails = () => {
                 <div className="size-box">XL</div>
                 <div className="size-box">XXL</div>
               </div>
-              <p className="stock-warning">Only 4 units left in size L</p>
+              <p className="stock-warning">Only {stock} units left in size L</p>
             </div>
 
             <div className="action-buttons-stack">

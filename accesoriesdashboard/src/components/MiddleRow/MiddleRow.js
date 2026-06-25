@@ -3,70 +3,28 @@ import { Link } from 'react-router-dom';
 import { Check, Truck, Hourglass } from 'lucide-react';
 import './MiddleRow.css';
 
-const gearData = [
-  {
-    rank: '01',
-    name: 'Apex Carbon Pro Helmet',
-    sales: 245,
-    revenue: '$122,500',
-    growth: '+18%',
-    growthColor: 'var(--success)',
-    imgBg: '#1f2937' 
-  },
-  {
-    rank: '02',
-    name: 'Vantage Leather Armor Jacket',
-    sales: 189,
-    revenue: '$85,050',
-    growth: '+12%',
-    growthColor: 'var(--success)',
-    imgBg: '#374151'
-  },
-  {
-    rank: '03',
-    name: 'Torque-S Racing Gloves',
-    sales: 412,
-    revenue: '$41,200',
-    growth: '+5%',
+const MiddleRow = ({ analytics }) => {
+  const gearRows = analytics?.topProducts?.map((product, index) => ({
+    rank: String(index + 1).padStart(2, '0'),
+    name: product.name,
+    sales: product.sales,
+    revenue: `$${Number(product.revenue || 0).toLocaleString()}`,
+    growth: '+0%',
     growthColor: 'var(--primary-orange)',
-    imgBg: '#4b5563'
-  }
-];
+    imgBg: '#1f2937'
+  })) || [];
 
-const ordersData = [
-  {
-    id: '#88412',
-    product: 'Apex Carbon Pro x1',
-    status: 'DELIVERED',
-    statusClass: 'status-delivered',
-    time: '2m ago',
-    icon: Check,
-    iconBg: 'var(--success-light)',
-    iconColor: 'var(--success)'
-  },
-  {
-    id: '#88409',
-    product: 'Vantage Leather Jacket x2',
-    status: 'IN TRANSIT',
-    statusClass: 'status-transit',
-    time: '15m ago',
-    icon: Truck,
+  const orderRows = analytics?.orders?.slice(0, 3).map((order) => ({
+    id: `#${String(order.id).slice(0, 5)}`,
+    product: `${order.itemCount || 1} item(s)`,
+    status: String(order.status || 'pending').toUpperCase(),
+    statusClass: order.status === 'delivered' ? 'status-delivered' : order.status === 'shipped' ? 'status-transit' : 'status-pending',
+    time: 'recently',
+    icon: order.status === 'delivered' ? Check : order.status === 'shipped' ? Truck : Hourglass,
     iconBg: 'var(--primary-orange-light)',
     iconColor: 'var(--primary-orange)'
-  },
-  {
-    id: '#88405',
-    product: 'Torque-S Gloves x3',
-    status: 'PENDING',
-    statusClass: 'status-pending',
-    time: '1h ago',
-    icon: Hourglass,
-    iconBg: '#f3f4f6',
-    iconColor: '#6b7280'
-  }
-];
+  })) || [];
 
-const MiddleRow = () => {
   return (
     <div className="middle-row-container">
 
@@ -88,20 +46,28 @@ const MiddleRow = () => {
               </tr>
             </thead>
             <tbody>
-              {gearData.map((item, index) => (
-                <tr key={index}>
-                  <td className="rank-cell">{item.rank}</td>
-                  <td>
-                    <div className="product-cell">
-                      <div className="product-img-placeholder" style={{ backgroundColor: item.imgBg }}></div>
-                      <span className="product-name">{item.name}</span>
-                    </div>
+              {gearRows.length > 0 ? (
+                gearRows.map((item, index) => (
+                  <tr key={index}>
+                    <td className="rank-cell">{item.rank}</td>
+                    <td>
+                      <div className="product-cell">
+                        <div className="product-img-placeholder" style={{ backgroundColor: item.imgBg }}></div>
+                        <span className="product-name">{item.name}</span>
+                      </div>
+                    </td>
+                    <td className="sales-cell">{item.sales}</td>
+                    <td className="revenue-cell">{item.revenue}</td>
+                    <td className="growth-cell" style={{ color: item.growthColor }}>{item.growth}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan="5" className="revenue-cell" style={{ textAlign: 'center', padding: '24px 0', fontStyle: 'italic', color: 'var(--text-light)' }}>
+                    No products sold yet.
                   </td>
-                  <td className="sales-cell">{item.sales}</td>
-                  <td className="revenue-cell">{item.revenue}</td>
-                  <td className="growth-cell" style={{ color: item.growthColor }}>{item.growth}</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>
@@ -111,32 +77,40 @@ const MiddleRow = () => {
         <h2 className="card-title" style={{ marginBottom: '24px' }}>Recent Orders</h2>
 
         <div className="orders-timeline">
-          {ordersData.map((order, index) => {
-            const Icon = order.icon;
-            return (
-              <div key={index} className="order-item">
-                <div className="order-icon-col">
-                  <div className="order-icon" style={{ backgroundColor: order.iconBg, color: order.iconColor }}>
-                    <Icon size={16} />
+          {orderRows.length > 0 ? (
+            orderRows.map((order, index) => {
+              const Icon = order.icon;
+              return (
+                <div key={index} className="order-item">
+                  <div className="order-icon-col">
+                    <div className="order-icon" style={{ backgroundColor: order.iconBg, color: order.iconColor }}>
+                      <Icon size={16} />
+                    </div>
+                    {index !== orderRows.length - 1 && <div className="order-line"></div>}
                   </div>
-                  {index !== ordersData.length - 1 && <div className="order-line"></div>}
-                </div>
-                <div className="order-content">
-                  <div className="order-header">
-                    <span className="order-id">Order {order.id}</span>
-                    <span className="order-time">{order.time}</span>
+                  <div className="order-content">
+                    <div className="order-header">
+                      <span className="order-id">Order {order.id}</span>
+                      <span className="order-time">{order.time}</span>
+                    </div>
+                    <p className="order-product">{order.product}</p>
+                    <span className={`order-status-badge ${order.statusClass}`}>
+                      {order.status}
+                    </span>
                   </div>
-                  <p className="order-product">{order.product}</p>
-                  <span className={`order-status-badge ${order.statusClass}`}>
-                    {order.status}
-                  </span>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })
+          ) : (
+            <p className="order-product" style={{ color: 'var(--text-light)', padding: '12px 0', fontStyle: 'italic' }}>
+              No recent activity.
+            </p>
+          )}
         </div>
 
-        <button className="manage-activity-btn">Manage All Activity</button>
+        <Link to="/orders" className="manage-activity-btn" style={{ textAlign: 'center', display: 'block', textDecoration: 'none' }}>
+          Manage All Activity
+        </Link>
       </div>
 
     </div>

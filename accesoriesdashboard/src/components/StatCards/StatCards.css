@@ -1,6 +1,6 @@
 .accessories-stats-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 24px;
 }
 
@@ -70,6 +70,9 @@
 
 .bg-red-light { background-color: var(--danger-light); }
 .text-red { color: var(--danger); }
+
+.bg-blue-light { background-color: #dbeafe; }
+.text-blue { color: #2563eb; }
 
 .stat-subtitle {
   font-size: 0.75rem;

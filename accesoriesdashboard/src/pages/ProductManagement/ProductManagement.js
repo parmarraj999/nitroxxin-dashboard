@@ -1,52 +1,32 @@
 import React from 'react';
 import { Upload, Plus, AlertTriangle, Search, ChevronDown, CheckCircle2, MoreVertical, Edit2, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useProducts } from '../../hooks/useProducts';
 import './ProductManagement.css';
-
-const products = [
-  {
-    id: 1,
-    image: '#1f2937',
-    name: 'Apex Carbon Pro Helmet',
-    sku: 'SKU: NX-HELM-001',
-    category: 'Helmets',
-    price: '$299.99',
-    stock: 124,
-    stockTotal: 150,
-    compliance: 'Verified',
-    complianceIcon: CheckCircle2,
-    complianceColor: 'var(--success)'
-  },
-  {
-    id: 2,
-    image: '#374151',
-    name: 'Vantage Leather Jacket',
-    sku: 'SKU: NX-JACK-042',
-    category: 'Jackets',
-    price: '$349.00',
-    stock: 12,
-    stockTotal: 100,
-    compliance: 'Pending Review',
-    complianceIcon: AlertTriangle,
-    complianceColor: 'var(--warning)'
-  },
-  {
-    id: 3,
-    image: '#4b5563',
-    name: 'Torque-S Racing Gloves',
-    sku: 'SKU: NX-GLOV-089',
-    category: 'Gloves',
-    price: '$89.50',
-    stock: 342,
-    stockTotal: 400,
-    compliance: 'Verified',
-    complianceIcon: CheckCircle2,
-    complianceColor: 'var(--success)'
-  }
-];
 
 const ProductManagement = () => {
   const navigate = useNavigate();
+  const { products, loading, deleteProduct, reload } = useProducts();
+  const rows = products.map((product) => ({
+    id: product.id,
+    image: product.media?.primaryImage || '#1f2937',
+    name: product.title || 'Untitled Product',
+    sku: `SKU: ${product.sku || 'N/A'}`,
+    category: product.category || 'Uncategorized',
+    price: `$${Number(product.pricing?.sellingPrice || 0).toFixed(2)}`,
+    stock: Number(product.inventory?.stockQuantity || 0),
+    stockTotal: Math.max(Number(product.inventory?.stockQuantity || 0), Number(product.inventory?.lowStockThreshold || 1) * 10),
+    compliance: product.status === 'published' ? 'Verified' : 'Pending Review',
+    complianceIcon: product.status === 'published' ? CheckCircle2 : AlertTriangle,
+    complianceColor: product.status === 'published' ? 'var(--success)' : 'var(--warning)'
+  }));
+
+  const removeProduct = async (event, productId) => {
+    event.stopPropagation();
+    if (String(productId).length < 8) return;
+    await deleteProduct(productId);
+    reload();
+  };
 
   return (
     <div className="product-management-page">
@@ -129,9 +109,9 @@ const ProductManagement = () => {
 
       <div className="products-table-container card">
         <div className="table-tabs">
-          <span className="tab active">All Products (124)</span>
-          <span className="tab">Active (118)</span>
-          <span className="tab">Drafts (4)</span>
+          <span className="tab active">All Products ({loading ? '...' : rows.length})</span>
+          <span className="tab">Active ({rows.filter((item) => item.compliance === 'Verified').length})</span>
+          <span className="tab">Drafts ({rows.filter((item) => item.compliance !== 'Verified').length})</span>
           <span className="tab">Pending Review (2)</span>
         </div>
 
@@ -149,16 +129,16 @@ const ProductManagement = () => {
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => {
+            {rows.map((product) => {
               const CompIcon = product.complianceIcon;
               const stockPercent = (product.stock / product.stockTotal) * 100;
               const stockColor = stockPercent < 20 ? 'var(--danger)' : 'var(--success)';
 
               return (
-                <tr key={product.id} className="product-row" onClick={() => navigate('/products/details')}>
+                <tr key={product.id} className="product-row" onClick={() => navigate(`/products/details/${product.id}`)}>
                   <td className="checkbox-col" onClick={(e) => e.stopPropagation()}><input type="checkbox" /></td>
                   <td>
-                    <div className="product-img-box" style={{ backgroundColor: product.image }}></div>
+                    <div className="product-img-box" style={{ backgroundColor: product.image.startsWith?.('http') ? '#1f2937' : product.image, backgroundImage: product.image.startsWith?.('http') ? `url(${product.image})` : undefined, backgroundSize: 'cover', backgroundPosition: 'center' }}></div>
                   </td>
                   <td>
                     <div className="product-info-cell">
@@ -184,8 +164,8 @@ const ProductManagement = () => {
                   </td>
                   <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                     <div className="row-actions">
-                      <button className="icon-btn"><Edit2 size={16} /></button>
-                      <button className="icon-btn text-red"><Trash2 size={16} /></button>
+                      <button className="icon-btn" onClick={() => navigate(`/products/edit/${product.id}`)}><Edit2 size={16} /></button>
+                      <button className="icon-btn text-red" onClick={(event) => removeProduct(event, product.id)}><Trash2 size={16} /></button>
                       <button className="icon-btn"><MoreVertical size={16} /></button>
                     </div>
                   </td>

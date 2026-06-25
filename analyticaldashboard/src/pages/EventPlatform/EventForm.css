@@ -1,0 +1,172 @@
+/* ======================
+   EVENT STEP FORM
+====================== */
+
+.stepper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 40px;
+  position: relative;
+  overflow-x: auto;
+  padding-bottom: 10px;
+}
+
+.stepper::-webkit-scrollbar {
+  display: none;
+}
+
+.stepper::before {
+  content: "";
+  position: absolute;
+  top: 22px;
+  left: 5%;
+  width: 90%;
+  height: 3px;
+  background: #e5e7eb;
+  z-index: 1;
+}
+
+.step {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 120px;
+}
+
+.step-circle {
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  background: #fff;
+  border: 3px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  transition: 0.3s;
+}
+
+.step span {
+  margin-top: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #6b7280;
+  text-align: center;
+}
+
+.step.active .step-circle {
+  background: #2563eb;
+  border-color: #2563eb;
+  color: white;
+}
+
+.step.active span {
+  color: #2563eb;
+}
+
+/* Progress */
+
+.progress-wrapper {
+  width: 100%;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 50px;
+  overflow: hidden;
+  margin-bottom: 30px;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    #2563eb,
+    #3b82f6
+  );
+  border-radius: 50px;
+  transition: 0.4s;
+}
+
+/* Form Card */
+
+.form-section {
+  background: white;
+  padding: 30px;
+  border-radius: 20px;
+  box-shadow: 0 10px 35px rgba(0,0,0,0.08);
+}
+
+/* Buttons */
+
+.step-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+  width: 200px;
+  margin: 2rem auto;
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translate(-50%,0);
+}
+
+.prev-btn,
+.next-btn,
+.submit-btn {
+  padding: 14px 28px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: .3s;
+}
+
+.prev-btn {
+  background: #f3f4f6;
+}
+
+.prev-btn:hover {
+  background: #e5e7eb;
+}
+
+.next-btn {
+  background: #2563eb;
+  color: white;
+}
+
+.next-btn:hover {
+  transform: translateY(-2px);
+}
+
+.submit-btn {
+  background: #16a34a;
+  color: white;
+}
+
+.submit-btn:hover {
+  transform: translateY(-2px);
+}
+
+/* Mobile */
+
+@media(max-width:768px){
+
+  .step {
+    min-width: 90px;
+  }
+
+  .step-circle {
+    width: 38px;
+    height: 38px;
+  }
+
+  .step span {
+    font-size: 11px;
+  }
+
+  .form-section {
+    padding: 20px;
+  }
+}

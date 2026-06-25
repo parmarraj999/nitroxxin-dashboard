@@ -1,8 +1,9 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { currency, formatDate } from './utils/formatters';
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
+test('formats event dates for display', () => {
+  expect(formatDate('2026-10-28')).toMatch(/2026/);
+});
+
+test('formats dashboard currency in INR', () => {
+  expect(currency(2500)).toContain('2,500');
 });

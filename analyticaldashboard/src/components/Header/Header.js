@@ -1,5 +1,8 @@
 import React from 'react';
-import { Search, Bell, Settings } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Search, Bell, Settings, Plus } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import { useNotifications } from '../../hooks/useNotifications';
 import './Header.css';
 
 const Header = ({ 
@@ -7,6 +10,10 @@ const Header = ({
   showProfile = true,
   showQuickCreate = false
 }) => {
+  const { user, profile } = useAuth();
+  const { notifications } = useNotifications(user?.uid);
+  const unreadCount = notifications.filter((item) => !item.isRead).length;
+
   return (
     <header className="header">
       <div className="search-container">
@@ -21,26 +28,27 @@ const Header = ({
       <div className="header-actions">
         <button className="action-btn notification-btn">
           <Bell size={20} />
-          <span className="notification-dot"></span>
+          {unreadCount > 0 && <span className="notification-dot"></span>}
         </button>
-        <button className="action-btn">
+        <Link className="action-btn" to="/profile">
           <Settings size={20} />
-        </button>
+        </Link>
 
         {showProfile && (
           <div className="header-profile">
             <div className="header-profile-info">
-              <h4>Alex Rossi</h4>
-              <p>Fleet Manager</p>
+              <h4>{profile?.fullName || 'Nitroxx User'}</h4>
+              <p>{profile?.role || 'Participant'}</p>
             </div>
-            <img src="https://i.pravatar.cc/150?u=a042581f4e29026704e" alt="Alex Rossi" className="header-avatar" />
+            <img src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx-header'} alt={profile?.fullName || 'User'} className="header-avatar" />
           </div>
         )}
 
         {showQuickCreate && (
-          <button className="header-quick-create-btn">
-            Quick Create
-          </button>
+          <Link to="/events/new" className="header-quick-create-btn">
+            <Plus size={16} />
+            Create
+          </Link>
         )}
       </div>
     </header>

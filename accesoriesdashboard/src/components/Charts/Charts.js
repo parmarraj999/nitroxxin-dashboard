@@ -2,17 +2,6 @@ import React from 'react';
 import { AreaChart, Area, XAxis, BarChart, Bar, ResponsiveContainer, Cell } from 'recharts';
 import './Charts.css';
 
-const areaData = [
-  { name: 'JAN', value: 300 },
-  { name: 'FEB', value: 350 },
-  { name: 'MAR', value: 320 },
-  { name: 'APR', value: 500 },
-  { name: 'MAY', value: 800 },
-  { name: 'JUN', value: 400 },
-  { name: 'JUL', value: 850 },
-  { name: 'AUG', value: null } 
-];
-
 const barData = [
   { name: '1', value: 40, active: false },
   { name: '2', value: 60, active: false },
@@ -23,7 +12,9 @@ const barData = [
   { name: '7', value: 40, active: false },
 ];
 
-const Charts = () => {
+const Charts = ({ analytics }) => {
+  const revenueData = analytics?.revenueChartData || [];
+
   return (
     <div className="charts-container">
 
@@ -41,7 +32,7 @@ const Charts = () => {
 
         <div className="revenue-chart-wrapper">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={areaData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
+            <AreaChart data={revenueData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRevenue" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="var(--primary-orange)" stopOpacity={0.3}/>

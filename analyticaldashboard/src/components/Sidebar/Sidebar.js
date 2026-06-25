@@ -4,22 +4,25 @@ import {
   LayoutDashboard, 
   CalendarDays, 
   Users, 
-  Ticket, 
-  CreditCard, 
-  FileText, 
+  BarChart3,
+  UserCircle,
+  Globe2,
   Plus, 
-  Settings 
+  LogOut,
 } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
 
 const Sidebar = () => {
+  const { profile, logout } = useAuth();
   const menuItems = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: CalendarDays, label: 'Event management', path: '/events' },
-    { icon: Users, label: 'Event Host Detail', path: '/hosts' },
-    { icon: Ticket, label: 'Tickets', path: '/tickets' },
-    { icon: CreditCard, label: 'Payments', path: '/payments' },
-    { icon: FileText, label: 'Reports', path: '/reports' },
+    { icon: CalendarDays, label: 'My Events', path: '/events' },
+    { icon: Plus, label: 'Add Event', path: '/events/new' },
+    { icon: Users, label: 'Participants', path: '/participants' },
+    { icon: BarChart3, label: 'Analytics', path: '/analytics' },
+    { icon: UserCircle, label: 'Profile', path: '/profile' },
+    { icon: Globe2, label: 'Public Events', path: '/explore' },
   ];
 
   return (
@@ -58,19 +61,19 @@ const Sidebar = () => {
       </nav>
 
       <div className="sidebar-footer">
-        <button className="quick-create-btn">
+        <NavLink to="/events/new" className="quick-create-btn">
           <Plus size={18} />
           Quick Create
-        </button>
+        </NavLink>
 
         <div className="user-profile">
-          <img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Alex Sterling" className="avatar" />
+          <img src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx'} alt={profile?.fullName || 'User'} className="avatar" />
           <div className="user-info">
-            <h4>Alex Sterling</h4>
-            <p>Admin Commander</p>
+            <h4>{profile?.fullName || 'Nitroxx User'}</h4>
+            <p>{profile?.role || 'Participant'}</p>
           </div>
-          <button className="settings-btn">
-            <Settings size={18} />
+          <button className="settings-btn" title="Logout" onClick={logout}>
+            <LogOut size={18} />
           </button>
         </div>
       </div>

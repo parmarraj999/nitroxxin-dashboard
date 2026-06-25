@@ -1,66 +1,31 @@
 import React from 'react';
 import { Download, Search, ChevronDown, FileText, ChevronRight, Filter } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useOrders } from '../../hooks/useOrders';
+import { toDate } from '../../services/firebaseUtils';
 import './OrderManagement.css';
-
-const orders = [
-  {
-    id: '#NX-99824',
-    date: 'Oct 15, 2026',
-    time: '09:42 AM',
-    customer: 'Marco Rossi',
-    email: 'marco.r@example.com',
-    items: [
-      { name: 'Apex Carbon...', qty: 1, img: '#111827' },
-      { name: 'Visor Tinted...', qty: 1, img: '#374151' }
-    ],
-    total: '$629.00',
-    status: 'Pending',
-    statusClass: 'status-pending'
-  },
-  {
-    id: '#NX-99823',
-    date: 'Oct 14, 2026',
-    time: '14:20 PM',
-    customer: 'Elena Kraus',
-    email: 'elena.k@example.com',
-    items: [
-      { name: 'Vantage Jacket...', qty: 1, img: '#1f2937' }
-    ],
-    total: '$349.00',
-    status: 'Ready to Ship',
-    statusClass: 'status-ready'
-  },
-  {
-    id: '#NX-99820',
-    date: 'Oct 14, 2026',
-    time: '10:15 AM',
-    customer: 'James Miller',
-    email: 'j.miller@example.com',
-    items: [
-      { name: 'Torque-S Glo...', qty: 2, img: '#4b5563' }
-    ],
-    total: '$179.00',
-    status: 'In Transit',
-    statusClass: 'status-transit'
-  },
-  {
-    id: '#NX-99815',
-    date: 'Oct 12, 2026',
-    time: '16:05 PM',
-    customer: 'Sarah Jenkins',
-    email: 'sarah.j@example.com',
-    items: [
-      { name: 'Apex Carbon...', qty: 1, img: '#111827' }
-    ],
-    total: '$599.00',
-    status: 'Delivered',
-    statusClass: 'status-delivered'
-  }
-];
 
 const OrderManagement = () => {
   const navigate = useNavigate();
+  const { orders, loading } = useOrders();
+  const rows = orders.map((order) => {
+    const created = toDate(order.createdAt);
+    const status = order.status || 'pending';
+    const statusClass = status === 'delivered' ? 'status-delivered' : status === 'shipped' ? 'status-transit' : status === 'packed' ? 'status-ready' : 'status-pending';
+
+    return {
+      id: order.id,
+      date: created ? created.toLocaleDateString() : 'Pending',
+      time: created ? created.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '',
+      customer: order.customer?.name || order.customerName || 'Customer',
+      email: order.customer?.email || order.customerEmail || '',
+      items: order.items || [{ name: `${order.itemCount || 1} item(s)`, qty: order.itemCount || 1, img: '#111827' }],
+      total: `$${Number(order.total || order.totalAmount || 0).toFixed(2)}`,
+      status: status.replace(/\b\w/g, (letter) => letter.toUpperCase()),
+      statusClass,
+      country: order.shippingAddress?.country
+    };
+  });
 
   return (
     <div className="order-management-page">
@@ -80,12 +45,12 @@ const OrderManagement = () => {
       <div className="orders-container card">
 
         <div className="table-tabs">
-          <span className="tab active">All Orders (1,284)</span>
-          <span className="tab">Pending (42)</span>
-          <span className="tab">Ready to Ship (18)</span>
-          <span className="tab">In Transit (240)</span>
-          <span className="tab">Delivered (980)</span>
-          <span className="tab">Returned (4)</span>
+          <span className="tab active">All Orders ({loading ? '...' : rows.length})</span>
+          <span className="tab">Pending ({rows.filter((item) => item.status.toLowerCase().includes('pending')).length})</span>
+          <span className="tab">Ready to Ship ({rows.filter((item) => item.status.toLowerCase() === 'packed').length})</span>
+          <span className="tab">In Transit ({rows.filter((item) => item.status.toLowerCase() === 'shipped').length})</span>
+          <span className="tab">Delivered ({rows.filter((item) => item.status.toLowerCase() === 'delivered').length})</span>
+          <span className="tab">Returned ({rows.filter((item) => item.status.toLowerCase() === 'returned').length})</span>
         </div>
 
         <div className="orders-filters">
@@ -122,8 +87,8 @@ const OrderManagement = () => {
               </tr>
             </thead>
             <tbody>
-              {orders.map((order, index) => (
-                <tr key={index} className="order-row" onClick={() => navigate('/orders/details')}>
+              {rows.map((order, index) => (
+                <tr key={index} className="order-row" onClick={() => navigate(`/orders/details/${order.id}`)}>
                   <td className="checkbox-col" onClick={(e) => e.stopPropagation()}><input type="checkbox" /></td>
                   <td><span className="order-id-link">{order.id}</span></td>
                   <td>
@@ -142,7 +107,7 @@ const OrderManagement = () => {
                     <div className="items-preview">
                       {order.items.map((item, i) => (
                         <div key={i} className="item-mini" title={item.name}>
-                          <div className="item-mini-img" style={{backgroundColor: item.img}}></div>
+                          <div className="item-mini-img" style={{backgroundColor: item.img || '#111827'}}></div>
                           {item.qty > 1 && <span className="item-mini-qty">x{item.qty}</span>}
                         </div>
                       ))}
@@ -157,7 +122,7 @@ const OrderManagement = () => {
                   <td className="actions-col" onClick={(e) => e.stopPropagation()}>
                     <div className="row-actions-text">
                       <button className="text-btn"><FileText size={14} /> Invoice</button>
-                      <button className="text-btn text-orange" onClick={() => navigate('/orders/details')}>View Details <ChevronRight size={14} /></button>
+                      <button className="text-btn text-orange" onClick={() => navigate(`/orders/details/${order.id}`)}>View Details <ChevronRight size={14} /></button>
                     </div>
                   </td>
                 </tr>
@@ -167,7 +132,7 @@ const OrderManagement = () => {
         </div>
 
         <div className="pagination-footer">
-          <span className="showing-text">Showing 1-10 of 1,284 orders</span>
+          <span className="showing-text">Showing 1-{rows.length} of {rows.length} orders</span>
         </div>
       </div>
 
@@ -180,7 +145,7 @@ const OrderManagement = () => {
         <div className="metric-card card">
           <h4 className="metric-title">PENDING SHIPMENTS</h4>
           <div className="metric-value-flex">
-            <span className="metric-value">18</span>
+            <span className="metric-value">{rows.filter((item) => item.status.toLowerCase() === 'pending').length}</span>
             <span className="metric-sub">orders</span>
           </div>
           <button className="action-link">Process now →</button>
@@ -188,10 +153,10 @@ const OrderManagement = () => {
         <div className="metric-card card">
           <h4 className="metric-title">GLOBAL REACH</h4>
           <div className="metric-value-flex">
-            <span className="metric-value">42</span>
+            <span className="metric-value">{new Set(rows.map((item) => item.country).filter(Boolean)).size || 1}</span>
             <span className="metric-sub">Regions</span>
           </div>
-          <span className="metric-desc text-muted">Across North America & Europe</span>
+          <span className="metric-desc text-muted">Active cross-border channels</span>
         </div>
       </div>
 

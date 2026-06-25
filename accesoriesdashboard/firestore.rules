@@ -1,0 +1,85 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function ownsIncomingVendor() {
+      return signedIn() && request.resource.data.vendorId == request.auth.uid;
+    }
+
+    function ownsExistingVendor() {
+      return signedIn() && resource.data.vendorId == request.auth.uid;
+    }
+
+    function ownsVendorDoc(vendorId) {
+      return signedIn() && vendorId == request.auth.uid;
+    }
+
+    match /vendors/{vendorId} {
+      allow read, create, update: if ownsVendorDoc(vendorId);
+      allow delete: if false;
+    }
+
+    match /product-collection/{productId} {
+      allow create: if ownsIncomingVendor();
+      allow read, update, delete: if ownsExistingVendor();
+    }
+
+    match /product_categories/{categoryId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /product_attributes/{attributeId} {
+      allow read: if signedIn();
+      allow write: if false;
+    }
+
+    match /{collectionName}/{docId} {
+      allow create: if collectionName in [
+        'product_variants',
+        'brands',
+        'orders',
+        'order_items',
+        'inventory',
+        'warehouses',
+        'coupons',
+        'reviews',
+        'notifications',
+        'analytics',
+        'settlements',
+        'withdrawals',
+        'support_tickets',
+        'media_library',
+        'shipping_templates',
+        'return_policies',
+        'certifications',
+        'bike_compatibility'
+      ] && ownsIncomingVendor();
+
+      allow read, update, delete: if collectionName in [
+        'product_variants',
+        'brands',
+        'orders',
+        'order_items',
+        'inventory',
+        'warehouses',
+        'coupons',
+        'reviews',
+        'notifications',
+        'analytics',
+        'settlements',
+        'withdrawals',
+        'support_tickets',
+        'media_library',
+        'shipping_templates',
+        'return_policies',
+        'certifications',
+        'bike_compatibility'
+      ] && ownsExistingVendor();
+    }
+  }
+}

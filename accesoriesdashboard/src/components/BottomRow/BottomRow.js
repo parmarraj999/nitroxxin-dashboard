@@ -2,7 +2,14 @@ import React from 'react';
 import { PlusSquare, BarChart2, Package, Megaphone, Star } from 'lucide-react';
 import './BottomRow.css';
 
-const BottomRow = () => {
+const BottomRow = ({ analytics }) => {
+  const lowStockRows = analytics?.lowStock?.slice(0, 3) || [];
+  const reviews = analytics?.reviews?.slice(0, 2) || [];
+
+  const avgRating = analytics?.reviews?.length
+    ? (analytics.reviews.reduce((sum, r) => sum + r.rating, 0) / analytics.reviews.length).toFixed(1)
+    : '0.0';
+
   return (
     <div className="bottom-row-container">
 
@@ -32,31 +39,35 @@ const BottomRow = () => {
         <div className="reviews-header">
           <h2 className="bottom-card-title-dark">Latest Reviews</h2>
           <div className="rating-badge">
-            4.8 <Star size={12} fill="currentColor" />
+            {avgRating} <Star size={12} fill="currentColor" />
           </div>
         </div>
 
         <div className="review-list">
-          <div className="review-item">
-            <div className="review-header">
-              <span className="reviewer-name">Marco R.</span>
-              <div className="stars">
-                {[1,2,3,4,5].map(i => <Star key={i} size={10} fill="var(--warning)" color="var(--warning)" />)}
+          {reviews.length > 0 ? (
+            reviews.map((rev, idx) => (
+              <div className="review-item" key={rev.id || idx}>
+                <div className="review-header">
+                  <span className="reviewer-name">{rev.reviewerName}</span>
+                  <div className="stars">
+                    {[1, 2, 3, 4, 5].map((i) => (
+                      <Star
+                        key={i}
+                        size={10}
+                        fill={i <= rev.rating ? 'var(--warning)' : 'transparent'}
+                        color={i <= rev.rating ? 'var(--warning)' : 'var(--border-color)'}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <p className="review-text">"{rev.comment}"</p>
               </div>
-            </div>
-            <p className="review-text">"The Apex Carbon Pro is truly a game changer. Light and fits perfect!"</p>
-          </div>
-
-          <div className="review-item">
-            <div className="review-header">
-              <span className="reviewer-name">Elena K.</span>
-              <div className="stars">
-                {[1,2,3,4].map(i => <Star key={i} size={10} fill="var(--warning)" color="var(--warning)" />)}
-                <Star size={10} color="var(--border-color)" fill="var(--bg-body)" />
-              </div>
-            </div>
-            <p className="review-text">"Leather quality is top notch on the Vantage jacket. A bit snug..."</p>
-          </div>
+            ))
+          ) : (
+            <p className="review-text" style={{ color: 'var(--text-light)', padding: '12px 0', fontStyle: 'italic' }}>
+              No customer reviews found.
+            </p>
+          )}
         </div>
       </div>
 
@@ -67,29 +78,21 @@ const BottomRow = () => {
         </div>
 
         <div className="alert-list">
-          <div className="alert-item">
-            <div className="alert-info">
-              <span className="alert-name">Kevlar Base Layer (M)</span>
-              <span className="alert-desc">Last 5 units remaining</span>
-            </div>
-            <button className="restock-btn">Restock</button>
-          </div>
-
-          <div className="alert-item">
-            <div className="alert-info">
-              <span className="alert-name">Chain Lube 400ml</span>
-              <span className="alert-desc">Last 8 units remaining</span>
-            </div>
-            <button className="restock-btn">Restock</button>
-          </div>
-
-          <div className="alert-item">
-            <div className="alert-info">
-              <span className="alert-name">Rain Gaiters (L)</span>
-              <span className="alert-desc">Last 12 units remaining</span>
-            </div>
-            <button className="restock-btn">Restock</button>
-          </div>
+          {lowStockRows.length > 0 ? (
+            lowStockRows.map((item) => (
+              <div className="alert-item" key={item.id || item.productName || item.productId}>
+                <div className="alert-info">
+                  <span className="alert-name">{item.productName || item.productId}</span>
+                  <span className="alert-desc">Last {item.availableStock} units remaining</span>
+                </div>
+                <button className="restock-btn">Restock</button>
+              </div>
+            ))
+          ) : (
+            <p className="review-text" style={{ color: 'var(--text-light)', padding: '12px 0', fontStyle: 'italic' }}>
+              All products are fully stocked!
+            </p>
+          )}
         </div>
       </div>
 

@@ -3,9 +3,12 @@ import StatCards from '../../components/StatCards/StatCards';
 import Charts from '../../components/Charts/Charts';
 import MiddleRow from '../../components/MiddleRow/MiddleRow';
 import BottomRow from '../../components/BottomRow/BottomRow';
+import { useDashboardAnalytics } from '../../hooks/useDashboardAnalytics';
 import './AccessoriesDashboard.css';
 
 const AccessoriesDashboard = () => {
+  const { analytics } = useDashboardAnalytics();
+
   return (
     <div className="dashboard-home">
 
@@ -29,19 +32,19 @@ const AccessoriesDashboard = () => {
           </div>
 
           <div className="stats-row">
-            <StatCards />
+            <StatCards analytics={analytics} />
           </div>
 
           <div className="charts-row">
-            <Charts />
+            <Charts analytics={analytics} />
           </div>
 
           <div className="middle-row">
-            <MiddleRow />
+            <MiddleRow analytics={analytics} />
           </div>
 
       <div className="bottom-row">
-        <BottomRow />
+        <BottomRow analytics={analytics} />
       </div>
     </div>
   );
