@@ -102,7 +102,7 @@ const Profile = () => {
               <label className="form-field"><span>State</span><input value={form.state} onChange={(e) => update('state', e.target.value)} /></label>
             </div>
             <div className="form-grid two">
-              <label className="form-field"><span>Website</span><input value={form.socialLinks.website} onChange={(e) => updateSocial('website', e.target.value)} /></label>
+              {/* <label className="form-field"><span>Website</span><input value={form.socialLinks.website} onChange={(e) => updateSocial('website', e.target.value)} /></label> */}
               <label className="form-field"><span>Instagram</span><input value={form.socialLinks.instagram} onChange={(e) => updateSocial('instagram', e.target.value)} /></label>
               <label className="form-field"><span>LinkedIn</span><input value={form.socialLinks.linkedin} onChange={(e) => updateSocial('linkedin', e.target.value)} /></label>
             </div>

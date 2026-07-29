@@ -36,7 +36,7 @@
 
 .badge-success {
   background-color: var(--success-light);
-  color: #047857; 
+  color: #047857;
 }
 
 .stat-value-large {
@@ -62,17 +62,37 @@
   justify-content: center;
 }
 
-.bg-orange-light { background-color: var(--primary-orange-light); }
-.text-orange { color: var(--primary-orange); }
+.bg-orange-light {
+  background-color: var(--primary-orange-light);
+}
 
-.bg-green-light { background-color: var(--success-light); }
-.text-green { color: var(--success); }
+.text-orange {
+  color: var(--primary-orange);
+}
 
-.bg-red-light { background-color: var(--danger-light); }
-.text-red { color: var(--danger); }
+.bg-green-light {
+  background-color: var(--success-light);
+}
 
-.bg-blue-light { background-color: #dbeafe; }
-.text-blue { color: #2563eb; }
+.text-green {
+  color: var(--success);
+}
+
+.bg-red-light {
+  background-color: var(--danger-light);
+}
+
+.text-red {
+  color: var(--danger);
+}
+
+.bg-blue-light {
+  background-color: #dbeafe;
+}
+
+.text-blue {
+  color: #2563eb;
+}
 
 .stat-subtitle {
   font-size: 0.75rem;

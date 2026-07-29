@@ -152,6 +152,8 @@
 }
 
 .table-tabs .tab {
+  background: transparent;
+  border: 0;
   padding: 16px 0;
   font-size: 0.9rem;
   font-weight: 600;
@@ -313,4 +315,20 @@
 
 .icon-btn.text-red:hover {
   color: var(--danger);
+}
+
+.empty-table-state {
+  min-height: 220px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.empty-table-state h3 {
+  color: var(--text-main);
+  font-size: 1.05rem;
 }

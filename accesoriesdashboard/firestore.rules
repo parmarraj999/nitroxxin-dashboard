@@ -14,6 +14,14 @@ service cloud.firestore {
       return signedIn() && resource.data.vendorId == request.auth.uid;
     }
 
+    function ownsIncomingUser() {
+      return signedIn() && request.resource.data.userId == request.auth.uid;
+    }
+
+    function ownsExistingUser() {
+      return signedIn() && resource.data.userId == request.auth.uid;
+    }
+
     function ownsVendorDoc(vendorId) {
       return signedIn() && vendorId == request.auth.uid;
     }
@@ -23,32 +31,94 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /users/{userId} {
+      allow read, create, update: if signedIn() && userId == request.auth.uid;
+      allow delete: if false;
+    }
+
     match /product-collection/{productId} {
       allow create: if ownsIncomingVendor();
-      allow read, update, delete: if ownsExistingVendor();
+      allow read: if resource.data.status in ['published', 'active'] || (signedIn() && resource.data.vendorId == request.auth.uid);
+      allow update: if ownsExistingVendor()
+        || (
+          signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['inventory', 'stock', 'updatedAt'])
+        );
+      allow delete: if ownsExistingVendor();
     }
 
     match /product_categories/{categoryId} {
-      allow read: if signedIn();
+      allow read: if true;
       allow write: if false;
     }
 
     match /product_attributes/{attributeId} {
-      allow read: if signedIn();
+      allow read: if true;
       allow write: if false;
+    }
+
+    match /cart/{cartId} {
+      allow read, update, delete: if ownsExistingUser();
+      allow create: if ownsIncomingUser();
+    }
+
+    match /wishlist/{wishlistId} {
+      allow read, update, delete: if ownsExistingUser();
+      allow create: if ownsIncomingUser();
+    }
+
+    match /orders/{orderId} {
+      allow create: if ownsIncomingUser() && request.resource.data.vendorId is string;
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || resource.data.vendorId == request.auth.uid);
+      allow update: if signedIn() && resource.data.vendorId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /order_items/{itemId} {
+      allow create: if ownsIncomingUser() && request.resource.data.vendorId is string;
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || resource.data.vendorId == request.auth.uid);
+      allow update, delete: if false;
+    }
+
+    match /inventory/{inventoryId} {
+      allow read: if signedIn();
+      allow create, update: if signedIn();
+      allow delete: if ownsExistingVendor();
+    }
+
+    match /events/{eventId} {
+      allow read: if resource.data.status == 'Published' || (signedIn() && resource.data.hostId == request.auth.uid);
+      allow update: if signedIn()
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registeredCount', 'revenue', 'updatedAt']);
+    }
+
+    match /bookings/{bookingId} {
+      allow create: if ownsIncomingUser();
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || resource.data.hostId == request.auth.uid);
+      allow update: if signedIn() && resource.data.hostId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /eventRegistrations/{registrationId} {
+      allow create: if ownsIncomingUser();
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || resource.data.hostId == request.auth.uid);
+      allow update: if signedIn() && resource.data.hostId == request.auth.uid;
+      allow delete: if false;
+    }
+
+    match /notifications/{notificationId} {
+      allow create: if signedIn();
+      allow read, update: if signedIn() && (resource.data.userId == request.auth.uid || resource.data.vendorId == request.auth.uid);
+      allow delete: if false;
     }
 
     match /{collectionName}/{docId} {
       allow create: if collectionName in [
         'product_variants',
         'brands',
-        'orders',
-        'order_items',
-        'inventory',
         'warehouses',
         'coupons',
         'reviews',
-        'notifications',
         'analytics',
         'settlements',
         'withdrawals',
@@ -63,13 +133,9 @@ service cloud.firestore {
       allow read, update, delete: if collectionName in [
         'product_variants',
         'brands',
-        'orders',
-        'order_items',
-        'inventory',
         'warehouses',
         'coupons',
         'reviews',
-        'notifications',
         'analytics',
         'settlements',
         'withdrawals',

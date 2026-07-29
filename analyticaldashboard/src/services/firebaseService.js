@@ -150,7 +150,14 @@ export const uploadFile = (file, path, onProgress) =>
         }
       },
       reject,
-      async () => resolve(await getDownloadURL(task.snapshot.ref))
+      async () => {
+        try {
+          const url = await getDownloadURL(task.snapshot.ref);
+          resolve(url);
+        } catch (error) {
+          reject(error);
+        }
+      }
     );
   });
 
@@ -211,6 +218,19 @@ export const getEvent = async (eventId) => {
   if (!eventSnap.exists()) throw new Error('Event not found.');
   return { id: eventSnap.id, ...eventSnap.data() };
 };
+
+export const subscribeToEvent = (eventId, callback, onError) =>
+  onSnapshot(
+    doc(db, collections.events, eventId),
+    (eventSnap) => {
+      if (!eventSnap.exists()) {
+        callback(null);
+        return;
+      }
+      callback({ id: eventSnap.id, ...eventSnap.data() });
+    },
+    onError
+  );
 
 export const createEvent = async (event) => {
   const eventRef = await addDoc(
@@ -324,10 +344,36 @@ export const subscribeToRegistrations = ({ hostId, eventId, userId } = {}, callb
 };
 
 export const subscribeToEventBookings = (eventId, callback, onError) => {
-  const constraints = [where('eventId', '==', eventId), orderBy('createdAt', 'desc')];
+  const constraints = [where('eventId', '==', eventId)];
   return onSnapshot(query(collection(db, collections.bookings), ...constraints), (snapshot) => {
-    callback(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })));
+    const list = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+    list.sort((a, b) => {
+      const aTime = a.createdAt?.seconds || (a.createdAt && typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() / 1000 : 0);
+      const bTime = b.createdAt?.seconds || (b.createdAt && typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() / 1000 : 0);
+      return bTime - aTime;
+    });
+    callback(list);
   }, onError);
+};
+
+export const updateEventBookingStatus = async ({ bookingId, registrationId, status, approvalStatus, attendanceStatus }) => {
+  const payload = timestamped(cleanObject({
+    status,
+    approvalStatus,
+    attendanceStatus,
+    statusHistory: {
+      [status || approvalStatus || attendanceStatus]: {
+        at: serverTimestamp(),
+      },
+    },
+  }));
+  await updateDoc(doc(db, collections.bookings, bookingId), payload);
+  if (registrationId) {
+    await updateDoc(doc(db, collections.registrations, registrationId), timestamped(cleanObject({
+      status: approvalStatus === 'approved' ? 'Confirmed' : approvalStatus === 'rejected' ? 'Rejected' : undefined,
+      attendanceStatus,
+    })));
+  }
 };
 
 export const updateRegistration = (registrationId, data) =>

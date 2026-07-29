@@ -25,18 +25,29 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
-      allow read: if signedIn() && (resource.data.status == 'Published' || resource.data.hostId == request.auth.uid);
+      allow read: if resource.data.status == 'Published' || (signedIn() && resource.data.hostId == request.auth.uid);
       allow create: if isHost() && request.resource.data.hostId == request.auth.uid;
-      allow update, delete: if isHost() && resource.data.hostId == request.auth.uid;
+      allow update: if (isHost() && resource.data.hostId == request.auth.uid)
+        || (
+          signedIn()
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registeredCount', 'revenue', 'updatedAt'])
+        );
+      allow delete: if isHost() && resource.data.hostId == request.auth.uid;
     }
 
     match /eventRegistrations/{registrationId} {
       allow read: if signedIn() && (resource.data.userId == request.auth.uid || resource.data.hostId == request.auth.uid);
       allow create: if signedIn()
-        && request.resource.data.userId == request.auth.uid
-        && request.resource.data.registrationId == request.resource.data.eventId + '_' + request.auth.uid;
+        && request.resource.data.userId == request.auth.uid;
       allow update: if signedIn() && resource.data.hostId == request.auth.uid;
       allow delete: if signedIn() && resource.data.hostId == request.auth.uid;
+    }
+
+    match /bookings/{bookingId} {
+      allow create: if signedIn() && request.resource.data.userId == request.auth.uid;
+      allow read: if signedIn() && (resource.data.userId == request.auth.uid || resource.data.hostId == request.auth.uid);
+      allow update: if signedIn() && resource.data.hostId == request.auth.uid;
+      allow delete: if false;
     }
 
     match /notifications/{notificationId} {
@@ -48,6 +59,14 @@ service cloud.firestore {
     match /eventBookmarks/{bookmarkId} {
       allow read, create, delete: if signedIn() && bookmarkId.matches(request.auth.uid + '_.*');
       allow update: if false;
+    }
+
+    match /product-collection/{productId} {
+      allow read: if resource.data.status in ['published', 'active'];
+    }
+
+    match /orders/{orderId} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
     }
   }
 }

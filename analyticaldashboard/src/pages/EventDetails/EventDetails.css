@@ -357,3 +357,22 @@
     grid-template-columns: 1fr;
   }
 }
+
+.booking-row-hover:hover {
+  background-color: rgba(56, 189, 248, 0.05) !important;
+}
+
+.booking-details-container {
+  animation: slideDown 0.25s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

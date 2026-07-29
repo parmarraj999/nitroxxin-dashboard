@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Sidebar from '../../components/Sidebar/Sidebar';
 import Header from '../../components/Header/Header';
-import { ArrowLeft, MapPin, Calendar, ShieldCheck, Ticket, Users, FileText } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, ShieldCheck, Ticket, Users, FileText, ChevronDown, ChevronUp } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './EventDetails.css';
 import { getEvent, subscribeToEventBookings } from '../../services/firebaseService';
@@ -12,6 +12,7 @@ const EventDetails = () => {
   const [event, setEvent] = useState(null);
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [expandedBookingId, setExpandedBookingId] = useState(null);
 
   useEffect(() => {
     if (!id) {
@@ -214,27 +215,81 @@ const EventDetails = () => {
                     <tbody>
                       {bookings.map((booking) => {
                         const totalTickets = (booking.attendeeCounts?.adults || 0) + (booking.attendeeCounts?.children || 0);
+                        const isExpanded = expandedBookingId === booking.id;
                         return (
-                          <tr key={booking.id} style={{ borderBottom: '1px solid rgba(30, 41, 59, 0.5)' }}>
-                            <td style={{ padding: '16px' }}>
-                              <div className="booking-user" style={{ display: 'flex', flexDirection: 'column' }}>
-                                <span className="booking-name" style={{ fontWeight: '500', color: '#f8fafc' }}>{booking.attendee?.name || 'Guest'}</span>
-                                <span className="booking-email" style={{ fontSize: '13px', color: '#94a3b8' }}>{booking.attendee?.email || booking.attendee?.phone || ''}</span>
-                              </div>
-                            </td>
-                            <td style={{ padding: '16px', color: '#e2e8f0' }}>{totalTickets} ({booking.attendeeCounts?.adults || 0}A, {booking.attendeeCounts?.children || 0}C)</td>
-                            <td style={{ padding: '16px' }}>
-                              <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', textTransform: 'capitalize' }}>
-                                {booking.joinAs || 'N/A'}
-                              </span>
-                            </td>
-                            <td style={{ padding: '16px', fontWeight: '500', color: '#10b981' }}>₹{Number(booking.total || 0).toLocaleString('en-IN')}</td>
-                            <td style={{ padding: '16px' }}>
-                              <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500', background: booking.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: booking.status === 'Pending' ? '#f59e0b' : '#10b981' }}>
-                                {booking.status || 'Pending'}
-                              </span>
-                            </td>
-                          </tr>
+                          <React.Fragment key={booking.id}>
+                            <tr 
+                              className="booking-row-hover"
+                              onClick={() => setExpandedBookingId(isExpanded ? null : booking.id)}
+                              style={{ borderBottom: '1px solid rgba(30, 41, 59, 0.5)', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                            >
+                              <td style={{ padding: '16px' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                  {isExpanded ? <ChevronUp size={16} style={{ color: '#38bdf8' }} /> : <ChevronDown size={16} style={{ color: '#94a3b8' }} />}
+                                  <div className="booking-user" style={{ display: 'flex', flexDirection: 'column' }}>
+                                    <span className="booking-name" style={{ fontWeight: '500', color: '#f8fafc' }}>{booking.attendee?.name || 'Guest'}</span>
+                                    <span className="booking-email" style={{ fontSize: '13px', color: '#94a3b8' }}>{booking.attendee?.email || booking.attendee?.phone || ''}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td style={{ padding: '16px', color: '#e2e8f0' }}>{totalTickets} ({booking.attendeeCounts?.adults || 0}A, {booking.attendeeCounts?.children || 0}C)</td>
+                              <td style={{ padding: '16px' }}>
+                                <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500', background: 'rgba(245, 158, 11, 0.1)', color: '#f59e0b', textTransform: 'capitalize' }}>
+                                  {booking.joinAs || 'N/A'}
+                                </span>
+                              </td>
+                              <td style={{ padding: '16px', fontWeight: '500', color: '#10b981' }}>₹{Number(booking.total || 0).toLocaleString('en-IN')}</td>
+                              <td style={{ padding: '16px' }}>
+                                <span style={{ padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: '500', background: booking.status === 'Pending' ? 'rgba(245, 158, 11, 0.1)' : 'rgba(16, 185, 129, 0.1)', color: booking.status === 'Pending' ? '#f59e0b' : '#10b981' }}>
+                                  {booking.status || 'Pending'}
+                                </span>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr style={{ background: 'rgba(15, 23, 42, 0.6)' }}>
+                                <td colSpan="5" style={{ padding: '20px 24px', borderBottom: '1px solid rgba(56, 189, 248, 0.2)' }}>
+                                  <div className="booking-details-container" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '24px', color: '#e2e8f0', fontSize: '13px', lineHeight: '1.6' }}>
+                                    <div style={{ background: 'rgba(30, 41, 59, 0.3)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                                      <h5 style={{ color: '#38bdf8', fontWeight: '600', fontSize: '14px', marginBottom: '12px', borderBottom: '1px solid rgba(56, 189, 248, 0.2)', paddingBottom: '6px' }}>Booking Summary</h5>
+                                      <p style={{ margin: '6px 0' }}><strong style={{ color: '#94a3b8' }}>Booking ID:</strong> <span style={{ fontFamily: 'monospace', color: '#38bdf8' }}>{booking.bookingId || booking.id}</span></p>
+                                      <p style={{ margin: '6px 0' }}><strong style={{ color: '#94a3b8' }}>Booked On:</strong> {booking.createdAt?.toDate ? booking.createdAt.toDate().toLocaleString('en-IN') : (booking.createdAt?.seconds ? new Date(booking.createdAt.seconds * 1000).toLocaleString('en-IN') : 'N/A')}</p>
+                                      <p style={{ margin: '6px 0' }}><strong style={{ color: '#94a3b8' }}>Total Quantity:</strong> {totalTickets} Tickets</p>
+                                      <p style={{ margin: '6px 0' }}><strong style={{ color: '#94a3b8' }}>Breakdown:</strong> {booking.attendeeCounts?.adults || 0} Adults, {booking.attendeeCounts?.children || 0} Children</p>
+                                      <p style={{ margin: '6px 0' }}><strong style={{ color: '#94a3b8' }}>Extras:</strong> {booking.attendeeCounts?.pets || 0} Pets, {booking.attendeeCounts?.bags || 0} Bags</p>
+                                    </div>
+                                    
+                                    <div style={{ background: 'rgba(30, 41, 59, 0.3)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                                      <h5 style={{ color: '#38bdf8', fontWeight: '600', fontSize: '14px', marginBottom: '12px', borderBottom: '1px solid rgba(56, 189, 248, 0.2)', paddingBottom: '6px' }}>Attendee Details</h5>
+                                      {booking.attendees && booking.attendees.length > 0 ? (
+                                        booking.attendees.map((att, idx) => (
+                                          <div key={idx} style={{ margin: '8px 0', padding: '6px 0', borderBottom: idx < booking.attendees.length - 1 ? '1px dashed rgba(255, 255, 255, 0.05)' : 'none' }}>
+                                            <p style={{ margin: '2px 0', fontWeight: '500' }}>{att.name || 'N/A'}</p>
+                                            <p style={{ margin: '2px 0', color: '#94a3b8', fontSize: '12px' }}>Contact: {att.contact || 'N/A'}</p>
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No guest details provided.</p>
+                                      )}
+                                    </div>
+
+                                    <div style={{ background: 'rgba(30, 41, 59, 0.3)', padding: '16px', borderRadius: '8px', border: '1px solid rgba(255, 255, 255, 0.05)' }}>
+                                      <h5 style={{ color: '#38bdf8', fontWeight: '600', fontSize: '14px', marginBottom: '12px', borderBottom: '1px solid rgba(56, 189, 248, 0.2)', paddingBottom: '6px' }}>Bike Details</h5>
+                                      {booking.bikeDetails && booking.bikeDetails.length > 0 ? (
+                                        booking.bikeDetails.map((bike, idx) => (
+                                          <div key={idx} style={{ margin: '8px 0', padding: '6px 0', borderBottom: idx < booking.bikeDetails.length - 1 ? '1px dashed rgba(255, 255, 255, 0.05)' : 'none' }}>
+                                            <p style={{ margin: '2px 0', fontWeight: '500' }}>{bike.name || 'N/A'}</p>
+                                            <p style={{ margin: '2px 0', color: '#94a3b8', fontSize: '12px' }}>Registration / Contact: {bike.contact || 'N/A'}</p>
+                                          </div>
+                                        ))
+                                      ) : (
+                                        <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No bike details provided.</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
                         );
                       })}
                     </tbody>

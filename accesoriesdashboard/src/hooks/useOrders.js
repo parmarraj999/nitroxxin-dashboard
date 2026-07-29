@@ -1,5 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { getOrder, listOrders, updateOrderStatus } from '../services/orderService';
+import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { db } from '../firebase/firebase.config';
+import { COLLECTIONS } from '../schemas/firestoreSchema';
+import { updateOrderStatus } from '../services/orderService';
 import { useAuthVendor } from './useAuthVendor';
 
 export const useOrders = (options = {}) => {
@@ -7,33 +10,39 @@ export const useOrders = (options = {}) => {
   const optionsKey = JSON.stringify(options);
   const queryOptions = useMemo(() => options, [optionsKey]);
   const [orders, setOrders] = useState([]);
-  const [cursor, setCursor] = useState(null);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const load = useCallback(async (next = false) => {
+  const subscribe = useCallback(() => {
     if (authLoading) return;
     setLoading(true);
     setError(null);
-    try {
-      const page = await listOrders({ ...queryOptions, vendorId, cursor: next ? cursor : null });
-      setOrders((current) => next ? [...current, ...page.data] : page.data);
-      setCursor(page.cursor);
-      setHasMore(page.hasMore);
-    } catch (err) {
-      setError(err);
-    } finally {
-      setLoading(false);
-    }
-  }, [authLoading, cursor, queryOptions, vendorId]);
+    const constraints = [where('vendorId', '==', vendorId), orderBy('createdAt', 'desc'), limit(queryOptions.pageSize || 50)];
+    if (queryOptions.status) constraints.splice(1, 0, where('status', '==', queryOptions.status));
+    return onSnapshot(
+      query(collection(db, COLLECTIONS.orders), ...constraints),
+      (snapshot) => {
+        setOrders(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })));
+        setHasMore(snapshot.docs.length === (queryOptions.pageSize || 50));
+        setLoading(false);
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      }
+    );
+  }, [authLoading, queryOptions, vendorId]);
 
   useEffect(() => {
     if (authLoading) return;
-    load(false);
-  }, [authLoading, load]);
+    const unsubscribe = subscribe();
+    return () => {
+      if (typeof unsubscribe === 'function') unsubscribe();
+    };
+  }, [authLoading, subscribe]);
 
-  return { orders, loading, error, hasMore, reload: () => load(false), loadMore: () => load(true), updateOrderStatus };
+  return { orders, loading, error, hasMore, reload: subscribe, loadMore: subscribe, updateOrderStatus };
 };
 
 export const useOrder = (orderId) => {
@@ -44,21 +53,18 @@ export const useOrder = (orderId) => {
 
   useEffect(() => {
     if (!orderId || authLoading) return;
-    let active = true;
     setLoading(true);
-    getOrder(orderId)
-      .then((data) => {
-        if (active) setOrder(data);
-      })
-      .catch((err) => {
-        if (active) setError(err);
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+    return onSnapshot(
+      doc(db, COLLECTIONS.orders, orderId),
+      (snapshot) => {
+        setOrder(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
+        setLoading(false);
+      },
+      (err) => {
+        setError(err);
+        setLoading(false);
+      }
+    );
   }, [authLoading, orderId]);
 
   return { order, loading, error };
