@@ -1,0 +1,92 @@
+.dashboard-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+}
+
+.dashboard-title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-subtitle {
+  color: var(--text-muted);
+  font-size: 0.95rem;
+}
+
+.highlight-orange {
+  color: var(--primary-orange);
+  font-weight: 600;
+}
+
+.header-actions-main {
+  display: flex;
+  gap: 16px;
+}
+
+.export-btn {
+  padding: 10px 16px;
+  background-color: white;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow-sm);
+}
+
+.export-btn:hover {
+  background-color: var(--bg-body);
+}
+
+.quick-add-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background-color: var(--primary-orange);
+  color: white;
+  border-radius: var(--radius-md);
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: background-color 0.2s ease;
+  box-shadow: 0 4px 10px rgba(255, 107, 0, 0.2);
+}
+
+.quick-add-btn:hover {
+  background-color: var(--primary-orange-hover);
+}
+
+.quick-add-btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.card {
+  background-color: var(--bg-card);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-color);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+}
+
+.stats-row {
+  margin-bottom: 24px;
+}
+
+.charts-row {
+  margin-bottom: 24px;
+}
+
+.middle-row {
+  margin-bottom: 24px;
+}
+
+.bottom-row {
+  margin-bottom: 24px;
+}

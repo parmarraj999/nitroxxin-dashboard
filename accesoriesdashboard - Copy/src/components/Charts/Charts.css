@@ -1,0 +1,132 @@
+.charts-container {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 24px;
+}
+
+.revenue-chart-card {
+  display: flex;
+  flex-direction: column;
+  height: 450px;
+}
+
+.chart-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 24px;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+}
+
+.card-subtitle {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  max-width: 300px;
+  line-height: 1.4;
+}
+
+.chart-tabs {
+  display: flex;
+  gap: 24px;
+}
+
+.chart-tab {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+  padding-bottom: 8px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+
+.chart-tab.active {
+  color: var(--text-main);
+  border-bottom-color: var(--primary-orange);
+}
+
+.revenue-chart-wrapper {
+  flex: 1;
+  width: 100%;
+}
+
+.traffic-chart-card {
+  background-color: var(--dark-accent);
+  border-radius: var(--radius-lg);
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  height: 450px;
+  box-shadow: var(--shadow-sm);
+}
+
+.traffic-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  margin-bottom: 8px;
+}
+
+.traffic-subtitle {
+  font-size: 0.85rem;
+  color: #9ca3af;
+  margin-bottom: 32px;
+}
+
+.traffic-chart-wrapper {
+  flex: 1;
+  width: 100%;
+}
+
+.traffic-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 24px;
+}
+
+.traffic-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.traffic-stat-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: white;
+  line-height: 1.1;
+}
+
+.traffic-stat-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+.traffic-growth {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.traffic-growth-value {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary-orange);
+}
+
+.traffic-growth-label {
+  font-size: 0.75rem;
+  color: #9ca3af;
+}
+
+@media (max-width: 1200px) {
+  .charts-container {
+    grid-template-columns: 1fr;
+  }
+}

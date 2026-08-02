@@ -1,0 +1,27 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function vendorPath(vendorId) {
+      return signedIn() && request.auth.uid == vendorId;
+    }
+
+    match /vendors/{vendorId}/{mediaType}/{productId}/{fileName} {
+      allow read, write, delete: if vendorPath(vendorId)
+        && mediaType in [
+          'primaryImage',
+          'galleryImages',
+          'lifestyleImages',
+          'sizeCharts',
+          'certificationImages',
+          'brandLogos',
+          'videos'
+        ]
+        && (request.resource == null || request.resource.size < 25 * 1024 * 1024);
+    }
+  }
+}
