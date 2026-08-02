@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import AccessoriesLayout from './components/AccessoriesLayout/AccessoriesLayout';
-import AccessoriesDashboard from './pages/AccessoriesDashboard/AccessoriesDashboard';
+import AdminLayout from './components/AdminLayout/AdminLayout';
+import AdminDashboard from './pages/AdminDashboard/AdminDashboard';
 import ProductManagement from './pages/ProductManagement/ProductManagement';
 import AddProduct from './pages/AddProduct/AddProduct';
 import ProductDetails from './pages/ProductDetails/ProductDetails';
@@ -22,9 +22,9 @@ function App() {
     <Router>
       <div className="app">
         <Routes>
-          <Route path="/" element={<AccessoriesLayout />}>
+          <Route path="/" element={<AdminLayout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<AccessoriesDashboard />} />
+            <Route path="dashboard" element={<AdminDashboard />} />
 
             <Route path="products" element={<ProductManagement />} />
             <Route path="products/add" element={<AddProduct />} />

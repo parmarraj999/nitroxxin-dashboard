@@ -23,7 +23,8 @@ import {
   UserCog,
   Headphones,
   Warehouse,
-  Bike
+  Bike,
+  Shield
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -57,7 +58,7 @@ const Sidebar = () => {
   ];
 
   return (
-    <aside className="accessories-sidebar">
+    <aside className="admin-sidebar">
       <div className="sidebar-header">
         <div className="logo-container">
           <div className="logo-icon-dark">
@@ -68,8 +69,8 @@ const Sidebar = () => {
             </svg>
           </div>
           <div className="logo-text">
-            <h2>Nitroxx</h2>
-            <p>PRECISION GEAR</p>
+            <h2>Nitroxxin</h2>
+            <p>MAIN ADMIN PANEL</p>
           </div>
         </div>
       </div>
@@ -85,7 +86,7 @@ const Sidebar = () => {
                     to={item.path}
                     className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                   >
-                    <Icon className="nav-icon" size={20} />
+                    <Icon className="nav-icon" size={18} />
                     <span>{item.label}</span>
                   </NavLink>
                 </li>
@@ -95,7 +96,10 @@ const Sidebar = () => {
         </nav>
 
         <div className="admin-section">
-          <h3 className="section-title">ADMIN</h3>
+          <h3 className="section-title">
+            <Shield size={10} style={{ display: 'inline', marginRight: 4 }} />
+            ADMIN CONTROLS
+          </h3>
           <nav className="sidebar-nav">
             <ul>
               {adminNav.map((item, index) => {
@@ -106,7 +110,7 @@ const Sidebar = () => {
                       to={item.path}
                       className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                     >
-                      <Icon className="nav-icon" size={20} />
+                      <Icon className="nav-icon" size={18} />
                       <span>{item.label}</span>
                     </NavLink>
                   </li>
@@ -118,8 +122,8 @@ const Sidebar = () => {
       </div>
 
       <div className="sidebar-footer">
-        <NavLink to="/products/add" className="add-product-btn">
-          <Plus size={18} />
+        <NavLink to="/products/add" className="add-product-btn" id="sidebar-add-product-btn">
+          <Plus size={16} />
           Add Product
         </NavLink>
       </div>

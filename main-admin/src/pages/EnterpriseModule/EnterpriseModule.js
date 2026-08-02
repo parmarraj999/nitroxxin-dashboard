@@ -289,7 +289,7 @@ const EnterpriseModule = ({ moduleKey }) => {
         ) : visibleRecords.length === 0 ? (
           <div className="enterprise-state">
             <h3>No records yet</h3>
-            <p>Create a record or add sample accessories marketplace data to start working with this module.</p>
+            <p>Create a record or add sample data to start working with this module.</p>
             <div className="empty-actions">
               <button className="quick-add-btn" onClick={openCreate}><Plus size={16} /> {config.primaryAction}</button>
               {(config.seed || []).length > 0 && <button className="export-btn" onClick={seedRecords}>Add Sample Data</button>}
