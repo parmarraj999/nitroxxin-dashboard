@@ -70,7 +70,7 @@ const Sidebar = () => {
           <img src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx'} alt={profile?.fullName || 'User'} className="avatar" />
           <div className="user-info">
             <h4>{profile?.fullName || 'Nitroxx User'}</h4>
-            <p>{profile?.role || 'Participant'}</p>
+            <p>{profile?.role || 'Host'}</p>
           </div>
           <button className="settings-btn" title="Logout" onClick={logout}>
             <LogOut size={18} />

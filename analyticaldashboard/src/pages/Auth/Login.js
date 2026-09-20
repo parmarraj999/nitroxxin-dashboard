@@ -8,7 +8,7 @@ const Login = () => {
   const { login, loginWithGoogle, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [form, setForm] = useState({ email: '', password: '', role: 'Participant' });
+  const [form, setForm] = useState({ email: '', password: '', role: 'Host' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const from = location.state?.from?.pathname || '/dashboard';
@@ -33,7 +33,7 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      await loginWithGoogle(form.role);
+      await loginWithGoogle('Host');
       navigate(from, { replace: true });
     } catch (err) {
       setError(err.message);
@@ -51,7 +51,7 @@ const Login = () => {
       <section className="auth-panel">
         <form className="auth-card" onSubmit={submit}>
           <h2>Login</h2>
-          <p>Access your host or participant workspace.</p>
+          <p>Access your host dashboard workspace.</p>
           {error && <div className="alert error">{error}</div>}
           <div className="form-grid">
             <label className="form-field">
@@ -61,13 +61,6 @@ const Login = () => {
             <label className="form-field">
               <span>Password</span>
               <input type="password" required value={form.password} onChange={(e) => setForm({ ...form, password: e.target.value })} />
-            </label>
-            <label className="form-field">
-              <span>Google role</span>
-              <select value={form.role} onChange={(e) => setForm({ ...form, role: e.target.value })}>
-                <option>Participant</option>
-                <option>Host</option>
-              </select>
             </label>
             <button className="primary-btn" disabled={loading} type="submit">
               <LogIn size={18} /> {loading ? 'Signing in...' : 'Sign in'}

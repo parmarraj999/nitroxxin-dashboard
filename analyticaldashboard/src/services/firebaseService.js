@@ -38,6 +38,7 @@ import { auth, db, googleProvider, storage } from '../firebase/firebase.config';
 
 export const collections = {
   users: 'users',
+  event_host: 'event_host',
   events: 'events',
   registrations: 'eventRegistrations',
   notifications: 'notifications',
@@ -62,7 +63,7 @@ export const buildUserProfile = (firebaseUser, extra = {}) => ({
   fullName: extra.fullName || firebaseUser.displayName || '',
   email: firebaseUser.email || extra.email || '',
   photoURL: firebaseUser.photoURL || extra.photoURL || '',
-  role: extra.role || 'Participant',
+  role: extra.role || 'Host',
   phone: extra.phone || '',
   city: extra.city || '',
   state: extra.state || '',
@@ -77,15 +78,41 @@ export const buildUserProfile = (firebaseUser, extra = {}) => ({
   updatedAt: serverTimestamp(),
 });
 
-export const subscribeToUser = (uid, callback, onError) =>
-  onSnapshot(doc(db, collections.users, uid), callback, onError);
+export const subscribeToUser = (uid, callback, onError) => {
+  let unsubUsers = null;
+  const unsubHost = onSnapshot(
+    doc(db, collections.event_host, uid),
+    (snapshot) => {
+      if (snapshot.exists()) {
+        if (unsubUsers) {
+          unsubUsers();
+          unsubUsers = null;
+        }
+        callback(snapshot);
+      } else if (!unsubUsers) {
+        unsubUsers = onSnapshot(doc(db, collections.users, uid), callback, onError);
+      }
+    },
+    onError
+  );
 
-export const signUpWithEmail = async ({ fullName, email, password, role, phone, city, state }) => {
+  return () => {
+    unsubHost();
+    if (unsubUsers) unsubUsers();
+  };
+};
+
+export const signUpWithEmail = async ({ fullName, email, password, role = 'Host', phone, city, state }) => {
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   await updateProfile(credential.user, { displayName: fullName });
+  const profileData = buildUserProfile(credential.user, { fullName, role: 'Host', phone, city, state });
+  await setDoc(
+    doc(db, collections.event_host, credential.user.uid),
+    profileData
+  );
   await setDoc(
     doc(db, collections.users, credential.user.uid),
-    buildUserProfile(credential.user, { fullName, role, phone, city, state })
+    profileData
   );
   await sendEmailVerification(credential.user);
   return credential.user;
@@ -93,38 +120,46 @@ export const signUpWithEmail = async ({ fullName, email, password, role, phone, 
 
 export const loginWithEmail = async (email, password) => {
   const credential = await signInWithEmailAndPassword(auth, email, password);
+  const updateData = timestamped({
+    uid: credential.user.uid,
+    email: credential.user.email,
+    photoURL: credential.user.photoURL || '',
+    fullName: credential.user.displayName || '',
+    isVerified: credential.user.emailVerified,
+    lastLogin: serverTimestamp(),
+  });
   await setDoc(
     doc(db, collections.users, credential.user.uid),
-    timestamped({
-      uid: credential.user.uid,
-      email: credential.user.email,
-      photoURL: credential.user.photoURL || '',
-      fullName: credential.user.displayName || '',
-      isVerified: credential.user.emailVerified,
-      lastLogin: serverTimestamp(),
-    }),
+    updateData,
+    { merge: true }
+  );
+  await setDoc(
+    doc(db, collections.event_host, credential.user.uid),
+    updateData,
     { merge: true }
   );
   return credential.user;
 };
 
-export const loginWithGoogle = async (role = 'Participant') => {
+export const loginWithGoogle = async (role = 'Host') => {
   const credential = await signInWithPopup(auth, googleProvider);
   const userRef = doc(db, collections.users, credential.user.uid);
+  const hostRef = doc(db, collections.event_host, credential.user.uid);
   const snapshot = await getDoc(userRef);
-  if (!snapshot.exists()) {
-    await setDoc(userRef, buildUserProfile(credential.user, { role }));
+  const hostSnapshot = await getDoc(hostRef);
+  if (!snapshot.exists() && !hostSnapshot.exists()) {
+    const profile = buildUserProfile(credential.user, { role: 'Host' });
+    await setDoc(userRef, profile);
+    await setDoc(hostRef, profile);
   } else {
-    await setDoc(
-      userRef,
-      timestamped({
-        photoURL: credential.user.photoURL || '',
-        fullName: credential.user.displayName || snapshot.data().fullName || '',
-        isVerified: credential.user.emailVerified,
-        lastLogin: serverTimestamp(),
-      }),
-      { merge: true }
-    );
+    const updateData = timestamped({
+      photoURL: credential.user.photoURL || '',
+      fullName: credential.user.displayName || snapshot.data()?.fullName || hostSnapshot.data()?.fullName || '',
+      isVerified: credential.user.emailVerified,
+      lastLogin: serverTimestamp(),
+    });
+    await setDoc(userRef, updateData, { merge: true });
+    await setDoc(hostRef, updateData, { merge: true });
   }
   return credential.user;
 };
@@ -173,6 +208,7 @@ export const deleteStorageFile = async (url) => {
 export const updateUserProfile = async (uid, data) => {
   const profile = timestamped(data);
   await updateDoc(doc(db, collections.users, uid), profile);
+  await setDoc(doc(db, collections.event_host, uid), profile, { merge: true });
   if (auth.currentUser?.uid === uid) {
     if (data.fullName || data.photoURL) {
       await updateProfile(auth.currentUser, {
@@ -250,6 +286,18 @@ export const createEvent = async (event) => {
     totalEventsHosted: increment(1),
     updatedAt: serverTimestamp(),
   });
+  try {
+    await updateDoc(doc(db, collections.event_host, event.hostId), {
+      totalEventsHosted: increment(1),
+      updatedAt: serverTimestamp(),
+    });
+  } catch (error) {
+    await setDoc(
+      doc(db, collections.event_host, event.hostId),
+      { totalEventsHosted: increment(1), updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+  }
   return eventRef.id;
 };
 

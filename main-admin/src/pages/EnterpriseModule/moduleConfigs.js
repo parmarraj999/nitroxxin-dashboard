@@ -10,6 +10,7 @@ import {
   FileBarChart,
   Headphones,
   Megaphone,
+  Package,
   PackageCheck,
   RotateCcw,
   ShieldCheck,
@@ -42,8 +43,66 @@ const text = (key, label, placeholder = '') => ({ key, label, type: 'text', plac
 const number = (key, label, placeholder = '') => ({ key, label, type: 'number', placeholder });
 const area = (key, label, placeholder = '') => ({ key, label, type: 'textarea', placeholder });
 const select = (key, label, options) => ({ key, label, type: 'select', options });
+const image = (key, label) => ({ key, label, type: 'image' });
 
 export const moduleConfigs = {
+  events: {
+    title: 'Event Management', subtitle: 'Create and manage event listings independently from store products.', collectionName: COLLECTIONS.events, icon: ClipboardCheck, primaryAction: 'Create Event', accent: '#7c3aed', global: true,
+    fields: [text('name', 'Event Name', 'Monsoon Ride 2026'), text('venue', 'Venue', 'Lonavala'), text('eventDate', 'Event Date', '2026-08-15'), number('ticketPrice', 'Ticket Price', '999'), number('capacity', 'Capacity', '250'), select('status', 'Status', ['draft', 'published', 'cancelled'])],
+    columns: ['name', 'venue', 'eventDate', 'ticketPrice', 'capacity', 'status'], seed: [{ name: 'Monsoon Ride 2026', venue: 'Lonavala', eventDate: '2026-08-15', ticketPrice: 999, capacity: 250, status: 'published' }]
+  },
+  eventCategories: {
+    title: 'Event Categories', subtitle: 'Organize event types without affecting product categories.', collectionName: COLLECTIONS.eventCategories, icon: Tags, primaryAction: 'Add Event Category', accent: '#0f766e', global: true,
+    fields: [text('name', 'Category Name', 'Group Ride'), area('description', 'Description', 'Community motorcycle rides'), select('status', 'Status', ['active', 'draft'])], columns: ['name', 'description', 'status'], seed: [{ name: 'Group Ride', description: 'Community motorcycle rides', status: 'active' }]
+  },
+  eventBookings: {
+    title: 'Event Bookings', subtitle: 'Track registrations and ticket payments for events only.', collectionName: COLLECTIONS.eventBookings, icon: ClipboardCheck, primaryAction: 'Add Booking', accent: '#2563eb', global: true,
+    fields: [text('bookingId', 'Booking ID', 'EVB-2026-001'), text('eventName', 'Event', 'Monsoon Ride 2026'), text('customer', 'Participant', 'Aarav Sharma'), number('tickets', 'Tickets', '2'), number('amount', 'Amount', '1998'), select('status', 'Status', ['confirmed', 'pending', 'cancelled', 'refunded'])], columns: ['bookingId', 'eventName', 'customer', 'tickets', 'amount', 'status']
+  },
+  eventParticipants: {
+    title: 'Event Participants', subtitle: 'Manage check-in and attendance separately from store customers.', collectionName: COLLECTIONS.eventParticipants, icon: Users, primaryAction: 'Add Participant', accent: '#0891b2', global: true,
+    fields: [text('name', 'Participant Name', 'Aarav Sharma'), text('eventName', 'Event', 'Monsoon Ride 2026'), text('phone', 'Phone', '+91 98765 43210'), select('checkInStatus', 'Check-in Status', ['registered', 'checked_in', 'no_show'])], columns: ['name', 'eventName', 'phone', 'checkInStatus']
+  },
+  eventCoupons: {
+    title: 'Event Coupons', subtitle: 'Create discount codes applicable only to event bookings.', collectionName: COLLECTIONS.eventCoupons, icon: Megaphone, primaryAction: 'Add Event Coupon', accent: '#ea580c', global: true, defaults: { couponScope: 'event' },
+    fields: [text('code', 'Code', 'RIDE2026'), number('discount', 'Discount', '15'), select('discountType', 'Discount Type', ['percent', 'fixed']), text('expiresAt', 'Expires', '2026-08-15'), select('status', 'Status', ['active', 'scheduled', 'expired'])], columns: ['code', 'discount', 'discountType', 'expiresAt', 'status']
+  },
+  eventReviews: {
+    title: 'Event Reviews', subtitle: 'Moderate feedback left for events, separate from product reviews.', collectionName: COLLECTIONS.eventReviews, icon: Star, primaryAction: 'Add Event Review', accent: '#ca8a04', global: true,
+    fields: [text('eventName', 'Event', 'Monsoon Ride 2026'), text('customer', 'Participant', 'Rohit Mehta'), number('rating', 'Rating (1-5)', '5'), area('review', 'Review', 'Great route and coordination.'), select('status', 'Status', ['published', 'pending', 'hidden'])], columns: ['eventName', 'customer', 'rating', 'review', 'status']
+  },
+  eventAnalytics: {
+    title: 'Event Analytics', subtitle: 'Measure ticket sales, attendance, and event revenue.', collectionName: COLLECTIONS.eventAnalytics, icon: BarChart3, primaryAction: 'Add Event Snapshot', accent: '#16a34a', global: true,
+    fields: [text('period', 'Period', '2026-08'), text('eventName', 'Event', 'Monsoon Ride 2026'), number('bookings', 'Bookings', '120'), number('attendance', 'Attendance', '110'), number('revenue', 'Revenue', '119880')], columns: ['period', 'eventName', 'bookings', 'attendance', 'revenue']
+  },
+  pendingVendors: {
+    title: 'Pending Vendor Approval', subtitle: 'Review vendors awaiting platform approval.', collectionName: COLLECTIONS.vendors, icon: Building2, primaryAction: 'Add Vendor', accent: '#b45309', filters: [['verificationStatus', '==', 'pending']],
+    fields: [text('displayName', 'Vendor Name', 'Nitroxx Moto Gear'), text('gstNumber', 'GST Number', '27ABCDE1234F1Z5'), text('pan', 'PAN', 'ABCDE1234F'), select('verificationStatus', 'Verification', ['pending', 'verified', 'rejected'])], columns: ['displayName', 'gstNumber', 'pan', 'verificationStatus']
+  },
+  vendorProducts: {
+    title: 'Vendor Products', subtitle: 'View product listings by vendor without mixing them with event inventory.', collectionName: COLLECTIONS.products, icon: Package, primaryAction: 'Add Vendor Product', accent: '#7c3aed',
+    fields: [text('title', 'Product Name', 'Axor Apex Helmet'), text('vendorId', 'Vendor ID', 'vendor-id'), text('sku', 'SKU', 'AXR-APX-001'), select('status', 'Status', ['draft', 'published', 'archived'])], columns: ['title', 'vendorId', 'sku', 'status']
+  },
+  vendorEvents: {
+    title: 'Vendor Events', subtitle: 'View events published by vendors independently from product listings.', collectionName: COLLECTIONS.events, icon: ClipboardCheck, primaryAction: 'Add Vendor Event', accent: '#7c3aed',
+    fields: [text('name', 'Event Name', 'Monsoon Ride 2026'), text('vendorId', 'Vendor ID', 'vendor-id'), text('venue', 'Venue', 'Lonavala'), text('eventDate', 'Event Date', '2026-08-15'), select('status', 'Status', ['draft', 'published', 'cancelled'])], columns: ['name', 'vendorId', 'venue', 'eventDate', 'status']
+  },
+  vendorPayouts: {
+    title: 'Vendor Payouts', subtitle: 'Schedule and audit payouts owed to marketplace vendors.', collectionName: COLLECTIONS.vendorPayouts, icon: BadgeIndianRupee, primaryAction: 'Add Payout', accent: '#15803d', global: true,
+    fields: [text('payoutId', 'Payout ID', 'PAY-2026-001'), text('vendorName', 'Vendor', 'Rynox Performance'), number('amount', 'Amount', '175000'), text('period', 'Period', 'July 2026'), select('status', 'Status', ['scheduled', 'processing', 'paid', 'hold'])], columns: ['payoutId', 'vendorName', 'amount', 'period', 'status']
+  },
+  productCoupons: {
+    title: 'Product Coupons', subtitle: 'Create discount codes that apply only to store products.', collectionName: COLLECTIONS.coupons, icon: Megaphone, primaryAction: 'Add Product Coupon', accent: '#ea580c', global: true, defaults: { couponScope: 'product' }, filters: [['couponScope', '==', 'product']],
+    fields: [text('code', 'Code', 'RIDEFAST15'), number('discount', 'Discount', '15'), select('discountType', 'Discount Type', ['percent', 'fixed']), text('expiresAt', 'Expires', '2026-08-31'), select('status', 'Status', ['active', 'scheduled', 'expired'])], columns: ['code', 'discount', 'discountType', 'expiresAt', 'status']
+  },
+  productReviews: {
+    title: 'Product Reviews', subtitle: 'Moderate store product feedback independently from event reviews.', collectionName: COLLECTIONS.reviews, icon: Star, primaryAction: 'Add Product Review', accent: '#ca8a04', global: true, defaults: { reviewScope: 'product' }, filters: [['reviewScope', '==', 'product']],
+    fields: [text('productName', 'Product Name', 'LS2 FF800 Storm'), text('customer', 'Customer Name', 'Rohit Mehta'), number('rating', 'Rating (1-5)', '5'), area('review', 'Customer Review', 'Excellent fit and ventilation.'), select('status', 'Status', ['published', 'pending', 'hidden'])], columns: ['productName', 'customer', 'rating', 'review', 'status']
+  },
+  productAnalytics: {
+    title: 'Product Analytics', subtitle: 'Measure store performance separately from event performance.', collectionName: COLLECTIONS.analytics, icon: BarChart3, primaryAction: 'Add Product Snapshot', accent: '#16a34a', global: true, defaults: { analyticsScope: 'product' }, filters: [['analyticsScope', '==', 'product']],
+    fields: [text('period', 'Period', '2026-08'), number('revenue', 'Revenue', '1250000'), number('orders', 'Orders', '420'), number('visitors', 'Visitors', '18000'), number('conversionRate', 'Conversion Rate %', '2.8')], columns: ['period', 'revenue', 'orders', 'visitors', 'conversionRate']
+  },
   vendors: {
     title: 'Vendor Management',
     subtitle: 'Onboard, verify, settle, and measure marketplace vendors.',
@@ -76,8 +135,9 @@ export const moduleConfigs = {
     accent: '#0f766e',
     fields: [
       text('name', 'Category Name', 'Helmets'),
+      image('imageUrl', 'Category Image'),
       text('parentCategory', 'Parent Category', 'Rider Safety'),
-      text('subcategories', 'Subcategories', 'Full Face, Modular, Off Road'),
+      { key: 'subcategories', label: 'Subcategories', type: 'subcategories' },
       select('status', 'Status', ['active', 'draft', 'hidden']),
       number('sortOrder', 'Sort Order', '10'),
       area('attributes', 'Required Attributes', 'ISI, DOT, ECE, shell material')
@@ -89,25 +149,43 @@ export const moduleConfigs = {
     ]
   },
   brands: {
-    title: 'Brand Management',
-    subtitle: 'Control authorized, featured, and popular accessory brands.',
+    title: 'Accessory Brand Management',
+    subtitle: 'Manage the brands that sell accessories in the store.',
     collectionName: COLLECTIONS.brands,
     icon: ShieldCheck,
-    primaryAction: 'Add Brand',
+    primaryAction: 'Add Accessory Brand',
     accent: '#7c3aed',
     fields: [
-      text('name', 'Brand Name', 'Axor'),
-      text('country', 'Country', 'India'),
-      text('website', 'Website', 'https://example.com'),
+      text('name', 'Accessory Brand Name', 'Axor'),
+      image('imageUrl', 'Accessory Brand Image'),
       select('authorizedStatus', 'Authorized', ['authorized', 'pending', 'not_authorized']),
-      select('featured', 'Featured', ['yes', 'no']),
-      select('popular', 'Popular', ['yes', 'no']),
-      area('warranty', 'Warranty', '1 year manufacturer warranty')
+      select('popular', 'Popular', ['yes', 'no'])
     ],
-    columns: ['name', 'country', 'authorizedStatus', 'featured', 'popular', 'warranty'],
+    columns: ['name', 'imageUrl', 'authorizedStatus', 'popular'],
     seed: [
-      { name: 'Axor', country: 'India', website: 'https://axorhelmets.com', authorizedStatus: 'authorized', featured: 'yes', popular: 'yes', warranty: '1 year shell warranty' },
-      { name: 'Motul', country: 'France', website: 'https://www.motul.com', authorizedStatus: 'authorized', featured: 'no', popular: 'yes', warranty: 'Batch quality guarantee' }
+      { name: 'Axor', authorizedStatus: 'authorized', popular: 'yes' },
+      { name: 'Motul', authorizedStatus: 'authorized', popular: 'yes' }
+    ]
+  },
+  bikeBrands: {
+    title: 'Bike Brand Management',
+    subtitle: 'Manage bike manufacturers and the bikes available under each brand.',
+    collectionName: COLLECTIONS.bikeBrands,
+    icon: Bike,
+    primaryAction: 'Add Bike Brand',
+    accent: '#2563eb',
+    global: true,
+    fields: [
+      text('name', 'Bike Brand Name', 'Royal Enfield'),
+      image('imageUrl', 'Brand Logo'),
+      text('bannerUrl', 'Brand Banner URL', 'https://...'),
+      select('featured', 'Featured', ['yes', 'no']),
+      select('popular', 'Popular', ['yes', 'no'])
+    ],
+    columns: ['name', 'imageUrl', 'featured', 'popular'],
+    seed: [
+      { name: 'Royal Enfield', featured: 'yes', popular: 'yes' },
+      { name: 'KTM', featured: 'no', popular: 'yes' }
     ]
   },
   inventory: {
@@ -264,41 +342,47 @@ export const moduleConfigs = {
   },
   reports: {
     title: 'Reports',
-    subtitle: 'Create sales, inventory, tax, vendor, customer, return, and refund exports.',
+    subtitle: 'Create product and event reports alongside sales, inventory, tax, vendor, and refund exports.',
     collectionName: 'reports',
     icon: FileBarChart,
     primaryAction: 'Create Report',
     accent: '#475569',
+    global: true,
+    tableFilters: [{ key: 'reportScope', label: 'Scope', options: ['products', 'events', 'all'] }],
     fields: [
       text('name', 'Report Name', 'Monthly GST Report'),
-      select('type', 'Type', ['sales', 'inventory', 'tax', 'vendor', 'customer', 'category', 'brand', 'refund', 'return']),
+      select('reportScope', 'Data Scope', ['products', 'events', 'all']),
+      select('type', 'Type', ['sales', 'inventory', 'tax', 'vendor', 'customer', 'category', 'brand', 'refund', 'return', 'bookings', 'attendance']),
       text('period', 'Period', 'July 2026'),
       select('format', 'Format', ['csv', 'excel', 'pdf']),
       select('status', 'Status', ['queued', 'ready', 'failed']),
       text('owner', 'Owner', 'Finance')
     ],
-    columns: ['name', 'type', 'period', 'format', 'status', 'owner'],
+    columns: ['name', 'reportScope', 'type', 'period', 'format', 'status', 'owner'],
     seed: [
       { name: 'Weekly Inventory Risk', type: 'inventory', period: 'Week 27, 2026', format: 'excel', status: 'ready', owner: 'Inventory' }
     ]
   },
   finance: {
     title: 'Finance',
-    subtitle: 'Track earnings, commission, GST, settlements, withdrawals, and invoices.',
+    subtitle: 'Track vendor payouts, refunds, commissions, and transactions in one finance ledger.',
     collectionName: COLLECTIONS.settlements,
     icon: CircleDollarSign,
     primaryAction: 'Add Settlement',
     accent: '#15803d',
+    global: true,
     fields: [
       text('settlementId', 'Settlement ID', 'SET-2026-0720'),
       text('vendorName', 'Vendor', 'Rynox Performance'),
+      select('transactionType', 'Transaction Type', ['vendor_payout', 'refund', 'commission', 'transaction']),
       number('grossAmount', 'Gross Amount', '250000'),
       number('commission', 'Commission', '30000'),
+      number('refundAmount', 'Refund Amount', '0'),
       number('gst', 'GST', '45000'),
       number('netPayable', 'Net Payable', '175000'),
       select('status', 'Status', ['scheduled', 'processing', 'paid', 'hold'])
     ],
-    columns: ['settlementId', 'vendorName', 'grossAmount', 'commission', 'gst', 'netPayable', 'status'],
+    columns: ['settlementId', 'vendorName', 'transactionType', 'grossAmount', 'commission', 'refundAmount', 'netPayable', 'status'],
     seed: [
       { settlementId: 'SET-2026-0701', vendorName: 'Rynox Performance', grossAmount: 250000, commission: 30000, gst: 45000, netPayable: 175000, status: 'scheduled' }
     ]

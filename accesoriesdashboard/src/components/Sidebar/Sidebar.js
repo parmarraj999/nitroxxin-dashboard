@@ -1,5 +1,5 @@
-import React from 'react';
-import { NavLink } from 'react-router-dom';
+import React, { useState } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -7,27 +7,21 @@ import {
   ClipboardList,
   Truck,
   BarChart2,
-  Users,
-  Settings,
-  Plus,
-  Store,
-  Tags,
-  ShieldCheck,
   BadgeIndianRupee,
-  RotateCcw,
-  Star,
-  Megaphone,
-  FileBarChart,
-  CircleDollarSign,
-  Bell,
-  UserCog,
-  Headphones,
-  Warehouse,
-  Bike
+  Plus,
+  Settings,
+  UserCircle2,
+  LogOut,
+  Loader2
 } from 'lucide-react';
+import { useAuthVendor } from '../../hooks/useAuthVendor';
 import './Sidebar.css';
 
 const Sidebar = () => {
+  const navigate = useNavigate();
+  const { signOut, user } = useAuthVendor();
+  const [loggingOut, setLoggingOut] = useState(false);
+
   const mainNav = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: Package, label: 'Products', path: '/products' },
@@ -38,23 +32,21 @@ const Sidebar = () => {
     { icon: BarChart2, label: 'Analytics', path: '/analytics' },
   ];
 
-  const adminNav = [
-    { icon: Store, label: 'Vendors', path: '/vendors' },
-    { icon: Users, label: 'Customers', path: '/customers' },
-    { icon: RotateCcw, label: 'Returns', path: '/returns' },
-    { icon: Tags, label: 'Categories', path: '/categories' },
-    { icon: ShieldCheck, label: 'Brands', path: '/brands' },
-    { icon: Star, label: 'Reviews', path: '/reviews' },
-    { icon: Megaphone, label: 'Promotions', path: '/promotions' },
-    { icon: FileBarChart, label: 'Reports', path: '/reports' },
-    { icon: CircleDollarSign, label: 'Finance', path: '/finance' },
-    { icon: Bell, label: 'Notifications', path: '/notifications' },
-    { icon: UserCog, label: 'Roles', path: '/roles' },
-    { icon: Headphones, label: 'Support', path: '/support' },
-    { icon: Warehouse, label: 'Warehouses', path: '/warehouses' },
-    { icon: Bike, label: 'Compatibility', path: '/compatibility' },
+  const accountNav = [
+    { icon: UserCircle2, label: 'Profile', path: '/profile' },
     { icon: Settings, label: 'Settings', path: '/settings' },
   ];
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await signOut();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      console.error('Logout failed:', err);
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <aside className="accessories-sidebar">
@@ -95,13 +87,13 @@ const Sidebar = () => {
         </nav>
 
         <div className="admin-section">
-          <h3 className="section-title">ADMIN</h3>
+          <h3 className="section-title">ACCOUNT</h3>
           <nav className="sidebar-nav">
             <ul>
-              {adminNav.map((item, index) => {
+              {accountNav.map((item, index) => {
                 const Icon = item.icon;
                 return (
-                  <li key={`admin-${index}`}>
+                  <li key={`account-${index}`}>
                     <NavLink
                       to={item.path}
                       className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
@@ -118,10 +110,40 @@ const Sidebar = () => {
       </div>
 
       <div className="sidebar-footer">
-        <NavLink to="/products/add" className="add-product-btn">
-          <Plus size={18} />
-          Add Product
-        </NavLink>
+        {/* Vendor info strip */}
+        {user && (
+          <div className="sidebar-vendor-strip">
+            <div className="sidebar-vendor-avatar">
+              {(user.email?.[0] || 'V').toUpperCase()}
+            </div>
+            <div className="sidebar-vendor-info">
+              <p className="sidebar-vendor-email">{user.email}</p>
+              <p className="sidebar-vendor-role">Vendor</p>
+            </div>
+          </div>
+        )}
+
+        <div className="sidebar-footer-btns">
+          <NavLink to="/products/add" className="add-product-btn">
+            <Plus size={18} />
+            Add Product
+          </NavLink>
+
+          <button
+            id="sidebar-logout-btn"
+            className="logout-btn"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            title="Sign out"
+          >
+            {loggingOut ? (
+              <Loader2 size={18} className="logout-spinner" />
+            ) : (
+              <LogOut size={18} />
+            )}
+            <span>{loggingOut ? 'Signing out…' : 'Sign Out'}</span>
+          </button>
+        </div>
       </div>
     </aside>
   );

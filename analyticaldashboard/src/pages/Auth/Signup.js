@@ -11,7 +11,7 @@ const Signup = () => {
     fullName: '',
     email: '',
     password: '',
-    role: 'Participant',
+    role: 'Host',
     phone: '',
     city: '',
     state: '',
@@ -28,7 +28,7 @@ const Signup = () => {
     setLoading(true);
     setError('');
     try {
-      await signUp(form);
+      await signUp({ ...form, role: 'Host' });
       navigate('/dashboard', { replace: true });
     } catch (err) {
       setError(err.message);
@@ -41,11 +41,11 @@ const Signup = () => {
     <div className="auth-page">
       <section className="auth-visual">
         <h1>Create events, publish them, and manage registrations end to end.</h1>
-        <p>Signup creates your Firebase Auth account and stores the production user profile document in Firestore.</p>
+        <p>Signup creates your Host account and stores your profile in the event host collection.</p>
       </section>
       <section className="auth-panel">
         <form className="auth-card" onSubmit={submit}>
-          <h2>Create account</h2>
+          <h2>Create Host account</h2>
           <p>Email verification is sent immediately after signup.</p>
           {error && <div className="alert error">{error}</div>}
           <div className="form-grid">
@@ -63,19 +63,10 @@ const Signup = () => {
                 <input type="password" minLength="6" required value={form.password} onChange={(e) => update('password', e.target.value)} />
               </label>
             </div>
-            <div className="form-grid two">
-              <label className="form-field">
-                <span>Role</span>
-                <select value={form.role} onChange={(e) => update('role', e.target.value)}>
-                  <option>Participant</option>
-                  <option>Host</option>
-                </select>
-              </label>
-              <label className="form-field">
-                <span>Phone</span>
-                <input value={form.phone} onChange={(e) => update('phone', e.target.value)} />
-              </label>
-            </div>
+            <label className="form-field">
+              <span>Phone</span>
+              <input value={form.phone} onChange={(e) => update('phone', e.target.value)} />
+            </label>
             <div className="form-grid two">
               <label className="form-field">
                 <span>City</span>

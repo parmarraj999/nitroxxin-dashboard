@@ -8,6 +8,7 @@ This dashboard uses these top-level collections:
 - `product_attributes`
 - `product_variants`
 - `brands`
+- `bike_brands`
 - `orders`
 - `order_items`
 - `inventory`

@@ -5,6 +5,7 @@ export const COLLECTIONS = {
   productAttributes: 'product_attributes',
   productVariants: 'product_variants',
   brands: 'brands',
+  bikeBrands: 'bike_brands',
   orders: 'orders',
   orderItems: 'order_items',
   inventory: 'inventory',
@@ -20,7 +21,16 @@ export const COLLECTIONS = {
   shippingTemplates: 'shipping_templates',
   returnPolicies: 'return_policies',
   certifications: 'certifications',
-  bikeCompatibility: 'bike_compatibility'
+  bikeCompatibility: 'bike_compatibility',
+  events: 'events',
+  eventCategories: 'event_categories',
+  eventBookings: 'event_bookings',
+  eventParticipants: 'event_participants',
+  eventCoupons: 'event_coupons',
+  eventReviews: 'event_reviews',
+  eventAnalytics: 'event_analytics',
+  vendorPayouts: 'vendor_payouts',
+  transactions: 'transactions'
 };
 
 export const PRODUCT_STATUSES = {
@@ -156,7 +166,8 @@ export const collectionStructure = {
   product_categories: '{categoryId}: category tree and active flags',
   product_attributes: '{categoryName}: dynamic attribute definitions',
   product_variants: '{variantId}: productId, sku, size/color, price, stock',
-  brands: '{brandId}: vendorId, logo, verification, metadata',
+  brands: '{brandId}: accessory brand, logo, authorization, merchandising metadata',
+  bike_brands: '{bikeBrandId}: bike manufacturer, logo, authorization, bikes[]',
   orders: '{orderId}: vendorId, customer, totals, shipping, tracking, invoice, status',
   order_items: '{itemId}: orderId, vendorId, productId, qty, price snapshot',
   inventory: '{productId or variantId}: stock, reservedStock, availableStock, warehouseId',

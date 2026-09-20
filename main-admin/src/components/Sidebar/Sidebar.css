@@ -106,6 +106,29 @@
   margin-bottom: 8px;
 }
 
+.sidebar-menu-group {
+  margin-bottom: 8px;
+}
+
+.group-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  text-align: left;
+}
+
+.group-chevron {
+  font-size: 1rem;
+  line-height: 1;
+  transition: transform 0.2s ease;
+}
+
+.group-chevron.open {
+  transform: rotate(180deg);
+}
+
 .sidebar-footer {
   padding: 24px;
   border-top: 1px solid var(--border-color);

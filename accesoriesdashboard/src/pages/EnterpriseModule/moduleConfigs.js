@@ -97,17 +97,13 @@ export const moduleConfigs = {
     accent: '#7c3aed',
     fields: [
       text('name', 'Brand Name', 'Axor'),
-      text('country', 'Country', 'India'),
-      text('website', 'Website', 'https://example.com'),
       select('authorizedStatus', 'Authorized', ['authorized', 'pending', 'not_authorized']),
-      select('featured', 'Featured', ['yes', 'no']),
-      select('popular', 'Popular', ['yes', 'no']),
-      area('warranty', 'Warranty', '1 year manufacturer warranty')
+      select('popular', 'Popular', ['yes', 'no'])
     ],
-    columns: ['name', 'country', 'authorizedStatus', 'featured', 'popular', 'warranty'],
+    columns: ['name', 'authorizedStatus', 'popular'],
     seed: [
-      { name: 'Axor', country: 'India', website: 'https://axorhelmets.com', authorizedStatus: 'authorized', featured: 'yes', popular: 'yes', warranty: '1 year shell warranty' },
-      { name: 'Motul', country: 'France', website: 'https://www.motul.com', authorizedStatus: 'authorized', featured: 'no', popular: 'yes', warranty: 'Batch quality guarantee' }
+      { name: 'Axor', authorizedStatus: 'authorized', popular: 'yes' },
+      { name: 'Motul', authorizedStatus: 'authorized', popular: 'yes' }
     ]
   },
   inventory: {

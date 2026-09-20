@@ -1,15 +1,31 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Search, Bell, Mail, Moon } from 'lucide-react';
+import { useAuthVendor } from '../../hooks/useAuthVendor';
 import './Header.css';
 
+const getInitials = (name = '') =>
+  name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]?.toUpperCase()).join('') || 'V';
+
 const Header = () => {
+  const navigate = useNavigate();
+  const { user } = useAuthVendor();
+
+  // Derive a human-friendly name from the email (before the @)
+  const emailName = user?.email?.split('@')[0] || 'Vendor';
+  const displayName = emailName
+    .replace(/[._-]/g, ' ')
+    .replace(/\b\w/g, (c) => c.toUpperCase());
+
+  const initials = getInitials(displayName);
+
   return (
     <header className="accessories-header">
       <div className="search-container">
         <Search className="search-icon" size={18} />
-        <input 
-          type="text" 
-          placeholder="Search orders, products, or vendors..." 
+        <input
+          type="text"
+          placeholder="Search orders, products, or vendors..."
           className="search-input"
         />
       </div>
@@ -32,13 +48,20 @@ const Header = () => {
           </button>
         </div>
 
-        <div className="header-profile">
+        <button
+          id="header-profile-btn"
+          className="header-profile"
+          onClick={() => navigate('/profile')}
+          title="Go to profile"
+        >
           <div className="header-profile-info">
-            <h4>Alex Nitro</h4>
+            <h4>{displayName}</h4>
             <p>Vendor Admin</p>
           </div>
-          <img src="https://i.pravatar.cc/150?u=a042581f4e29026704b" alt="Alex Nitro" className="header-avatar" />
-        </div>
+          <div className="header-avatar-initials">
+            {initials}
+          </div>
+        </button>
       </div>
     </header>
   );

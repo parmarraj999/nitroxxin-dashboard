@@ -109,9 +109,15 @@ service cloud.firestore {
     }
 
     match /events/{eventId} {
-      allow read: if resource.data.status == 'Published' || (signedIn() && resource.data.hostId == request.auth.uid);
-      allow update: if signedIn()
-        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['registeredCount', 'revenue', 'updatedAt']);
+      allow create: if ownsIncomingVendor();
+      allow read: if signedIn();
+      allow update, delete: if ownsExistingVendor();
+    }
+
+    match /event_bookings/{bookingId} {
+      allow create: if ownsIncomingVendor();
+      allow read: if signedIn();
+      allow update, delete: if ownsExistingVendor();
     }
 
     match /bookings/{bookingId} {
@@ -142,6 +148,7 @@ service cloud.firestore {
       allow create: if collectionName in [
         'product_variants',
         'brands',
+        'bike_brands',
         'warehouses',
         'coupons',
         'reviews',
@@ -160,6 +167,7 @@ service cloud.firestore {
       allow read, update, delete: if collectionName in [
         'product_variants',
         'brands',
+        'bike_brands',
         'warehouses',
         'coupons',
         'reviews',

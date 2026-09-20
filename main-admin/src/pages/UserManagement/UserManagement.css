@@ -1,0 +1,19 @@
+.user-management-page { display: flex; flex-direction: column; gap: 20px; }
+.user-table-card { overflow: hidden; }
+.user-table-toolbar { padding: 14px; border-bottom: 1px solid var(--border-color); }
+.user-table small { color: var(--text-muted); }
+.user-details-grid { display: grid; grid-template-columns: minmax(280px, .8fr) minmax(0, 1.5fr); gap: 20px; }
+.user-profile-card, .user-activity-card, .user-notes-card { padding: 20px; }
+.user-profile-card { display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.user-profile-card h2 { color: var(--text-main); font-size: 1.35rem; margin-bottom: 7px; }
+.user-avatar { width: 56px; height: 56px; display: grid; place-items: center; border-radius: 50%; background: var(--primary-orange-light); color: var(--primary-orange); font-size: 1.3rem; font-weight: 800; }
+.user-contact-list { display: flex; flex-direction: column; gap: 10px; color: var(--text-muted); font-size: .9rem; }
+.user-contact-list span { display: flex; align-items: center; gap: 8px; }
+.activity-list { display: flex; flex-direction: column; }
+.activity-item { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 14px 0; border-bottom: 1px solid var(--border-color); }
+.activity-item:last-child { border-bottom: 0; }
+.activity-item strong, .activity-item span { display: block; }
+.activity-item strong { color: var(--text-main); margin-bottom: 3px; font-size: .92rem; }
+.activity-item span, .activity-item small { color: var(--text-muted); font-size: .8rem; }
+.activity-icon { width: 34px; height: 34px; border-radius: var(--radius-sm); display: grid; place-items: center; background: var(--bg-body); color: var(--primary-orange); }
+@media (max-width: 850px) { .user-details-grid { grid-template-columns: 1fr; } }

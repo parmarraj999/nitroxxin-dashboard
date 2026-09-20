@@ -15,7 +15,7 @@ export const useOrders = (options = {}) => {
   const [error, setError] = useState(null);
 
   const subscribe = useCallback(() => {
-    if (authLoading) return;
+    if (authLoading || !vendorId) return;
     setLoading(true);
     setError(null);
     const constraints = [where('vendorId', '==', vendorId), orderBy('createdAt', 'desc'), limit(queryOptions.pageSize || 50)];

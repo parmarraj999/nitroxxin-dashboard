@@ -14,13 +14,23 @@ service cloud.firestore {
     }
 
     function isHost() {
-      return signedIn() && userDoc().data.role == 'Host';
+      return signedIn() && (
+        exists(/databases/$(database)/documents/event_host/$(request.auth.uid))
+        || (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && userDoc().data.role == 'Host')
+      );
     }
 
     match /users/{userId} {
       allow read: if signedIn();
       allow create: if isOwner(userId);
       allow update: if isOwner(userId);
+      allow delete: if false;
+    }
+
+    match /event_host/{hostId} {
+      allow read: if signedIn();
+      allow create: if isOwner(hostId);
+      allow update: if isOwner(hostId);
       allow delete: if false;
     }
 

@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import {
   LayoutDashboard,
   Package,
@@ -24,38 +24,114 @@ import {
   Headphones,
   Warehouse,
   Bike,
-  Shield
+  Shield,
+  Image
 } from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = () => {
-  const mainNav = [
-    { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Package, label: 'Products', path: '/products' },
-    { icon: ShoppingCart, label: 'Orders', path: '/orders' },
-    { icon: ClipboardList, label: 'Inventory', path: '/inventory' },
-    { icon: BadgeIndianRupee, label: 'Pricing', path: '/pricing' },
-    { icon: Truck, label: 'Shipping', path: '/shipping' },
-    { icon: BarChart2, label: 'Analytics', path: '/analytics' },
+  const { pathname } = useLocation();
+  const menuGroups = [
+    {
+      title: 'EVENT MANAGEMENT',
+      items: [
+        { icon: ClipboardList, label: 'All Events', path: '/events' },
+        { icon: Plus, label: 'Create Event', path: '/events/create' },
+        { icon: Users, label: 'Hosts', path: '/events/hosts' },
+        { icon: Tags, label: 'Categories', path: '/events/categories' },
+        { icon: ShoppingCart, label: 'Bookings', path: '/events/bookings' },
+        { icon: Users, label: 'Participants', path: '/events/participants' },
+        { icon: Megaphone, label: 'Coupons', path: '/events/coupons' },
+        { icon: Star, label: 'Reviews', path: '/events/reviews' },
+        { icon: BarChart2, label: 'Analytics', path: '/events/analytics' },
+      ]
+    },
+    {
+      title: 'STORE MANAGEMENT',
+      items: [
+        { icon: Package, label: 'All Products', path: '/products' },
+        { icon: Plus, label: 'Add Product', path: '/products/add' },
+        { icon: Tags, label: 'Categories', path: '/categories' },
+        { icon: ShieldCheck, label: 'Accessory Brands', path: '/brands' },
+        { icon: Bike, label: 'Bike Brands', path: '/bike-brands' },
+        { icon: ClipboardList, label: 'Inventory', path: '/inventory' },
+        { icon: ShoppingCart, label: 'Orders', path: '/orders' },
+        { icon: RotateCcw, label: 'Returns', path: '/returns' },
+        { icon: Megaphone, label: 'Coupons', path: '/products/coupons' },
+        { icon: Star, label: 'Reviews', path: '/products/reviews' },
+        { icon: BarChart2, label: 'Analytics', path: '/products/analytics' }
+      ]
+    },
+    {
+      title: 'VENDOR MANAGEMENT',
+      items: [
+        { icon: Store, label: 'Vendor List', path: '/vendors' },
+        { icon: Shield, label: 'Pending Approval', path: '/vendors/pending' },
+        { icon: Package, label: 'Vendor Products', path: '/vendors/products' },
+        { icon: ClipboardList, label: 'Vendor Events', path: '/vendors/events' },
+        { icon: BadgeIndianRupee, label: 'Payouts', path: '/vendors/payouts' }
+      ]
+    },
+      {
+      title: 'Web & App Control',
+      items:[
+        { icon: Image, label: 'For You ( web )', path: '/foryou-layout-media' }
+      ]
+    },
   ];
 
-  const adminNav = [
-    { icon: Store, label: 'Vendors', path: '/vendors' },
-    { icon: Users, label: 'Customers', path: '/customers' },
-    { icon: RotateCcw, label: 'Returns', path: '/returns' },
-    { icon: Tags, label: 'Categories', path: '/categories' },
-    { icon: ShieldCheck, label: 'Brands', path: '/brands' },
-    { icon: Star, label: 'Reviews', path: '/reviews' },
-    { icon: Megaphone, label: 'Promotions', path: '/promotions' },
-    { icon: FileBarChart, label: 'Reports', path: '/reports' },
-    { icon: CircleDollarSign, label: 'Finance', path: '/finance' },
-    { icon: Bell, label: 'Notifications', path: '/notifications' },
-    { icon: UserCog, label: 'Roles', path: '/roles' },
-    { icon: Headphones, label: 'Support', path: '/support' },
-    { icon: Warehouse, label: 'Warehouses', path: '/warehouses' },
-    { icon: Bike, label: 'Compatibility', path: '/compatibility' },
-    { icon: Settings, label: 'Settings', path: '/settings' },
+  const utilityGroups = [
+    {
+      title: 'FINANCE',
+      items: [
+        { icon: CircleDollarSign, label: 'Finance', path: '/finance' },
+        { icon: FileBarChart, label: 'Reports', path: '/reports' }
+      ]
+    },
+    {
+      title: 'SYSTEM',
+      items: [
+        { icon: Users, label: 'Users', path: '/users' },
+        { icon: Bell, label: 'Notifications', path: '/notifications' },
+        { icon: Headphones, label: 'Support', path: '/support' },
+        { icon: UserCog, label: 'Roles', path: '/roles' },
+        { icon: Settings, label: 'Settings', path: '/settings' }
+      ]
+    }
   ];
+
+  const CollapsibleGroup = ({ group }) => {
+    const hasActiveItem = group.items.some(({ path }) => pathname === path || pathname.startsWith(`${path}/`));
+    const [open, setOpen] = React.useState(hasActiveItem);
+
+    React.useEffect(() => {
+      if (hasActiveItem) setOpen(true);
+    }, [hasActiveItem]);
+
+    return (
+      <section className="sidebar-menu-group">
+        <button type="button" className="section-title group-toggle" onClick={() => setOpen((current) => !current)} aria-expanded={open}>
+          <span>{group.title}</span>
+          <span className={`group-chevron ${open ? 'open' : ''}`}>⌄</span>
+        </button>
+        {open && (
+          <ul>
+            {group.items.map((item) => {
+              const Icon = item.icon;
+              return (
+                <li key={item.path}>
+                  <NavLink to={item.path} end={item.path === '/products' || item.path === '/events' || item.path === '/vendors'} className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                    <Icon className="nav-icon" size={18} />
+                    <span>{item.label}</span>
+                  </NavLink>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+      </section>
+    );
+  };
 
   return (
     <aside className="admin-sidebar">
@@ -78,45 +154,19 @@ const Sidebar = () => {
       <div className="sidebar-nav-container">
         <nav className="sidebar-nav">
           <ul>
-            {mainNav.map((item, index) => {
-              const Icon = item.icon;
-              return (
-                <li key={index}>
-                  <NavLink
-                    to={item.path}
-                    className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                  >
-                    <Icon className="nav-icon" size={18} />
-                    <span>{item.label}</span>
-                  </NavLink>
-                </li>
-              );
-            })}
+            <li>
+              <NavLink to="/dashboard" className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}>
+                <LayoutDashboard className="nav-icon" size={18} />
+                <span>Dashboard</span>
+              </NavLink>
+            </li>
           </ul>
         </nav>
 
         <div className="admin-section">
-          <h3 className="section-title">
-            <Shield size={10} style={{ display: 'inline', marginRight: 4 }} />
-            ADMIN CONTROLS
-          </h3>
           <nav className="sidebar-nav">
-            <ul>
-              {adminNav.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <li key={`admin-${index}`}>
-                    <NavLink
-                      to={item.path}
-                      className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                    >
-                      <Icon className="nav-icon" size={18} />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  </li>
-                );
-              })}
-            </ul>
+            {menuGroups.map((group) => <CollapsibleGroup key={group.title} group={group} />)}
+            {utilityGroups.map((group) => <CollapsibleGroup key={group.title} group={group} />)}
           </nav>
         </div>
       </div>

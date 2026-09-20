@@ -38,7 +38,7 @@ const Header = ({
           <div className="header-profile">
             <div className="header-profile-info">
               <h4>{profile?.fullName || 'Nitroxx User'}</h4>
-              <p>{profile?.role || 'Participant'}</p>
+              <p>{profile?.role || 'Host'}</p>
             </div>
             <img src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx-header'} alt={profile?.fullName || 'User'} className="header-avatar" />
           </div>
