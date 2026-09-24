@@ -13,6 +13,8 @@ import {
   ChevronRight
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../../firebase/firebase.config';
 import { useDataContext } from '../../context/DataContext';
 import { toDate } from '../../services/firebaseUtils';
 import './HostDetails.css';
@@ -31,8 +33,31 @@ export default function HostDetails() {
   const navigate = useNavigate();
   const { cache, subscribeToModule } = useDataContext();
   const [activeTab, setActiveTab] = useState('events'); // events | bookings | participants
+  const [hostDoc, setHostDoc] = useState(null);
+  const [loadingHostDoc, setLoadingHostDoc] = useState(true);
 
-  // Subscribe to collections
+  // Subscribe to the specific event_host document
+  useEffect(() => {
+    if (!hostId) return;
+    const unsub = onSnapshot(
+      doc(db, 'event_host', hostId),
+      (snapshot) => {
+        if (snapshot.exists()) {
+          setHostDoc({ id: snapshot.id, ...snapshot.data() });
+        } else {
+          setHostDoc(null);
+        }
+        setLoadingHostDoc(false);
+      },
+      (err) => {
+        console.error('Error fetching event_host doc:', err);
+        setLoadingHostDoc(false);
+      }
+    );
+    return () => unsub();
+  }, [hostId]);
+
+  // Subscribe to related collections for events, bookings, and participants
   useEffect(() => {
     subscribeToModule('all-events', 'events', []);
     subscribeToModule('all-bookings', 'event_bookings', []);
@@ -43,73 +68,72 @@ export default function HostDetails() {
   const rawBookings = cache['all-bookings-[]']?.data || [];
   const rawParticipants = cache['all-participants-[]']?.data || [];
 
-  const loading = cache['all-events-[]']?.loading || cache['all-bookings-[]']?.loading;
+  const loading = loadingHostDoc || cache['all-events-[]']?.loading;
 
-  // Aggregate and find this specific host
+  // Aggregate host profile and associated events
   const host = useMemo(() => {
     if (!hostId) return null;
 
-    // Find the host name/details from the events
-    let hostName = '';
-    let hostPhoto = '';
-    let hostEmail = '';
-    let hostPhone = '';
-    const hostEvents = [];
-    const hostBookings = [];
-    let revenue = 0;
-    let ticketsBooked = 0;
+    // Use host document data from event_host if available
+    let hostName = hostDoc?.name || hostDoc?.displayName || hostDoc?.hostName || hostDoc?.title || '';
+    let hostPhoto = hostDoc?.photoURL || hostDoc?.profilePhoto || hostDoc?.photo || hostDoc?.imageUrl || hostDoc?.avatar || '';
+    let hostEmail = hostDoc?.email || hostDoc?.contactEmail || hostDoc?.hostEmail || '';
+    let hostPhone = hostDoc?.phone || hostDoc?.phoneNumber || hostDoc?.contactPhone || hostDoc?.hostPhone || '';
+    let hostCity = hostDoc?.city || hostDoc?.location || hostDoc?.address || '';
+    let hostBio = hostDoc?.bio || hostDoc?.description || hostDoc?.about || '';
 
-    rawEvents.forEach((event) => {
-      const currentHostId = event.hostId || event.organizerId || event.vendorId || 'nitroxx-default-vendor';
-      if (currentHostId === hostId) {
-        if (!hostName) {
-          hostName = event.hostName || event.organizerName || (hostId === 'nitroxx-default-vendor' ? 'Nitroxx Main' : 'Nitroxx Partner');
-          hostPhoto = event.hostPhotoURL || event.organizerPhoto || '';
-          hostEmail = event.hostEmail || `${hostName.toLowerCase().replace(/[^a-z0-9]/g, '')}@nitroxxin.com`;
-          hostPhone = event.hostPhone || '+91 98765 00000';
-        }
-        hostEvents.push(event);
-      }
+    // Find all events associated with this host
+    const hostEvents = rawEvents.filter((event) => {
+      const currentHostId = event.hostId || event.organizerId || event.vendorId;
+      const matchesId = currentHostId === hostId;
+      const matchesName = hostName && (event.hostName === hostName || event.organizerName === hostName);
+      return matchesId || matchesName;
     });
 
-    // If we found no events, check if this is the default host to prevent empty screen
-    if (!hostName && hostId === 'nitroxx-default-vendor') {
-      hostName = 'Nitroxx Main';
-      hostEmail = 'admin@nitroxxin.com';
-      hostPhone = '+91 98765 00000';
+    // Fallback info from event if event_host didn't have details
+    if (!hostName && hostEvents.length > 0) {
+      const firstEvent = hostEvents[0];
+      hostName = firstEvent.hostName || firstEvent.organizerName || 'Nitroxx Host';
+      hostPhoto = firstEvent.hostPhotoURL || firstEvent.organizerPhoto || '';
+      hostEmail = firstEvent.hostEmail || '';
+      hostPhone = firstEvent.hostPhone || '';
     }
 
-    rawBookings.forEach((booking) => {
-      const event = rawEvents.find(e => e.id === booking.eventId || e.name === booking.eventName);
-      if (event) {
-        const currentHostId = event.hostId || event.organizerId || event.vendorId || 'nitroxx-default-vendor';
-        if (currentHostId === hostId) {
-          hostBookings.push(booking);
-          revenue += Number(booking.amount || booking.totalAmount || 0);
-          ticketsBooked += Number(booking.tickets || booking.ticketCount || 1);
-        }
-      }
-    });
+    if (!hostName && !hostDoc) {
+      return null;
+    }
 
-    const hostEventNames = new Set(hostEvents.map(e => e.name).filter(Boolean));
-    const hostEventIds = new Set(hostEvents.map(e => e.id).filter(Boolean));
-    const hostParticipants = rawParticipants.filter(p => 
+    const hostEventNames = new Set(hostEvents.map((e) => e.name || e.title).filter(Boolean));
+    const hostEventIds = new Set(hostEvents.map((e) => e.id).filter(Boolean));
+
+    // Match bookings
+    const hostBookings = rawBookings.filter((booking) => 
+      hostEventIds.has(booking.eventId) || hostEventNames.has(booking.eventName)
+    );
+
+    const revenue = hostBookings.reduce((sum, b) => sum + Number(b.amount || b.totalAmount || 0), 0);
+    const ticketsBooked = hostBookings.reduce((sum, b) => sum + Number(b.tickets || b.ticketCount || 1), 0);
+
+    // Match participants
+    const hostParticipants = rawParticipants.filter((p) => 
       hostEventIds.has(p.eventId) || hostEventNames.has(p.eventName)
     );
 
     return {
       id: hostId,
-      name: hostName || 'Nitroxx Partner',
+      name: hostName || 'Unnamed Host',
       photo: hostPhoto,
-      email: hostEmail,
-      phone: hostPhone,
+      email: hostEmail || '-',
+      phone: hostPhone || '-',
+      city: hostCity,
+      bio: hostBio,
       events: hostEvents,
       bookings: hostBookings,
       participants: hostParticipants,
       revenue,
       ticketsBooked
     };
-  }, [hostId, rawEvents, rawBookings, rawParticipants]);
+  }, [hostId, hostDoc, rawEvents, rawBookings, rawParticipants]);
 
   if (loading) {
     return (
@@ -124,6 +148,7 @@ export default function HostDetails() {
       <div className="host-details-page">
         <div className="enterprise-state card">
           <h3>Host profile not found</h3>
+          <p>No document exists in <code>event_host</code> for ID: <code>{hostId}</code>.</p>
           <button className="quick-add-btn" onClick={() => navigate('/events/hosts')}>
             Back to Hosts
           </button>
@@ -152,14 +177,16 @@ export default function HostDetails() {
           {host.photo ? (
             <img src={host.photo} alt={host.name} className="host-avatar-xl" />
           ) : (
-            <div className="host-avatar-xl-placeholder">{host.name.charAt(0)}</div>
+            <div className="host-avatar-xl-placeholder">{host.name.charAt(0).toUpperCase()}</div>
           )}
           <div className="host-profile-info">
             <h1>{host.name}</h1>
             <div className="host-meta-row">
-              <span className="meta-item"><Mail size={14} /> {host.email}</span>
-              <span className="meta-item"><Phone size={14} /> {host.phone}</span>
+              {host.email !== '-' && <span className="meta-item"><Mail size={14} /> {host.email}</span>}
+              {host.phone !== '-' && <span className="meta-item"><Phone size={14} /> {host.phone}</span>}
+              {host.city && <span className="meta-item"><MapPin size={14} /> {host.city}</span>}
             </div>
+            {host.bio && <p style={{ marginTop: 8, color: 'var(--text-muted)', fontSize: '0.9rem', maxWidth: 640 }}>{host.bio}</p>}
           </div>
         </div>
       </section>
@@ -208,54 +235,52 @@ export default function HostDetails() {
             className={`activity-tab-btn ${activeTab === 'participants' ? 'active' : ''}`}
             onClick={() => setActiveTab('participants')}
           >
-            Participants Attendance ({host.participants.length})
+            Participants ({host.participants.length})
           </button>
         </div>
 
-        <div className="activity-tab-content">
-          {/* Events Tab */}
+        <div className="activity-content">
+          {/* TAB 1: EVENTS */}
           {activeTab === 'events' && (
-            <div className="activity-table-wrap">
+            <div className="host-table-wrap">
               {host.events.length === 0 ? (
-                <div className="empty-activity-state">No events organized yet.</div>
+                <div className="empty-tab-state">No events organized yet by this host.</div>
               ) : (
-                <table className="activity-table">
+                <table className="host-activity-table">
                   <thead>
                     <tr>
                       <th>EVENT NAME</th>
-                      <th>VENUE</th>
-                      <th>EVENT DATE</th>
-                      <th>TICKET PRICE</th>
+                      <th>DATE</th>
+                      <th>LOCATION</th>
+                      <th>PRICE</th>
                       <th>CAPACITY</th>
                       <th>STATUS</th>
+                      <th>ACTIONS</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {host.events.map((event) => (
-                      <tr 
-                        key={event.id} 
-                        className="clickable-activity-row"
-                        onClick={() => navigate(`/events/${event.id}`)}
-                        title="Click to view event details"
-                      >
+                    {host.events.map((ev) => (
+                      <tr key={ev.id}>
                         <td>
-                          <div className="name-with-link">
-                            <strong>{event.name || 'Untitled Event'}</strong>
-                            <ExternalLink size={12} className="link-icon" />
-                          </div>
+                          <strong>{ev.title || ev.name || 'Untitled Event'}</strong>
+                          {ev.category && <small className="event-cat">{ev.category}</small>}
                         </td>
-                        <td>{event.venue || 'TBD'}</td>
+                        <td>{formatValue(ev.startDate || ev.eventDate || ev.date)}</td>
+                        <td>{ev.venue || ev.location || '-'}</td>
+                        <td>₹{Number(ev.ticketPrice || 0).toLocaleString()}</td>
+                        <td>{ev.capacity || '-'}</td>
                         <td>
-                          <span className="datetime-cell">
-                            <Clock size={12} /> {formatValue(event.eventDate || event.date)}
+                          <span className={`status-pill ${ev.status || 'published'}`}>
+                            {ev.status || 'published'}
                           </span>
                         </td>
-                        <td>₹{Number(event.ticketPrice || event.price || 0).toLocaleString()}</td>
-                        <td>{event.capacity || '-'}</td>
                         <td>
-                          <span className={`tag status-tag ${String(event.status || 'draft').toLowerCase()}`}>
-                            {event.status || 'draft'}
-                          </span>
+                          <button 
+                            className="btn-text-link"
+                            onClick={() => navigate(`/events/${ev.id}`)}
+                          >
+                            View Event <ExternalLink size={12} />
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -265,36 +290,41 @@ export default function HostDetails() {
             </div>
           )}
 
-          {/* Bookings Tab */}
+          {/* TAB 2: BOOKINGS */}
           {activeTab === 'bookings' && (
-            <div className="activity-table-wrap">
+            <div className="host-table-wrap">
               {host.bookings.length === 0 ? (
-                <div className="empty-activity-state">No bookings recorded yet.</div>
+                <div className="empty-tab-state">No bookings found for this host's events.</div>
               ) : (
-                <table className="activity-table">
+                <table className="host-activity-table">
                   <thead>
                     <tr>
                       <th>BOOKING ID</th>
-                      <th>PARTICIPANT</th>
+                      <th>EVENT</th>
+                      <th>CUSTOMER</th>
                       <th>TICKETS</th>
                       <th>AMOUNT</th>
+                      <th>DATE</th>
                       <th>STATUS</th>
-                      <th>BOOKED ON</th>
                     </tr>
                   </thead>
                   <tbody>
                     {host.bookings.map((booking) => (
                       <tr key={booking.id}>
-                        <td><span className="mono-code">{booking.bookingId || booking.id.slice(0, 12)}</span></td>
-                        <td><strong>{booking.customer || booking.customerName || booking.userName || '-'}</strong></td>
-                        <td>{booking.tickets || booking.ticketCount || 1}</td>
-                        <td><strong>₹{Number(booking.amount || booking.totalAmount || 0).toLocaleString()}</strong></td>
+                        <td><code>{booking.bookingId || booking.id.slice(0, 8)}</code></td>
+                        <td><strong>{booking.eventName || 'Event'}</strong></td>
                         <td>
-                          <span className={`tag status-tag ${String(booking.status || 'confirmed').toLowerCase()}`}>
+                          <div>{booking.customerName || booking.customer || 'Guest'}</div>
+                          <small>{booking.customerEmail || booking.email}</small>
+                        </td>
+                        <td>{booking.tickets || booking.ticketCount || 1}</td>
+                        <td>₹{Number(booking.amount || booking.totalAmount || 0).toLocaleString()}</td>
+                        <td>{formatValue(booking.createdAt)}</td>
+                        <td>
+                          <span className={`status-pill ${booking.status || 'confirmed'}`}>
                             {booking.status || 'confirmed'}
                           </span>
                         </td>
-                        <td>{formatValue(booking.createdAt || booking.bookedAt)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -303,30 +333,35 @@ export default function HostDetails() {
             </div>
           )}
 
-          {/* Participants Tab */}
+          {/* TAB 3: PARTICIPANTS */}
           {activeTab === 'participants' && (
-            <div className="activity-table-wrap">
+            <div className="host-table-wrap">
               {host.participants.length === 0 ? (
-                <div className="empty-activity-state">No participants registered yet.</div>
+                <div className="empty-tab-state">No checked-in participants recorded.</div>
               ) : (
-                <table className="activity-table">
+                <table className="host-activity-table">
                   <thead>
                     <tr>
-                      <th>RIDER NAME</th>
-                      <th>EVENT NAME</th>
-                      <th>CONTACT PHONE</th>
+                      <th>PARTICIPANT</th>
+                      <th>EVENT</th>
+                      <th>CHECK-IN TIME</th>
+                      <th>BIKE MODEL</th>
                       <th>STATUS</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {host.participants.map((p, idx) => (
-                      <tr key={p.id || idx}>
-                        <td><strong>{p.name || 'Anonymous Rider'}</strong></td>
-                        <td>{p.eventName || 'Group Ride'}</td>
-                        <td>{p.phone || '-'}</td>
+                    {host.participants.map((participant) => (
+                      <tr key={participant.id}>
                         <td>
-                          <span className={`tag checkin-tag ${String(p.checkInStatus || 'registered').toLowerCase()}`}>
-                            {p.checkInStatus === 'checked_in' ? 'Checked In' : p.checkInStatus || 'Registered'}
+                          <strong>{participant.name || participant.participantName || 'Rider'}</strong>
+                          <div><small>{participant.email || participant.phone}</small></div>
+                        </td>
+                        <td>{participant.eventName || '-'}</td>
+                        <td>{formatValue(participant.checkInTime || participant.createdAt)}</td>
+                        <td>{participant.bikeModel || participant.bike || 'Unspecified'}</td>
+                        <td>
+                          <span className="status-pill confirmed">
+                            {participant.status || 'checked-in'}
                           </span>
                         </td>
                       </tr>

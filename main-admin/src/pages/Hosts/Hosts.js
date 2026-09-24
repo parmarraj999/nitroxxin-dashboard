@@ -3,91 +3,93 @@ import {
   Users, 
   Search, 
   Calendar, 
-  Ticket, 
-  IndianRupee, 
   Mail, 
   Phone, 
-  ChevronRight
+  MapPin, 
+  ChevronRight,
+  ShieldCheck
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useDataContext } from '../../context/DataContext';
+import { collection, onSnapshot, query } from 'firebase/firestore';
+import { db } from '../../firebase/firebase.config';
+import Pagination from '../../components/Common/Pagination';
 import './Hosts.css';
 
 export default function Hosts() {
   const navigate = useNavigate();
-  const { cache, subscribeToModule } = useDataContext();
+  const [hosts, setHosts] = useState([]);
+  console.log(hosts )
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  // Subscribe to required collections
+  // Real-time listener for event_host collection
   useEffect(() => {
-    subscribeToModule('all-events', 'events', []);
-    subscribeToModule('all-bookings', 'event_bookings', []);
-    subscribeToModule('all-participants', 'event_participants', []);
-  }, [subscribeToModule]);
-
-  // Read raw collections
-  const rawEvents = cache['all-events-[]']?.data || [];
-  const rawBookings = cache['all-bookings-[]']?.data || [];
-
-  const loading = cache['all-events-[]']?.loading || cache['all-bookings-[]']?.loading;
-
-  // Aggregate hosts data
-  const hosts = useMemo(() => {
-    const hostsMap = {};
-
-    rawEvents.forEach((event) => {
-      const hostId = event.hostId || event.organizerId || event.vendorId || 'nitroxx-default-vendor';
-      const hostName = event.hostName || event.organizerName || (hostId === 'nitroxx-default-vendor' ? 'Nitroxx Main' : 'Nitroxx Partner');
-      const hostPhoto = event.hostPhotoURL || event.organizerPhoto || '';
-
-      if (!hostsMap[hostId]) {
-        hostsMap[hostId] = {
-          id: hostId,
-          name: hostName,
-          photo: hostPhoto,
-          email: event.hostEmail || `${hostName.toLowerCase().replace(/[^a-z0-9]/g, '')}@nitroxxin.com`,
-          phone: event.hostPhone || '+91 98765 00000',
-          events: [],
-          bookings: [],
-          revenue: 0,
-          ticketsBooked: 0,
-        };
-      }
-
-      hostsMap[hostId].events.push(event);
+    const q = query(collection(db, 'event_host'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const data = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setHosts(data);
+      setLoading(false);
+    }, (err) => {
+      console.error('Error fetching event_host collection:', err);
+      setLoading(false);
     });
+    return () => unsubscribe();
+  }, []);
 
-    // Add bookings & calculate statistics
-    rawBookings.forEach((booking) => {
-      const event = rawEvents.find(e => e.id === booking.eventId || e.name === booking.eventName);
-      if (event) {
-        const hostId = event.hostId || event.organizerId || event.vendorId || 'nitroxx-default-vendor';
-        if (hostsMap[hostId]) {
-          hostsMap[hostId].bookings.push(booking);
-          hostsMap[hostId].revenue += Number(booking.amount || booking.totalAmount || 0);
-          hostsMap[hostId].ticketsBooked += Number(booking.tickets || booking.ticketCount || 1);
-        }
-      }
+  // Listen to events collection to compute event counts per host
+  useEffect(() => {
+    const q = query(collection(db, 'events'));
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      setEvents(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
+    }, (err) => {
+      console.error('Error fetching events for host counts:', err);
     });
+    return () => unsubscribe();
+  }, []);
 
-    return Object.values(hostsMap);
-  }, [rawEvents, rawBookings]);
+  // Reset page to 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
 
   // Filter hosts based on search query
   const filteredHosts = useMemo(() => {
-    return hosts.filter(host => 
-      host.name.toLowerCase().includes(search.toLowerCase()) ||
-      host.email.toLowerCase().includes(search.toLowerCase()) ||
-      host.phone.toLowerCase().includes(search.toLowerCase())
-    );
+    const term = search.toLowerCase();
+    return hosts.filter((host) => {
+      const name = host.fullName || '';
+      const email = host.email || host.contactEmail || host.hostEmail || '';
+      const phone = host.phone || host.phoneNumber || host.contactPhone || host.hostPhone || '';
+      const city = host.city || host.location || host.address || '';
+      return (
+        name.toLowerCase().includes(term) ||
+        email.toLowerCase().includes(term) ||
+        phone.toLowerCase().includes(term) ||
+        city.toLowerCase().includes(term)
+      );
+    });
   }, [hosts, search]);
+
+  const paginatedHosts = filteredHosts.slice((currentPage - 1) * pageSize, currentPage * pageSize);
+
+  // Helper to count events for a host
+  const getHostEventsCount = (host) => {
+    if (host.totalEvents !== undefined) return host.totalEvents;
+    if (host.eventsCount !== undefined) return host.eventsCount;
+    if (Array.isArray(host.events)) return host.events.length;
+    return events.filter(
+      (e) => e.hostId === host.id || e.organizerId === host.id || (e.hostName && e.hostName === (host.name || host.displayName))
+    ).length;
+  };
 
   return (
     <div className="hosts-page">
       <div className="page-header">
         <div>
           <h1 className="page-title">Event Hosts</h1>
-          <p className="page-subtitle">Manage organizers, track ticket sales, audit payouts, and monitor check-in activities.</p>
+          <p className="page-subtitle">Manage organizers, verified community leaders, contact info, and hosted events.</p>
         </div>
       </div>
 
@@ -102,24 +104,26 @@ export default function Hosts() {
         </div>
         <div className="hosts-metric card">
           <div className="metric-header">
+            <ShieldCheck size={20} className="icon-green" />
+            <span>Active / Verified</span>
+          </div>
+          <strong>{loading ? '...' : hosts.filter((h) => (h.status || 'active') === 'active' || h.verified).length}</strong>
+        </div>
+        <div className="hosts-metric card">
+          <div className="metric-header">
             <Calendar size={20} className="icon-purple" />
             <span>Total Events</span>
           </div>
-          <strong>{loading ? '...' : rawEvents.length}</strong>
+          <strong>{loading ? '...' : events.length}</strong>
         </div>
         <div className="hosts-metric card">
           <div className="metric-header">
-            <Ticket size={20} className="icon-green" />
-            <span>Tickets Sold</span>
+            <MapPin size={20} className="icon-orange" />
+            <span>Host Locations</span>
           </div>
-          <strong>{loading ? '...' : rawBookings.reduce((sum, b) => sum + Number(b.tickets || b.ticketCount || 1), 0)}</strong>
-        </div>
-        <div className="hosts-metric card">
-          <div className="metric-header">
-            <IndianRupee size={20} className="icon-orange" />
-            <span>Marketplace Volume</span>
-          </div>
-          <strong>₹{loading ? '...' : rawBookings.reduce((sum, b) => sum + Number(b.amount || b.totalAmount || 0), 0).toLocaleString()}</strong>
+          <strong>
+            {loading ? '...' : new Set(hosts.map((h) => h.city || h.location).filter(Boolean)).size || 1}
+          </strong>
         </div>
       </div>
 
@@ -132,68 +136,106 @@ export default function Hosts() {
               <input 
                 value={search} 
                 onChange={(e) => setSearch(e.target.value)} 
-                placeholder="Search hosts by name, email, or phone..." 
+                placeholder="Search hosts by name, email, phone, or city..." 
               />
             </div>
           </div>
 
           {loading ? (
-            <div className="state-container">Loading hosts...</div>
+            <div className="state-container">Loading hosts from event_host...</div>
           ) : filteredHosts.length === 0 ? (
             <div className="state-container empty-state">
               <Users size={40} className="text-muted" />
               <h3>No hosts found</h3>
-              <p>Add events with unique host details to view them here.</p>
+              <p>Documents added to the <code>event_host</code> collection will appear here.</p>
             </div>
           ) : (
-            <div className="hosts-table-wrap">
-              <table className="hosts-table">
-                <thead>
-                  <tr>
-                    <th>HOST</th>
-                    <th>CONTACT INFO</th>
-                    <th>EVENTS</th>
-                    <th>TICKETS SOLD</th>
-                    <th>TOTAL REVENUE</th>
-                    <th className="actions-col">DETAILS</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredHosts.map((host) => (
-                    <tr 
-                      key={host.id} 
-                      className="host-row"
-                      onClick={() => navigate(`/events/hosts/${host.id}`)}
-                    >
-                      <td>
-                        <div className="host-profile-cell">
-                          {host.photo ? (
-                            <img src={host.photo} alt={host.name} className="host-avatar-sm" />
-                          ) : (
-                            <div className="host-avatar-placeholder">{host.name.charAt(0)}</div>
-                          )}
-                          <span className="host-name-bold">{host.name}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <div className="contact-details">
-                          <span className="contact-item"><Mail size={12} /> {host.email}</span>
-                          <span className="contact-item"><Phone size={12} /> {host.phone}</span>
-                        </div>
-                      </td>
-                      <td>{host.events.length}</td>
-                      <td>{host.ticketsBooked}</td>
-                      <td><span className="revenue-value">₹{host.revenue.toLocaleString()}</span></td>
-                      <td className="actions-col">
-                        <button className="icon-btn-chevron">
-                          <ChevronRight size={18} />
-                        </button>
-                      </td>
+            <>
+              <div className="hosts-table-wrap">
+                <table className="hosts-table">
+                  <thead>
+                    <tr>
+                      <th>HOST</th>
+                      <th>CONTACT INFO</th>
+                      <th>LOCATION</th>
+                      <th>EVENTS</th>
+                      <th>STATUS</th>
+                      <th className="actions-col">DETAILS</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                  </thead>
+                  <tbody>
+                    {paginatedHosts.map((host) => {
+                      const name = host.fullName || 'Unnamed Host';
+                      const email = host.email || host.contactEmail || host.hostEmail || '-';
+                      const phone = host.phone || host.phoneNumber || host.contactPhone || host.hostPhone || '';
+                      const photo = host.photoURL || host.profilePhoto || host.photo || host.imageUrl || host.avatar;
+                      const city = host.city || host.location || host.address || '-';
+                      const status = host.status || (host.verified ? 'verified' : 'active');
+                      const eventsCount = getHostEventsCount(host);
+
+                      return (
+                        <tr 
+                          key={host.id} 
+                          className="host-row"
+                          onClick={() => navigate(`/events/hosts/${host.id}`)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <td>
+                            <div className="host-profile-cell">
+                              {photo ? (
+                                <img src={photo} alt={name} className="host-avatar-sm" />
+                              ) : (
+                                <div className="host-avatar-placeholder">{name.charAt(0).toUpperCase()}</div>
+                              )}
+                              <div>
+                                <span className="host-name-bold">{name}</span>
+                                {host.bio && (
+                                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                    {host.bio}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </td>
+                          <td>
+                            <div className="contact-details">
+                              <span className="contact-item"><Mail size={12} /> {email}</span>
+                              {phone && <span className="contact-item"><Phone size={12} /> {phone}</span>}
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, color: 'var(--text-main)' }}>
+                              <MapPin size={13} color="var(--text-muted)" />
+                              <span>{city}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <strong>{eventsCount}</strong>
+                          </td>
+                          <td>
+                            <span className={`management-badge ${status}`}>
+                              {status}
+                            </span>
+                          </td>
+                          <td className="actions-col">
+                            <button className="icon-btn-chevron" title="View Host Details">
+                              <ChevronRight size={18} />
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+
+              <Pagination 
+                currentPage={currentPage}
+                totalItems={filteredHosts.length}
+                pageSize={pageSize}
+                onPageChange={setCurrentPage}
+              />
+            </>
           )}
         </div>
       </div>

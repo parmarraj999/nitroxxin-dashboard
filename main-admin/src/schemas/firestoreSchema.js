@@ -23,6 +23,7 @@ export const COLLECTIONS = {
   certifications: 'certifications',
   bikeCompatibility: 'bike_compatibility',
   events: 'events',
+  eventHost: 'event_host',
   eventCategories: 'event_categories',
   eventBookings: 'event_bookings',
   eventParticipants: 'event_participants',

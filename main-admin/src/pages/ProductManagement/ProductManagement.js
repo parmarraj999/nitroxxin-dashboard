@@ -2,6 +2,7 @@ import React from 'react';
 import { Upload, Plus, AlertTriangle, Search, ChevronDown, CheckCircle2, MoreVertical, Edit2, Trash2, Eye, Archive, Rocket } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useProducts } from '../../hooks/useProducts';
+import Pagination from '../../components/Common/Pagination';
 import './ProductManagement.css';
 
 const ProductManagement = () => {
@@ -11,6 +12,12 @@ const ProductManagement = () => {
   const [category, setCategory] = React.useState('All Categories');
   const [stockStatus, setStockStatus] = React.useState('Any Status');
   const [statusTab, setStatusTab] = React.useState('all');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const pageSize = 10;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, category, stockStatus, statusTab]);
   const categories = ['All Categories', ...Array.from(new Set(products.map((product) => product.category).filter(Boolean)))];
   const baseRows = products.map((product) => {
     const stock = Number(product.inventory?.stockQuantity || 0);
@@ -44,6 +51,8 @@ const ProductManagement = () => {
     const matchesTab = statusTab === 'all' || product.status === statusTab;
     return matchesSearch && matchesCategory && matchesStock && matchesTab;
   });
+
+  const paginatedRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const removeProduct = async (event, productId) => {
     event.stopPropagation();
@@ -181,7 +190,7 @@ const ProductManagement = () => {
                 </td>
               </tr>
             )}
-            {rows.map((product) => {
+            {paginatedRows.map((product) => {
               const CompIcon = product.complianceIcon;
               const stockPercent = (product.stock / product.stockTotal) * 100;
               const stockColor = stockPercent < 20 ? 'var(--danger)' : 'var(--success)';
@@ -229,6 +238,12 @@ const ProductManagement = () => {
             })}
           </tbody>
         </table>
+        <Pagination 
+          currentPage={currentPage}
+          totalItems={rows.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
         {hasMore && (
           <div className="load-more-container">
             <button className="load-more-btn" onClick={loadMore} disabled={loading}>

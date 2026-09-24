@@ -1,17 +1,20 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Eye, Search, Users } from 'lucide-react';
 import { collection, onSnapshot, query } from 'firebase/firestore';
 import { useNavigate } from 'react-router-dom';
 import { db } from '../../firebase/firebase.config';
+import Pagination from '../../components/Common/Pagination';
 import './UserManagement.css';
 
 const UserManagement = () => {
   const navigate = useNavigate();
-  const [users, setUsers] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
-  const [search, setSearch] = React.useState('');
+  const [users, setUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 10;
 
-  React.useEffect(() => {
+  useEffect(() => {
     const unsubscribe = onSnapshot(query(collection(db, 'customers')), (snapshot) => {
       setUsers(snapshot.docs.map((item) => ({ id: item.id, ...item.data() })));
       setLoading(false);
@@ -19,7 +22,15 @@ const UserManagement = () => {
     return unsubscribe;
   }, []);
 
-  const visibleUsers = users.filter((user) => `${user.name || ''} ${user.email || ''} ${user.phone || ''} ${user.city || ''}`.toLowerCase().includes(search.toLowerCase()));
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [search]);
+
+  const visibleUsers = users.filter((user) => 
+    `${user.name || ''} ${user.email || ''} ${user.phone || ''} ${user.city || ''}`.toLowerCase().includes(search.toLowerCase())
+  );
+
+  const paginatedUsers = visibleUsers.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
     <div className="user-management-page">
@@ -47,22 +58,31 @@ const UserManagement = () => {
         {loading ? <div className="enterprise-state">Loading users...</div> : visibleUsers.length === 0 ? (
           <div className="enterprise-state"><Users size={28} /><h3>No users found</h3><p>Customer profiles will appear here as they are added to the platform.</p></div>
         ) : (
-          <div className="enterprise-table-wrap">
-            <table className="enterprise-table user-table">
-              <thead><tr><th>User</th><th>Contact</th><th>Location</th><th>Orders</th><th>Lifetime Value</th><th>Segment</th><th className="actions-col">Actions</th></tr></thead>
-              <tbody>{visibleUsers.map((user) => (
-                <tr key={user.id}>
-                  <td><strong>{user.name || 'Unnamed User'}</strong></td>
-                  <td><div>{user.email || '-'}</div><small>{user.phone || '-'}</small></td>
-                  <td>{user.city || '-'}</td>
-                  <td>{Number(user.orders || 0)}</td>
-                  <td>Rs. {Number(user.lifetimeValue || 0).toLocaleString()}</td>
-                  <td><span className="module-badge">{user.segment || 'new'}</span></td>
-                  <td className="actions-col"><button className="icon-btn" title="View user details" onClick={() => navigate(`/users/${user.id}`)}><Eye size={16} /></button></td>
-                </tr>
-              ))}</tbody>
-            </table>
-          </div>
+          <>
+            <div className="enterprise-table-wrap">
+              <table className="enterprise-table user-table">
+                <thead><tr><th>User</th><th>Contact</th><th>Location</th><th>Orders</th><th>Lifetime Value</th><th>Segment</th><th className="actions-col">Actions</th></tr></thead>
+                <tbody>{paginatedUsers.map((user) => (
+                  <tr key={user.id}>
+                    <td><strong>{user.name || 'Unnamed User'}</strong></td>
+                    <td><div>{user.email || '-'}</div><small>{user.phone || '-'}</small></td>
+                    <td>{user.city || '-'}</td>
+                    <td>{Number(user.orders || 0)}</td>
+                    <td>Rs. {Number(user.lifetimeValue || 0).toLocaleString()}</td>
+                    <td><span className="module-badge">{user.segment || 'new'}</span></td>
+                    <td className="actions-col"><button className="icon-btn" title="View user details" onClick={() => navigate(`/users/${user.id}`)}><Eye size={16} /></button></td>
+                  </tr>
+                ))}</tbody>
+              </table>
+            </div>
+
+            <Pagination 
+              currentPage={currentPage}
+              totalItems={visibleUsers.length}
+              pageSize={pageSize}
+              onPageChange={setCurrentPage}
+            />
+          </>
         )}
       </div>
     </div>

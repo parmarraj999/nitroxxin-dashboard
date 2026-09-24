@@ -3,6 +3,7 @@ import { CheckCircle2, ChevronDown, ChevronRight, Download, FileText, Filter, Pa
 import { useNavigate } from 'react-router-dom';
 import { useOrders } from '../../hooks/useOrders';
 import { toDate } from '../../services/firebaseUtils';
+import Pagination from '../../components/Common/Pagination';
 import './OrderManagement.css';
 
 const statusOptions = ['all', 'pending', 'confirmed', 'packed', 'shipped', 'delivered', 'returned', 'cancelled'];
@@ -13,6 +14,12 @@ const OrderManagement = () => {
   const { orders, loading, updateOrderStatus } = useOrders();
   const [search, setSearch] = React.useState('');
   const [statusFilter, setStatusFilter] = React.useState('all');
+  const [currentPage, setCurrentPage] = React.useState(1);
+  const pageSize = 10;
+
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [search, statusFilter]);
 
   const baseRows = orders.map((order) => {
     const created = toDate(order.createdAt);
@@ -41,6 +48,8 @@ const OrderManagement = () => {
     const haystack = `${order.id} ${order.customer} ${order.email} ${order.status} ${order.courier}`.toLowerCase();
     return haystack.includes(search.toLowerCase()) && (statusFilter === 'all' || order.rawStatus === statusFilter);
   });
+
+  const paginatedRows = rows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   const moveStatus = async (event, orderId, status) => {
     event.stopPropagation();
@@ -113,7 +122,7 @@ const OrderManagement = () => {
                   </td>
                 </tr>
               )}
-              {rows.map((order) => (
+              {paginatedRows.map((order) => (
                 <tr key={order.id} className="order-row" onClick={() => navigate(`/orders/details/${order.id}`)}>
                   <td className="checkbox-col" onClick={(event) => event.stopPropagation()}><input type="checkbox" /></td>
                   <td><span className="order-id-link">{order.id}</span></td>
@@ -147,9 +156,12 @@ const OrderManagement = () => {
           </table>
         </div>
 
-        <div className="pagination-footer">
-          <span className="showing-text">Showing {rows.length ? 1 : 0}-{rows.length} of {rows.length} orders</span>
-        </div>
+        <Pagination 
+          currentPage={currentPage}
+          totalItems={rows.length}
+          pageSize={pageSize}
+          onPageChange={setCurrentPage}
+        />
       </div>
 
       <div className="order-metrics-grid">

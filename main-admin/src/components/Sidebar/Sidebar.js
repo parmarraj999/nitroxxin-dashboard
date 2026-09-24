@@ -25,7 +25,8 @@ import {
   Warehouse,
   Bike,
   Shield,
-  Image
+  Image,
+  Calendar
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -44,6 +45,7 @@ const Sidebar = () => {
         { icon: Megaphone, label: 'Coupons', path: '/events/coupons' },
         { icon: Star, label: 'Reviews', path: '/events/reviews' },
         { icon: BarChart2, label: 'Analytics', path: '/events/analytics' },
+        { icon: Image, label: 'Hero & Layout', path: '/events-layout-media' },
       ]
     },
     {
@@ -59,7 +61,8 @@ const Sidebar = () => {
         { icon: RotateCcw, label: 'Returns', path: '/returns' },
         { icon: Megaphone, label: 'Coupons', path: '/products/coupons' },
         { icon: Star, label: 'Reviews', path: '/products/reviews' },
-        { icon: BarChart2, label: 'Analytics', path: '/products/analytics' }
+        { icon: BarChart2, label: 'Analytics', path: '/products/analytics' },
+        { icon: Image, label: 'Hero & Layout', path: '/accessories-layout-media' }
       ]
     },
     {
@@ -75,7 +78,9 @@ const Sidebar = () => {
       {
       title: 'Web & App Control',
       items:[
-        { icon: Image, label: 'For You ( web )', path: '/foryou-layout-media' }
+        { icon: Image, label: 'For You ( web )', path: '/foryou-layout-media' },
+        { icon: Calendar, label: 'Events ( web )', path: '/events-layout-media' },
+        { icon: Package, label: 'Accessories ( web )', path: '/accessories-layout-media' }
       ]
     },
   ];
