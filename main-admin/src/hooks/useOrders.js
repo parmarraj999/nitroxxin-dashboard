@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, doc, limit, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '../firebase/firebase.config';
 import { COLLECTIONS } from '../schemas/firestoreSchema';
 import { updateOrderStatus } from '../services/orderService';
+import { toDate } from '../services/firebaseUtils';
 import { useAuthVendor } from './useAuthVendor';
 
 export const useOrders = (options = {}) => {
-  const { loading: authLoading, vendorId } = useAuthVendor();
+  const { loading: authLoading } = useAuthVendor();
   const optionsKey = JSON.stringify(options);
   const queryOptions = useMemo(() => options, [optionsKey]);
   const [orders, setOrders] = useState([]);
@@ -18,21 +19,37 @@ export const useOrders = (options = {}) => {
     if (authLoading) return;
     setLoading(true);
     setError(null);
-    const constraints = [where('vendorId', '==', vendorId), orderBy('createdAt', 'desc'), limit(queryOptions.pageSize || 50)];
-    if (queryOptions.status) constraints.splice(1, 0, where('status', '==', queryOptions.status));
+    const constraints = [];
+    // In main-admin, query all orders across all vendors unless specifically requested in options
+    if (queryOptions.vendorId && queryOptions.vendorId !== 'all') {
+      constraints.push(where('vendorId', '==', queryOptions.vendorId));
+    }
+    if (queryOptions.status && queryOptions.status !== 'all') {
+      constraints.push(where('status', '==', queryOptions.status));
+    }
+    constraints.push(limit(queryOptions.pageSize || 100));
+
     return onSnapshot(
       query(collection(db, COLLECTIONS.orders), ...constraints),
       (snapshot) => {
-        setOrders(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })));
-        setHasMore(snapshot.docs.length === (queryOptions.pageSize || 50));
+        const list = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+        // Sort descending by date (handling both Firestore Timestamps and strings)
+        list.sort((a, b) => {
+          const tB = toDate(b.createdAt || b.updatedAt)?.getTime() || 0;
+          const tA = toDate(a.createdAt || a.updatedAt)?.getTime() || 0;
+          return tB - tA;
+        });
+        setOrders(list);
+        setHasMore(snapshot.docs.length === (queryOptions.pageSize || 100));
         setLoading(false);
       },
       (err) => {
+        console.error('Error fetching orders:', err);
         setError(err);
         setLoading(false);
       }
     );
-  }, [authLoading, queryOptions, vendorId]);
+  }, [authLoading, queryOptions]);
 
   useEffect(() => {
     if (authLoading) return;

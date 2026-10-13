@@ -69,7 +69,7 @@ const KpiCard = ({ icon: Icon, label, value, sub, trend, color, link }) => {
       <div className="kpi-body">
         <span className="kpi-label">{label}</span>
         <span className="kpi-value">{value}</span>
-        <span className="kpi-sub">
+        {/* <span className="kpi-sub">
           {trend !== undefined && (
             <span className={`kpi-trend ${up ? 'up' : 'down'}`}>
               {up ? <ArrowUpRight size={12} /> : <ArrowDownRight size={12} />}
@@ -77,7 +77,7 @@ const KpiCard = ({ icon: Icon, label, value, sub, trend, color, link }) => {
             </span>
           )}
           {sub}
-        </span>
+        </span> */}
       </div>
       {link && <ChevronRight className="kpi-arrow" size={16} />}
     </div>

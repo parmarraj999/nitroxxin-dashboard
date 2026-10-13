@@ -31,7 +31,10 @@ export const COLLECTIONS = {
   eventReviews: 'event_reviews',
   eventAnalytics: 'event_analytics',
   vendorPayouts: 'vendor_payouts',
-  transactions: 'transactions'
+  transactions: 'transactions',
+  queries: 'query',
+  query: 'query',
+  organizerLogos: 'organizer_logos'
 };
 
 export const PRODUCT_STATUSES = {

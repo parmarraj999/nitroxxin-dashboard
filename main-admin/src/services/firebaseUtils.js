@@ -68,13 +68,17 @@ export const fromSnapshot = (snapshot) => ({
 
 export const buildVendorQuery = ({
   collectionName,
-  vendorId = getVendorId(),
+  vendorId,
   constraints = [],
   sort = ['createdAt', 'desc'],
   pageSize = 25,
   cursor
 }) => {
-  const parts = [where('vendorId', '==', vendorId), ...constraints];
+  const parts = [];
+  if (vendorId && vendorId !== 'all') {
+    parts.push(where('vendorId', '==', vendorId));
+  }
+  parts.push(...constraints);
   if (sort) parts.push(orderBy(sort[0], sort[1]));
   if (cursor) parts.push(startAfter(cursor));
   if (pageSize) parts.push(limit(pageSize));

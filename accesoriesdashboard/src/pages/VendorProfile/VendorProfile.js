@@ -64,10 +64,10 @@ const Select = ({ value, onChange, options, placeholder }) => (
 const VendorProfile = () => {
   const { user } = useAuthVendor();
 
-  const [profile, setProfile]   = useState({ ...emptyVendorProfile });
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
-  const [saved, setSaved]       = useState(false);
+  const [profile, setProfile] = useState({ ...emptyVendorProfile });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState('');
 
   /* fetch on mount */
@@ -119,7 +119,7 @@ const VendorProfile = () => {
   const initials = getInitials(profile.displayName || profile.businessDetails?.businessName);
   const verificationColor = {
     verified: '#10b981',
-    pending:  '#f59e0b',
+    pending: '#f59e0b',
     rejected: '#ef4444'
   }[profile.verificationStatus] || '#f59e0b';
 

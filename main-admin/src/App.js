@@ -17,6 +17,8 @@ import HostDetails from './pages/Hosts/HostDetails';
 import ForYouLayoutMedia from './pages/LayoutMedia/ForYouLayoutMedia';
 import EventsLayoutMedia from './pages/LayoutMedia/EventsLayoutMedia';
 import AccessoriesLayoutMedia from './pages/LayoutMedia/AccessoriesLayoutMedia';
+import ComboOffersPage from './pages/LayoutMedia/ComboOffersPage';
+import OrganizerLogosPage from './pages/LayoutMedia/OrganizerLogosPage';
 
 // Event Management Dedicated Pages
 import EventsManagement from './pages/Events/EventsManagement';
@@ -62,6 +64,7 @@ import NotificationsManagementPage from './pages/System/NotificationsManagementP
 import RolesPage from './pages/System/RolesPage';
 import SupportPage from './pages/System/SupportPage';
 import SettingsPage from './pages/System/SettingsPage';
+import QueriesPage from './pages/System/QueriesPage';
 
 import { useAuthVendor } from './hooks/useAuthVendor';
 import { DataProvider } from './context/DataContext';
@@ -142,6 +145,8 @@ function App() {
               <Route path="finance" element={<FinanceManagementPage />} />
 
               {/* System Administration Routes */}
+              <Route path="queries" element={<QueriesPage />} />
+              <Route path="quaries" element={<Navigate to="/queries" replace />} />
               <Route path="notifications" element={<NotificationsManagementPage />} />
               <Route path="roles" element={<RolesPage />} />
               <Route path="support" element={<SupportPage />} />
@@ -153,6 +158,13 @@ function App() {
               <Route path="events/layout" element={<EventsLayoutMedia />} />
               <Route path="accessories-layout-media" element={<AccessoriesLayoutMedia />} />
               <Route path="accessories/layout" element={<AccessoriesLayoutMedia />} />
+              <Route path="accessories/combos" element={<ComboOffersPage />} />
+              <Route path="combos" element={<ComboOffersPage />} />
+              <Route path="accessories-layout-media/combos" element={<ComboOffersPage />} />
+              <Route path="organizer-logos" element={<OrganizerLogosPage />} />
+              <Route path="organizer_logos" element={<OrganizerLogosPage />} />
+              <Route path="organizers-layout-media" element={<OrganizerLogosPage />} />
+              <Route path="events/organizer-logos" element={<OrganizerLogosPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/dashboard" replace />} />
           </Routes>

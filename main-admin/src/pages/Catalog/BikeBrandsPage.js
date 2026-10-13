@@ -23,6 +23,7 @@ export default function BikeBrandsPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [managingBikesFor, setManagingBikesFor] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const [form, setForm] = useState({
     name: '',
@@ -31,6 +32,21 @@ export default function BikeBrandsPage() {
     popularSegment: 'Naked / Adventure',
     status: 'active'
   });
+
+  // Modal body scroll lock & escape key handling
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') setModalOpen(false);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [modalOpen]);
 
   // Real-time listener for bike brands
   useEffect(() => {
@@ -53,6 +69,7 @@ export default function BikeBrandsPage() {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSubmitting(true);
+    setError('');
     try {
       await addDoc(collection(db, 'bike_brands'), {
         name: form.name.trim(),
@@ -66,6 +83,7 @@ export default function BikeBrandsPage() {
       setModalOpen(false);
     } catch (err) {
       console.error('Error adding bike brand:', err);
+      setError(err.message || 'Failed to add bike brand');
     } finally {
       setSubmitting(false);
     }
@@ -217,10 +235,17 @@ export default function BikeBrandsPage() {
           <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div className="modal-header">
               <h3>Add Bike Brand</h3>
-              <button className="icon-btn" onClick={() => setModalOpen(false)}><X size={18} /></button>
+              <button type="button" className="icon-btn" onClick={() => setModalOpen(false)} aria-label="Close">
+                <X size={18} />
+              </button>
             </div>
             <form onSubmit={handleCreate}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {error && (
+                  <div style={{ padding: '10px 14px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '0.85rem' }}>
+                    {error}
+                  </div>
+                )}
                 <div className="form-group">
                   <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>Brand Name *</label>
                   <input 

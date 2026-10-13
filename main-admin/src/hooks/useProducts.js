@@ -1,40 +1,71 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { archiveProduct, createProduct, deleteProduct, draftProduct, getProduct, listProducts, publishProduct, updateProduct } from '../services/productService';
+import { toDate } from '../services/firebaseUtils';
 import { useAuthVendor } from './useAuthVendor';
 
 export const useProducts = (options = {}) => {
-  const { loading: authLoading, vendorId } = useAuthVendor();
+  const { loading: authLoading } = useAuthVendor();
   const optionsKey = JSON.stringify(options);
   const queryOptions = useMemo(() => options, [optionsKey]);
   const [products, setProducts] = useState([]);
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
-  // Use a ref for cursor so updating it never triggers the load useEffect to re-run
+  
+  const isFetchingRef = useRef(false);
   const cursorRef = useRef(null);
 
   const load = useCallback(async (next = false) => {
-    if (authLoading) {
-      console.log('[useProducts] Skipping load, auth is loading');
+    if (authLoading || isFetchingRef.current) {
       return;
     }
-    setLoading(true);
+    isFetchingRef.current = true;
+    if (next) {
+      setLoadingMore(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     const activeCursor = next ? cursorRef.current : null;
-    console.log('[useProducts] Loading products for vendor:', vendorId, 'options:', queryOptions);
     try {
-      const page = await listProducts({ ...queryOptions, vendorId, cursor: activeCursor });
-      console.log('[useProducts] Loaded products count:', page.data.length, 'data:', page.data);
-      setProducts((current) => next ? [...current, ...page.data] : page.data);
+      // In main-admin, query all products across all vendors unless queryOptions specifies a vendorId
+      const targetVendorId = queryOptions.vendorId || null;
+      const page = await listProducts({ 
+        ...queryOptions, 
+        vendorId: targetVendorId, 
+        cursor: activeCursor 
+      });
+
+      setProducts((current) => {
+        const combined = next ? [...current, ...page.data] : page.data;
+        const seen = new Set();
+        const deduped = combined.filter((item) => {
+          if (!item.id || seen.has(item.id)) return false;
+          seen.add(item.id);
+          return true;
+        });
+        // Sort descending by date (handling both Firestore Timestamp and ISO strings)
+        return deduped.sort((a, b) => {
+          const timeB = toDate(b.updatedAt || b.createdAt)?.getTime() || 0;
+          const timeA = toDate(a.updatedAt || a.createdAt)?.getTime() || 0;
+          return timeB - timeA;
+        });
+      });
       cursorRef.current = page.cursor;
       setHasMore(page.hasMore);
     } catch (err) {
       console.error('[useProducts] Error loading products:', err);
       setError(err);
     } finally {
-      setLoading(false);
+      isFetchingRef.current = false;
+      if (next) {
+        setLoadingMore(false);
+      } else {
+        setLoading(false);
+      }
     }
-  }, [authLoading, queryOptions, vendorId]); // cursor removed from deps — read via ref
+  }, [authLoading, queryOptions]);
 
   useEffect(() => {
     if (authLoading) return;
@@ -45,6 +76,7 @@ export const useProducts = (options = {}) => {
   return {
     products,
     loading,
+    loadingMore,
     error,
     hasMore,
     reload: () => { cursorRef.current = null; load(false); },

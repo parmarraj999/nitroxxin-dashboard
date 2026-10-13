@@ -12,7 +12,7 @@ const StatCards = ({ analytics }) => {
       <div className="stat-card card">
         <div className="stat-header">
           <span className="stat-title">TOTAL<br />ORDERS</span>
-          <span className="badge badge-success">+12.5%</span>
+          {/* <span className="badge badge-success">+12.5%</span> */}
         </div>
         <div className="stat-value-large">{analytics?.totalOrders ?? '1,482'}</div>
         <div className="progress-bar-container">
@@ -30,7 +30,7 @@ const StatCards = ({ analytics }) => {
             <Clock size={16} className="text-orange" />
           </div>
         </div>
-        <div className="stat-subtitle">Avg. fulfillment: 2.4 hrs</div>
+        {/* <div className="stat-subtitle">Avg. fulfillment: 2.4 hrs</div> */}
       </div>
 
       <div className="stat-card card">
@@ -44,7 +44,7 @@ const StatCards = ({ analytics }) => {
               <CheckCircle2 size={16} className="text-green" />
             </div>
           </div>
-          <div className="stat-subtitle text-green-bold">99.2% success rate</div>
+          {/* <div className="stat-subtitle text-green-bold">99.2% success rate</div> */}
         </div>
       </div>
 

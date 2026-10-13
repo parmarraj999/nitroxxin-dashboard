@@ -23,6 +23,7 @@ export default function InventoryManagementPage() {
   const pageSize = 10;
   const [modalOpen, setModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const [form, setForm] = useState({
     sku: '',
@@ -32,6 +33,21 @@ export default function InventoryManagementPage() {
     warehouse: 'Mumbai Hub',
     status: 'in_stock'
   });
+
+  // Modal body scroll lock & escape key handling
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') setModalOpen(false);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [modalOpen]);
 
   // Real-time listener for inventory
   useEffect(() => {
@@ -69,6 +85,7 @@ export default function InventoryManagementPage() {
     e.preventDefault();
     if (!form.sku.trim() || !form.productName.trim()) return;
     setSubmitting(true);
+    setError('');
     const qty = Number(form.stockQuantity) || 0;
     const thresh = Number(form.lowStockThreshold) || 5;
     const calcStatus = qty === 0 ? 'out_of_stock' : qty <= thresh ? 'low_stock' : 'in_stock';
@@ -87,6 +104,7 @@ export default function InventoryManagementPage() {
       setModalOpen(false);
     } catch (err) {
       console.error('Error adding inventory item:', err);
+      setError(err.message || 'Failed to add inventory item');
     } finally {
       setSubmitting(false);
     }
@@ -271,10 +289,17 @@ export default function InventoryManagementPage() {
           <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div className="modal-header">
               <h3>Add Inventory Item</h3>
-              <button className="icon-btn" onClick={() => setModalOpen(false)}><X size={18} /></button>
+              <button type="button" className="icon-btn" onClick={() => setModalOpen(false)} aria-label="Close">
+                <X size={18} />
+              </button>
             </div>
             <form onSubmit={handleCreate}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {error && (
+                  <div style={{ padding: '10px 14px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '0.85rem' }}>
+                    {error}
+                  </div>
+                )}
                 <div className="form-group">
                   <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>SKU Code *</label>
                   <input 

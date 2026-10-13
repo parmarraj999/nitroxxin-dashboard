@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { db } from '../../firebase/firebase.config';
 import {
   doc,
@@ -27,13 +27,20 @@ import {
   Search,
   ChevronUp,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ArrowUpDown,
+  Check,
   Layers,
   Flame,
   ArrowRight,
   Eye,
   SlidersHorizontal,
-  Tag
+  Tag,
+  Package,
+  ShieldCheck
 } from 'lucide-react';
+import OrganizerLogosPage from './OrganizerLogosPage';
 import './EventsLayoutMedia.css';
 
 const DEFAULT_SLIDES = [
@@ -66,6 +73,21 @@ const EventsLayoutMedia = () => {
   // Navigation active tab
   const [activeTab, setActiveTab] = useState('hero');
 
+  // Synchronize activeTab with Layout Subnavbar
+  useEffect(() => {
+    const handleSetTab = (e) => {
+      if (e.detail) {
+        setActiveTab(e.detail);
+      }
+    };
+    window.addEventListener('set-layout-tab', handleSetTab);
+    return () => window.removeEventListener('set-layout-tab', handleSetTab);
+  }, []);
+
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('layout-tab-changed', { detail: activeTab }));
+  }, [activeTab]);
+
   // Hero Carousel Slides State
   const [heroSlides, setHeroSlides] = useState(DEFAULT_SLIDES);
 
@@ -84,11 +106,21 @@ const EventsLayoutMedia = () => {
   const [uploading, setUploading] = useState({});
   const [toast, setToast] = useState(null);
 
-  // Event Picker Modal State
+  // Event Picker Modal State (Slide Hero)
   const [pickerModalOpen, setPickerModalOpen] = useState(false);
   const [pickerTargetSlideIndex, setPickerTargetSlideIndex] = useState(null);
   const [pickerSearchQuery, setPickerSearchQuery] = useState('');
   const [pickerCategoryFilter, setPickerCategoryFilter] = useState('all');
+  const [pickerCurrentPage, setPickerCurrentPage] = useState(1);
+  const pickerPageSize = 8;
+
+  // Featured Events Picker Modal State
+  const [featuredPickerOpen, setFeaturedPickerOpen] = useState(false);
+  const [featuredSearchQuery, setFeaturedSearchQuery] = useState('');
+  const [featuredCategoryFilter, setFeaturedCategoryFilter] = useState('all');
+  const [featuredStarredFilter, setFeaturedStarredFilter] = useState('all');
+  const [featuredCurrentPage, setFeaturedCurrentPage] = useState(1);
+  const featuredPageSize = 8;
 
   // Show status toasts
   const showToast = (message, isError = false) => {
@@ -179,7 +211,16 @@ const EventsLayoutMedia = () => {
     setPickerTargetSlideIndex(slideIndex);
     setPickerSearchQuery('');
     setPickerCategoryFilter('all');
+    setPickerCurrentPage(1);
     setPickerModalOpen(true);
+  };
+
+  const handleOpenFeaturedEventsPicker = () => {
+    setFeaturedSearchQuery('');
+    setFeaturedCategoryFilter('all');
+    setFeaturedStarredFilter('all');
+    setFeaturedCurrentPage(1);
+    setFeaturedPickerOpen(true);
   };
 
   const handleSelectEventForSlide = (event) => {
@@ -401,10 +442,8 @@ const EventsLayoutMedia = () => {
       };
 
       await setDoc(layoutRef, layoutData);
-      // Also save to 'events' for backwards compatibility
-      await setDoc(doc(db, 'page_layouts', 'events'), layoutData);
-
       showToast('Events page layout saved successfully!');
+      
     } catch (error) {
       console.error('Error saving events page layout:', error);
       showToast('Failed to save events layout configuration.', true);
@@ -412,6 +451,15 @@ const EventsLayoutMedia = () => {
       setSaving(false);
     }
   };
+
+  // Unique categories for filtering
+  const availableCategories = useMemo(() => {
+    const cats = new Set();
+    allEvents.forEach((e) => {
+      if (e.category) cats.add(e.category);
+    });
+    return Array.from(cats).sort();
+  }, [allEvents]);
 
   // Filtered events in picker modal
   const filteredPickerEvents = allEvents.filter((event) => {
@@ -427,8 +475,56 @@ const EventsLayoutMedia = () => {
     return (nameMatch || venueMatch) && categoryMatch;
   });
 
+  const pickerTotalPages = Math.max(1, Math.ceil(filteredPickerEvents.length / pickerPageSize));
+  const pickerStartIndex = (pickerCurrentPage - 1) * pickerPageSize;
+  const paginatedPickerEvents = filteredPickerEvents.slice(
+    pickerStartIndex,
+    pickerStartIndex + pickerPageSize
+  );
+
   // Featured events list for display
   const featuredEventsList = allEvents.filter((e) => featuredEventIds.includes(e.id));
+
+  // Filtered events for Featured Events Picker Modal
+  const filteredFeaturedEvents = allEvents.filter((event) => {
+    const nameMatch = (event.name || event.title || '')
+      .toLowerCase()
+      .includes(featuredSearchQuery.toLowerCase());
+    const venueMatch = (event.venue || event.location || event.city || '')
+      .toLowerCase()
+      .includes(featuredSearchQuery.toLowerCase());
+    const categoryMatch =
+      featuredCategoryFilter === 'all' ||
+      (event.category || '').toLowerCase() === featuredCategoryFilter.toLowerCase();
+    const isStarred = featuredEventIds.includes(event.id);
+    let starredMatch = true;
+    if (featuredStarredFilter === 'starred') {
+      starredMatch = isStarred;
+    }
+    return (nameMatch || venueMatch) && categoryMatch && starredMatch;
+  });
+
+  const featuredTotalPages = Math.max(1, Math.ceil(filteredFeaturedEvents.length / featuredPageSize));
+  const featuredStartIndex = (featuredCurrentPage - 1) * featuredPageSize;
+  const paginatedFeaturedEvents = filteredFeaturedEvents.slice(
+    featuredStartIndex,
+    featuredStartIndex + featuredPageSize
+  );
+
+  const getPaginationPages = (currentPage, totalPages) => {
+    if (totalPages <= 5) {
+      return Array.from({ length: totalPages }, (_, i) => i + 1);
+    }
+    const pages = [];
+    if (currentPage <= 3) {
+      pages.push(1, 2, 3, '...', totalPages);
+    } else if (currentPage >= totalPages - 2) {
+      pages.push(1, '...', totalPages - 2, totalPages - 1, totalPages);
+    } else {
+      pages.push(1, '...', currentPage, '...', totalPages);
+    }
+    return pages;
+  };
 
   if (loading) {
     return (
@@ -507,27 +603,38 @@ const EventsLayoutMedia = () => {
       <div className="events-nav-tabs">
         <button
           className={`events-tab-btn ${activeTab === 'hero' ? 'active' : ''}`}
-          onClick={() => scrollToSection('hero')}
+          onClick={() => setActiveTab('hero')}
         >
-          <SlidersHorizontal size={16} /> 1. Sliding Hero Section ({heroSlides.length} Slides)
+          <SlidersHorizontal size={16} /> 1. Sliding Hero Section
+          <span className="events-tab-badge">{heroSlides.length}</span>
         </button>
         <button
           className={`events-tab-btn ${activeTab === 'categories' ? 'active' : ''}`}
-          onClick={() => scrollToSection('categories')}
+          onClick={() => setActiveTab('categories')}
         >
-          <Tag size={16} /> 2. Event Categories ({categories.length})
+          <Tag size={16} /> 2. Event Categories
+          <span className="events-tab-badge">{categories.length}</span>
         </button>
         <button
           className={`events-tab-btn ${activeTab === 'featured' ? 'active' : ''}`}
-          onClick={() => scrollToSection('featured')}
+          onClick={() => setActiveTab('featured')}
         >
-          <Star size={16} /> 3. Featured Events ({featuredEventIds.length}/9)
+          <Star size={16} /> 3. Featured Events
+          <span className="events-tab-badge">{featuredEventIds.length}/9</span>
+        </button>
+        <button
+          className={`events-tab-btn ${activeTab === 'organizers' ? 'active' : ''}`}
+          onClick={() => setActiveTab('organizers')}
+        >
+          <ShieldCheck size={16} /> 4. Organizer Logos
+          <span className="events-tab-badge">Logos</span>
         </button>
       </div>
 
       {/* ========================================================
           Section 1: Sliding Hero Section
           ======================================================== */}
+      {activeTab === 'hero' && (
       <div className="events-section-card" id="hero">
         <div className="section-header">
           <div>
@@ -810,10 +917,12 @@ const EventsLayoutMedia = () => {
           </button>
         </div>
       </div>
+      )}
 
       {/* ========================================================
           Section 2: Categories Section
           ======================================================== */}
+      {activeTab === 'categories' && (
       <div className="events-section-card" id="categories">
         <div className="section-header">
           <div>
@@ -913,10 +1022,12 @@ const EventsLayoutMedia = () => {
           </div>
         </div>
       </div>
+      )}
 
       {/* ========================================================
-          Section 3: Featured Events Grid
+          Section 3: Featured Events Grid & Simple List
           ======================================================== */}
+      {activeTab === 'featured' && (
       <div className="events-section-card" id="featured">
         <div className="section-header">
           <div>
@@ -925,191 +1036,576 @@ const EventsLayoutMedia = () => {
               Highlight up to 9 standout events in the featured showcase section on the Events page.
             </p>
           </div>
-          <span className="item-badge published">{featuredEventIds.length} of 9 Filled</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+            <span className="item-badge published">{featuredEventIds.length} of 9 Selected</span>
+            <button
+              type="button"
+              className="choose-event-btn"
+              onClick={handleOpenFeaturedEventsPicker}
+            >
+              <Plus size={16} /> Select / Manage Featured Events
+            </button>
+          </div>
         </div>
 
-        {featuredEventsList.length === 0 ? (
-          <div className="empty-star-slot" style={{ padding: '3rem' }}>
-            <Star size={36} color="#475569" />
-            <span>No Featured Events Selected</span>
-            <p style={{ marginTop: '0.5rem' }}>
-              Choose events from the catalog below or open the hero slide event chooser to feature events.
-            </p>
+        {/* Selected Featured Events Simple List Table */}
+        <div className="layout-selected-items-wrapper">
+          <div className="layout-selected-header">
+            <div>
+              <h3 className="layout-selected-title">Featured Showcase Events List</h3>
+              <p className="layout-selected-subtitle">
+                These events appear in the curated featured events showcase on the website.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="layout-add-trigger-btn"
+              onClick={handleOpenFeaturedEventsPicker}
+            >
+              <Plus size={15} /> Add / Manage Events ({featuredEventIds.length}/9)
+            </button>
           </div>
-        ) : (
-          <div className="events-items-grid">
-            {featuredEventsList.map((event) => {
-              const eventThumb =
-                event.imageUrl ||
-                event.bannerImage ||
-                event.banner ||
-                event.image ||
-                event.venueImage;
 
-              return (
-                <div className="event-card-item" key={event.id}>
-                  <div className="event-thumb-zone">
-                    {eventThumb ? (
-                      <img src={eventThumb} alt={event.name} className="event-thumb-img" />
-                    ) : (
-                      <Calendar size={36} color="#64748b" />
-                    )}
-                  </div>
-                  <div className="event-details-body">
-                    <h3 className="event-title-text">{event.name || 'Untitled Event'}</h3>
-                    <div className="event-meta-line">
-                      <MapPin size={12} className="event-meta-icon" />
-                      <span>{event.venue || event.location || 'No Venue Specified'}</span>
-                    </div>
-                    <div className="event-meta-line">
-                      <Calendar size={12} className="event-meta-icon" />
-                      <span>{event.eventDate || event.date || 'No Date Set'}</span>
-                    </div>
-                  </div>
-                  <div className="event-card-footer">
-                    <div className="event-meta-line" style={{ fontWeight: 700, color: '#0f172a' }}>
-                      <DollarSign size={13} className="event-meta-icon" style={{ color: '#10b981' }} />
-                      <span>₹{event.ticketPrice || event.price || 0}</span>
-                    </div>
-                    <button
-                      className="item-unstar-btn"
-                      onClick={() => handleToggleFeaturedEvent(event.id)}
-                    >
-                      <Star size={13} fill="currentColor" /> Remove
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
+          {featuredEventsList.length === 0 ? (
+            <div className="layout-empty-selected-state">
+              <Star size={36} color="#94a3b8" />
+              <h4>No Featured Events Selected</h4>
+              <p>Click below to choose events from your catalog to feature on the page.</p>
+              <button
+                type="button"
+                className="choose-event-btn"
+                style={{ marginTop: '0.75rem' }}
+                onClick={handleOpenFeaturedEventsPicker}
+              >
+                <Plus size={16} /> Select Featured Events
+              </button>
+            </div>
+          ) : (
+            <div className="layout-table-container">
+              <table className="layout-simple-table">
+                <thead>
+                  <tr>
+                    <th style={{ width: '60px' }}>#</th>
+                    <th style={{ width: '80px' }}>Poster</th>
+                    <th>Event Name</th>
+                    <th>Category</th>
+                    <th>Venue / Location</th>
+                    <th>Date & Time</th>
+                    <th>Ticket Price</th>
+                    <th style={{ textAlign: 'right', width: '100px' }}>Action</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {featuredEventsList.map((event, idx) => {
+                    const eventThumb =
+                      event.imageUrl ||
+                      event.bannerImage ||
+                      event.banner ||
+                      event.image ||
+                      event.venueImage;
 
-            {Array.from({ length: Math.max(0, 9 - featuredEventsList.length) }).map((_, idx) => (
-              <div className="empty-star-slot" key={idx}>
-                <Star size={20} />
-                <span>Empty Event Slot</span>
-                <p>Add from catalog</p>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Quick Picker Bar for Featured Events */}
-        <div style={{ marginTop: '2rem', borderTop: '1px solid #e2e8f0', paddingTop: '1.5rem' }}>
-          <h3 style={{ fontSize: '1rem', fontWeight: 600, color: '#0f172a', marginBottom: '0.75rem' }}>
-            Quick Toggle from Events Catalog:
-          </h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
-            {allEvents.map((event) => {
-              const isFeatured = featuredEventIds.includes(event.id);
-              return (
-                <button
-                  key={event.id}
-                  type="button"
-                  className={`badge-chip ${isFeatured ? 'selected' : ''}`}
-                  style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.65rem' }}
-                  onClick={() => handleToggleFeaturedEvent(event.id)}
-                >
-                  <Star size={12} fill={isFeatured ? '#ffffff' : 'none'} />
-                  <span>{event.name || 'Event'}</span>
-                </button>
-              );
-            })}
-          </div>
+                    return (
+                      <tr key={event.id}>
+                        <td>
+                          <span className="layout-table-order">{idx + 1}</span>
+                        </td>
+                        <td>
+                          <div className="layout-table-thumb">
+                            {eventThumb ? (
+                              <img src={eventThumb} alt={event.name} />
+                            ) : (
+                              <Calendar size={18} color="#94a3b8" />
+                            )}
+                          </div>
+                        </td>
+                        <td>
+                          <div className="layout-table-title">{event.name || 'Untitled Event'}</div>
+                          <div className="layout-table-sub">ID: {event.id}</div>
+                        </td>
+                        <td>
+                          <span className="layout-badge-category">
+                            {event.category || 'General'}
+                          </span>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.85rem' }}>
+                            <MapPin size={13} color="#94a3b8" />
+                            <span>{event.venue || event.location || 'TBD'}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.85rem' }}>
+                            <Calendar size={13} color="#94a3b8" />
+                            <span>{event.eventDate || event.date || 'TBD'}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <span className="layout-table-price">₹{event.ticketPrice || event.price || 0}</span>
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <button
+                            type="button"
+                            className="layout-table-remove-btn"
+                            onClick={() => handleToggleFeaturedEvent(event.id)}
+                            title="Remove from Featured"
+                          >
+                            <Trash2 size={15} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
       </div>
+      )}
 
       {/* ========================================================
-          Event Picker Modal
+          Section 4: Event Hosts & Organizers Logo Manager
+          ======================================================== */}
+      {activeTab === 'organizers' && (
+        <div className="events-section-card organizers-clean-embedded-wrapper" id="organizers" style={{ padding: '1.25rem' }}>
+          <OrganizerLogosPage isEmbedded={true} />
+        </div>
+      )}
+
+      {/* ========================================================
+          Event Picker Modal (Hero Slide)
           ======================================================== */}
       {pickerModalOpen && (
-        <div className="event-picker-backdrop" onClick={() => setPickerModalOpen(false)}>
-          <div className="event-picker-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="event-picker-header">
+        <div className="combo-picker-backdrop" onClick={() => setPickerModalOpen(false)}>
+          <div className="combo-picker-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="combo-picker-header">
               <div>
-                <h3 className="event-picker-title">
+                <h3 className="combo-picker-title">
                   Choose Event for Slide #{pickerTargetSlideIndex !== null ? pickerTargetSlideIndex + 1 : ''}
                 </h3>
-                <p style={{ margin: '0.2rem 0 0 0', fontSize: '0.8rem', color: '#64748b' }}>
-                  Select an event from your catalog to display its poster, dates, venue, and ticket prices in this sliding hero banner.
+                <p className="combo-picker-subtitle">
+                  Select an event to populate title, poster, venue, date, and ticket price for this hero slide.
                 </p>
               </div>
-              <button className="event-picker-close" onClick={() => setPickerModalOpen(false)}>
+              <button className="combo-picker-close-btn" onClick={() => setPickerModalOpen(false)}>
                 <X size={20} />
               </button>
             </div>
 
-            <div className="event-picker-search-bar">
-              <div className="picker-search-input-wrapper">
-                <Search size={16} className="picker-search-icon" />
+            <div className="combo-picker-filter-bar">
+              <div className="combo-search-wrapper">
+                <Search size={16} className="combo-search-icon" />
                 <input
                   type="text"
-                  className="picker-search-input"
-                  placeholder="Search events by title, venue, or location..."
+                  className="combo-search-input"
+                  placeholder="Search events by name, venue, city..."
                   value={pickerSearchQuery}
-                  onChange={(e) => setPickerSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setPickerSearchQuery(e.target.value);
+                    setPickerCurrentPage(1);
+                  }}
                   autoFocus
                 />
+                {pickerSearchQuery && (
+                  <button
+                    className="combo-clear-search-btn"
+                    onClick={() => {
+                      setPickerSearchQuery('');
+                      setPickerCurrentPage(1);
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <div className="combo-filter-dropdown-wrapper">
+                <select
+                  className="combo-filter-select"
+                  value={pickerCategoryFilter}
+                  onChange={(e) => {
+                    setPickerCategoryFilter(e.target.value);
+                    setPickerCurrentPage(1);
+                  }}
+                >
+                  <option value="all">All Categories</option>
+                  {availableCategories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
               </div>
             </div>
 
-            <div className="event-picker-grid">
-              {filteredPickerEvents.length === 0 ? (
-                <div style={{ gridColumn: '1 / -1', padding: '2.5rem', textAlign: 'center', color: '#64748b' }}>
-                  <Calendar size={36} color="#94a3b8" style={{ marginBottom: '0.5rem' }} />
-                  <p style={{ margin: 0, fontWeight: 600 }}>No matching events found</p>
-                  <small style={{ color: '#94a3b8' }}>Try searching with a different keyword</small>
+            <div className="combo-table-container">
+              {paginatedPickerEvents.length === 0 ? (
+                <div className="combo-empty-state">
+                  <Calendar size={36} color="#94a3b8" />
+                  <h4>No Events Found</h4>
+                  <p>Try searching with another keyword or adjust the category filter.</p>
                 </div>
               ) : (
-                filteredPickerEvents.map((event) => {
-                  const eventPoster =
-                    event.bannerImage ||
-                    event.banner ||
-                    event.imageUrl ||
-                    event.image ||
-                    event.venueImage;
+                <table className="combo-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '70px' }}>Poster</th>
+                      <th>Event Name</th>
+                      <th>Category</th>
+                      <th>Venue / Location</th>
+                      <th>Date</th>
+                      <th>Ticket Price</th>
+                      <th style={{ textAlign: 'right', width: '130px' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedPickerEvents.map((event) => {
+                      const eventPoster =
+                        event.bannerImage ||
+                        event.banner ||
+                        event.imageUrl ||
+                        event.image ||
+                        event.venueImage;
 
-                  return (
-                    <div
-                      key={event.id}
-                      className="picker-event-card"
-                      onClick={() => handleSelectEventForSlide(event)}
-                    >
-                      <div className="picker-event-thumb">
-                        {eventPoster ? (
-                          <img src={eventPoster} alt={event.name} />
-                        ) : (
-                          <Calendar size={28} color="#94a3b8" />
-                        )}
-                      </div>
-                      <div className="picker-event-details">
-                        <h4 className="picker-event-title">{event.name || 'Untitled Event'}</h4>
-                        <div className="picker-event-meta">
-                          <MapPin size={11} className="event-meta-icon" />
-                          <span>{event.venue || event.location || 'Location TBD'}</span>
-                        </div>
-                        <div className="picker-event-meta">
-                          <Calendar size={11} className="event-meta-icon" />
-                          <span>{event.eventDate || event.date || 'Date TBD'}</span>
-                        </div>
-                      </div>
-                      <div className="picker-event-footer">
-                        <span style={{ fontWeight: 700, color: '#0f172a' }}>
-                          ₹{event.ticketPrice || event.price || 0}
-                        </span>
-                        <button
-                          type="button"
-                          className="picker-select-btn"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleSelectEventForSlide(event);
-                          }}
+                      return (
+                        <tr
+                          key={event.id}
+                          className="clickable-row"
+                          onClick={() => handleSelectEventForSlide(event)}
                         >
-                          Select Event
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })
+                          <td>
+                            <div className="combo-product-thumb">
+                              {eventPoster ? (
+                                <img src={eventPoster} alt={event.name} />
+                              ) : (
+                                <Calendar size={18} color="#94a3b8" />
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="combo-product-name">{event.name || 'Untitled Event'}</div>
+                            <div className="combo-product-sub">ID: {event.id}</div>
+                          </td>
+                          <td>
+                            <span className="combo-product-category">{event.category || 'General'}</span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.85rem' }}>
+                              <MapPin size={13} color="#94a3b8" />
+                              <span>{event.venue || event.location || 'TBD'}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.85rem' }}>
+                              <Calendar size={13} color="#94a3b8" />
+                              <span>{event.eventDate || event.date || 'TBD'}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="combo-product-price">₹{event.ticketPrice || event.price || 0}</span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              className="combo-select-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleSelectEventForSlide(event);
+                              }}
+                            >
+                              Select Slide
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               )}
+            </div>
+
+            {/* Pagination */}
+            {pickerTotalPages > 1 && (
+              <div className="combo-pagination-bar">
+                <span className="combo-pagination-info">
+                  Showing {paginatedPickerEvents.length} of {filteredPickerEvents.length} events
+                </span>
+                <div className="combo-pagination-nav">
+                  <button
+                    className="combo-page-arrow-btn"
+                    disabled={pickerCurrentPage === 1}
+                    onClick={() => setPickerCurrentPage((prev) => Math.max(1, prev - 1))}
+                  >
+                    <ChevronLeft size={16} />
+                  </button>
+
+                  <div className="combo-pagination-pages">
+                    {getPaginationPages(pickerCurrentPage, pickerTotalPages).map((p, idx) =>
+                      p === '...' ? (
+                        <span key={`dots-${idx}`} className="combo-page-dots">...</span>
+                      ) : (
+                        <button
+                          key={p}
+                          className={`combo-page-number-btn ${pickerCurrentPage === p ? 'active' : ''}`}
+                          onClick={() => setPickerCurrentPage(p)}
+                        >
+                          {p}
+                        </button>
+                      )
+                    )}
+                  </div>
+
+                  <button
+                    className="combo-page-arrow-btn"
+                    disabled={pickerCurrentPage === pickerTotalPages}
+                    onClick={() => setPickerCurrentPage((prev) => Math.min(pickerTotalPages, prev + 1))}
+                  >
+                    <ChevronRight size={16} />
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================
+          Featured Events Picker Modal (Max 9)
+          ======================================================== */}
+      {featuredPickerOpen && (
+        <div className="combo-picker-backdrop" onClick={() => setFeaturedPickerOpen(false)}>
+          <div className="combo-picker-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="combo-picker-header">
+              <div>
+                <h3 className="combo-picker-title">Select Featured Events (Max 9)</h3>
+                <p className="combo-picker-subtitle">
+                  Click the star or checkbox to add or remove events from the featured section ({featuredEventIds.length}/9 selected).
+                </p>
+              </div>
+              <button className="combo-picker-close-btn" onClick={() => setFeaturedPickerOpen(false)}>
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Filters */}
+            <div className="combo-picker-filter-bar">
+              <div className="combo-search-wrapper">
+                <Search size={16} className="combo-search-icon" />
+                <input
+                  type="text"
+                  className="combo-search-input"
+                  placeholder="Search events by name, venue, city..."
+                  value={featuredSearchQuery}
+                  onChange={(e) => {
+                    setFeaturedSearchQuery(e.target.value);
+                    setFeaturedCurrentPage(1);
+                  }}
+                  autoFocus
+                />
+                {featuredSearchQuery && (
+                  <button
+                    className="combo-clear-search-btn"
+                    onClick={() => {
+                      setFeaturedSearchQuery('');
+                      setFeaturedCurrentPage(1);
+                    }}
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
+
+              <div className="combo-filter-dropdown-wrapper">
+                <select
+                  className="combo-filter-select"
+                  value={featuredCategoryFilter}
+                  onChange={(e) => {
+                    setFeaturedCategoryFilter(e.target.value);
+                    setFeaturedCurrentPage(1);
+                  }}
+                >
+                  <option value="all">All Categories</option>
+                  {availableCategories.map((c) => (
+                    <option key={c} value={c}>{c}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="combo-toggle-pills">
+                <button
+                  type="button"
+                  className={`combo-toggle-pill ${featuredStarredFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => {
+                    setFeaturedStarredFilter('all');
+                    setFeaturedCurrentPage(1);
+                  }}
+                >
+                  All Events
+                </button>
+                <button
+                  type="button"
+                  className={`combo-toggle-pill ${featuredStarredFilter === 'starred' ? 'active' : ''}`}
+                  onClick={() => {
+                    setFeaturedStarredFilter('starred');
+                    setFeaturedCurrentPage(1);
+                  }}
+                >
+                  <Star size={13} fill={featuredStarredFilter === 'starred' ? '#ff6b00' : 'none'} />
+                  Featured ({featuredEventIds.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Table */}
+            <div className="combo-table-container">
+              {paginatedFeaturedEvents.length === 0 ? (
+                <div className="combo-empty-state">
+                  <Star size={36} color="#94a3b8" />
+                  <h4>No Events Match Filter</h4>
+                  <p>Try clearing filters or changing search keywords.</p>
+                </div>
+              ) : (
+                <table className="combo-table">
+                  <thead>
+                    <tr>
+                      <th style={{ width: '45px', textAlign: 'center' }}>
+                        <Star size={14} />
+                      </th>
+                      <th style={{ width: '70px' }}>Poster</th>
+                      <th>Event Details</th>
+                      <th>Category</th>
+                      <th>Venue</th>
+                      <th>Date</th>
+                      <th>Price</th>
+                      <th style={{ textAlign: 'right', width: '130px' }}>Featured Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {paginatedFeaturedEvents.map((event) => {
+                      const isFeatured = featuredEventIds.includes(event.id);
+                      const eventPoster =
+                        event.bannerImage ||
+                        event.banner ||
+                        event.imageUrl ||
+                        event.image ||
+                        event.venueImage;
+
+                      return (
+                        <tr
+                          key={event.id}
+                          className={`clickable-row ${isFeatured ? 'selected-row' : ''}`}
+                          onClick={() => handleToggleFeaturedEvent(event.id)}
+                        >
+                          <td style={{ textAlign: 'center' }}>
+                            <div className={`combo-checkbox ${isFeatured ? 'checked' : ''}`}>
+                              {isFeatured && <Check size={12} strokeWidth={3} />}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="combo-product-thumb">
+                              {eventPoster ? (
+                                <img src={eventPoster} alt={event.name} />
+                              ) : (
+                                <Calendar size={18} color="#94a3b8" />
+                              )}
+                            </div>
+                          </td>
+                          <td>
+                            <div className="combo-product-name">{event.name || 'Untitled Event'}</div>
+                            <div className="combo-product-sub">ID: {event.id}</div>
+                          </td>
+                          <td>
+                            <span className="combo-product-category">{event.category || 'General'}</span>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.85rem' }}>
+                              <MapPin size={13} color="#94a3b8" />
+                              <span>{event.venue || event.location || 'TBD'}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', color: '#475569', fontSize: '0.85rem' }}>
+                              <Calendar size={13} color="#94a3b8" />
+                              <span>{event.eventDate || event.date || 'TBD'}</span>
+                            </div>
+                          </td>
+                          <td>
+                            <span className="combo-product-price">₹{event.ticketPrice || event.price || 0}</span>
+                          </td>
+                          <td style={{ textAlign: 'right' }}>
+                            <button
+                              type="button"
+                              className={`combo-star-pill ${isFeatured ? 'starred' : ''}`}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleFeaturedEvent(event.id);
+                              }}
+                            >
+                              <Star size={13} fill={isFeatured ? '#ffffff' : 'none'} />
+                              <span>{isFeatured ? 'Featured' : 'Add to Featured'}</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Pagination & Footer */}
+            <div className="combo-picker-footer">
+              <div className="combo-pagination-info">
+                Selected <strong>{featuredEventIds.length}</strong> / 9 max events
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                {featuredTotalPages > 1 && (
+                  <div className="combo-pagination-nav">
+                    <button
+                      className="combo-page-arrow-btn"
+                      disabled={featuredCurrentPage === 1}
+                      onClick={() => setFeaturedCurrentPage((prev) => Math.max(1, prev - 1))}
+                    >
+                      <ChevronLeft size={16} />
+                    </button>
+
+                    <div className="combo-pagination-pages">
+                      {getPaginationPages(featuredCurrentPage, featuredTotalPages).map((p, idx) =>
+                        p === '...' ? (
+                          <span key={`dots-${idx}`} className="combo-page-dots">...</span>
+                        ) : (
+                          <button
+                            key={p}
+                            className={`combo-page-number-btn ${featuredCurrentPage === p ? 'active' : ''}`}
+                            onClick={() => setFeaturedCurrentPage(p)}
+                          >
+                            {p}
+                          </button>
+                        )
+                      )}
+                    </div>
+
+                    <button
+                      className="combo-page-arrow-btn"
+                      disabled={featuredCurrentPage === featuredTotalPages}
+                      onClick={() => setFeaturedCurrentPage((prev) => Math.min(featuredTotalPages, prev + 1))}
+                    >
+                      <ChevronRight size={16} />
+                    </button>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  className="quick-add-btn"
+                  style={{
+                    background: '#ff6b00',
+                    border: '1px solid #ff6b00',
+                    padding: '0.45rem 1.25rem',
+                    fontSize: '0.85rem'
+                  }}
+                  onClick={() => setFeaturedPickerOpen(false)}
+                >
+                  Done ({featuredEventIds.length}/9)
+                </button>
+              </div>
             </div>
           </div>
         </div>

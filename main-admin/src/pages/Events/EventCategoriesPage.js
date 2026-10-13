@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { Tags, Plus, Search, Trash2, X } from 'lucide-react';
+import { Tags, Plus, Search, Trash2, X, Edit2 } from 'lucide-react';
 import { 
   collection, 
   onSnapshot, 
   addDoc, 
+  updateDoc,
   deleteDoc, 
   doc, 
   serverTimestamp, 
@@ -20,8 +21,25 @@ export default function EventCategoriesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const pageSize = 10;
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState(null);
   const [form, setForm] = useState({ name: '', description: '', status: 'active' });
   const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState('');
+
+  // Modal body scroll lock & escape key handling
+  useEffect(() => {
+    if (modalOpen) {
+      document.body.style.overflow = 'hidden';
+      const handleKeyDown = (e) => {
+        if (e.key === 'Escape') setModalOpen(false);
+      };
+      window.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.body.style.overflow = '';
+        window.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [modalOpen]);
 
   // Real-time listener
   useEffect(() => {
@@ -40,21 +58,51 @@ export default function EventCategoriesPage() {
     setCurrentPage(1);
   }, [search]);
 
+  const handleOpenAdd = () => {
+    setEditingCategory(null);
+    setForm({ name: '', description: '', status: 'active' });
+    setError('');
+    setModalOpen(true);
+  };
+
+  const handleEdit = (category) => {
+    setEditingCategory(category);
+    setForm({
+      name: category.name || '',
+      description: category.description || '',
+      status: category.status || 'active'
+    });
+    setError('');
+    setModalOpen(true);
+  };
+
   const handleCreate = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) return;
     setSubmitting(true);
+    setError('');
     try {
-      await addDoc(collection(db, 'event_categories'), {
-        name: form.name.trim(),
-        description: form.description.trim(),
-        status: form.status,
-        createdAt: serverTimestamp()
-      });
+      if (editingCategory) {
+        await updateDoc(doc(db, 'event_categories', editingCategory.id), {
+          name: form.name.trim(),
+          description: form.description.trim(),
+          status: form.status,
+          updatedAt: serverTimestamp()
+        });
+      } else {
+        await addDoc(collection(db, 'event_categories'), {
+          name: form.name.trim(),
+          description: form.description.trim(),
+          status: form.status,
+          createdAt: serverTimestamp()
+        });
+      }
       setForm({ name: '', description: '', status: 'active' });
+      setEditingCategory(null);
       setModalOpen(false);
     } catch (err) {
-      console.error('Error creating category:', err);
+      console.error('Error saving event category:', err);
+      setError(err.message || 'Failed to save category');
     } finally {
       setSubmitting(false);
     }
@@ -87,8 +135,9 @@ export default function EventCategoriesPage() {
         </div>
         <div className="header-actions-main">
           <button 
+            type="button"
             className="btn-primary" 
-            onClick={() => setModalOpen(true)}
+            onClick={handleOpenAdd}
             style={{ display: 'flex', alignItems: 'center', gap: 8 }}
           >
             <Plus size={16} />
@@ -153,13 +202,25 @@ export default function EventCategoriesPage() {
                         </span>
                       </td>
                       <td style={{ textAlign: 'right' }}>
-                        <button 
-                          className="icon-btn text-danger" 
-                          title="Delete Category"
-                          onClick={() => handleDelete(c.id)}
-                        >
-                          <Trash2 size={16} />
-                        </button>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, justifyContent: 'flex-end' }}>
+                          <button 
+                            type="button"
+                            className="icon-btn" 
+                            style={{ color: '#0f766e' }}
+                            title="Edit Category"
+                            onClick={() => handleEdit(c)}
+                          >
+                            <Edit2 size={16} />
+                          </button>
+                          <button 
+                            type="button"
+                            className="icon-btn text-danger" 
+                            title="Delete Category"
+                            onClick={() => handleDelete(c.id)}
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -182,11 +243,18 @@ export default function EventCategoriesPage() {
         <div className="modal-overlay" onClick={() => setModalOpen(false)}>
           <div className="modal-card" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 480 }}>
             <div className="modal-header">
-              <h3>Add Event Category</h3>
-              <button className="icon-btn" onClick={() => setModalOpen(false)}><X size={18} /></button>
+              <h3>{editingCategory ? 'Edit Event Category' : 'Add Event Category'}</h3>
+              <button type="button" className="icon-btn" onClick={() => setModalOpen(false)} aria-label="Close">
+                <X size={18} />
+              </button>
             </div>
             <form onSubmit={handleCreate}>
               <div className="modal-body" style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                {error && (
+                  <div style={{ padding: '10px 14px', background: '#fee2e2', color: '#b91c1c', borderRadius: '6px', fontSize: '0.85rem' }}>
+                    {error}
+                  </div>
+                )}
                 <div className="form-group">
                   <label style={{ display: 'block', fontWeight: 600, marginBottom: 4 }}>Category Name *</label>
                   <input 
@@ -223,7 +291,7 @@ export default function EventCategoriesPage() {
               <div className="modal-actions" style={{ justifyContent: 'flex-end', padding: '14px 20px', borderTop: '1px solid var(--border-color)' }}>
                 <button type="button" className="btn-secondary" onClick={() => setModalOpen(false)}>Cancel</button>
                 <button type="submit" className="btn-primary" disabled={submitting}>
-                  {submitting ? 'Adding...' : 'Add Category'}
+                  {submitting ? 'Saving...' : editingCategory ? 'Save Changes' : 'Add Category'}
                 </button>
               </div>
             </form>
