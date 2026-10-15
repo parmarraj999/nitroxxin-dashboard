@@ -52,7 +52,7 @@ const LayoutMedia = () => {
     window.dispatchEvent(new CustomEvent('layout-tab-changed', { detail: activeTab }));
   }, [activeTab]);
 
-  // Banners state (exactly 5 slots)
+  // Banners state (dynamic list, defaults to 5 empty slots)
   const [banners, setBanners] = useState([
     { imageUrl: '', redirectUrl: '' },
     { imageUrl: '', redirectUrl: '' },
@@ -116,14 +116,23 @@ const LayoutMedia = () => {
         if (layoutDoc.exists()) {
           const data = layoutDoc.data();
           
-          // Ensure we have exactly 5 banner slots
-          const fetchedBanners = data.banners || [];
-          const paddedBanners = Array.from({ length: 5 }, (_, i) => ({
-            imageUrl: fetchedBanners[i]?.imageUrl || '',
-            redirectUrl: fetchedBanners[i]?.redirectUrl || ''
-          }));
-          
-          setBanners(paddedBanners);
+          // Load all saved banners dynamically (default to 5 empty slots if none saved)
+          const fetchedBanners = Array.isArray(data.banners) ? data.banners : [];
+          if (fetchedBanners.length > 0) {
+            setBanners(
+              fetchedBanners.map((b) => ({
+                imageUrl: b?.imageUrl || '',
+                redirectUrl: b?.redirectUrl || ''
+              }))
+            );
+          } else {
+            setBanners(
+              Array.from({ length: 5 }, () => ({
+                imageUrl: '',
+                redirectUrl: ''
+              }))
+            );
+          }
           setCategories(data.categories || []);
         }
       } catch (error) {
@@ -211,6 +220,47 @@ const LayoutMedia = () => {
       updated[index] = { ...updated[index], redirectUrl: value };
       return updated;
     });
+  };
+
+  // Add a new hero banner slot
+  const handleAddBanner = () => {
+    setBanners((prev) => [...prev, { imageUrl: '', redirectUrl: '' }]);
+    showToast(`Hero banner slot #${banners.length + 1} added.`);
+  };
+
+  // Remove a banner slot
+  const handleRemoveBanner = (index) => {
+    if (banners.length <= 1) {
+      showToast('You must keep at least one hero banner slot.', true);
+      return;
+    }
+    setBanners((prev) => prev.filter((_, idx) => idx !== index));
+    showToast('Banner slot removed.');
+  };
+
+  // Reorder banner slot (move left / move right)
+  const handleMoveBanner = (index, direction) => {
+    if (direction === 'left' && index === 0) return;
+    if (direction === 'right' && index === banners.length - 1) return;
+
+    const targetIndex = direction === 'left' ? index - 1 : index + 1;
+    setBanners((prev) => {
+      const updated = [...prev];
+      const temp = updated[index];
+      updated[index] = updated[targetIndex];
+      updated[targetIndex] = temp;
+      return updated;
+    });
+  };
+
+  // Clear banner image
+  const handleClearBannerImage = (index) => {
+    setBanners((prev) => {
+      const updated = [...prev];
+      updated[index] = { ...updated[index], imageUrl: '' };
+      return updated;
+    });
+    showToast('Banner image cleared.');
   };
 
   // Add category block
@@ -446,8 +496,10 @@ const LayoutMedia = () => {
       <div className="layout-metrics">
         <div className="layout-metric-card">
           <span className="metric-label">Hero Banners</span>
-          <span className="metric-value">{banners.filter((b) => b.imageUrl).length} / 5</span>
-          <span className="metric-sub">Padded slots</span>
+          <span className="metric-value">
+            {banners.filter((b) => b.imageUrl).length} / {banners.length}
+          </span>
+          <span className="metric-sub">{banners.length} slots configured</span>
         </div>
         <div className="layout-metric-card">
           <span className="metric-label">Categories Banners</span>
@@ -474,9 +526,9 @@ const LayoutMedia = () => {
           className={`layout-tab-btn ${activeTab === 'banners' ? 'active' : ''}`}
           onClick={() => setActiveTab('banners')}
         >
-          <ImageIcon size={16} /> 1. Banners (5 Slots)
+          <ImageIcon size={16} /> 1. Hero Banners ({banners.length})
           <span className="layout-tab-badge">
-            {banners.filter((b) => b.imageUrl).length}/5
+            {banners.filter((b) => b.imageUrl).length}/{banners.length}
           </span>
         </button>
         <button
@@ -511,10 +563,19 @@ const LayoutMedia = () => {
             <div>
               <h2 className="section-title">1. Home Page Hero Banners</h2>
               <p className="section-description">
-                Upload high quality banner images (recommended 21:9 format) and define their target redirect URLs.
+                Upload high quality banner images (recommended 21:9 format) and define their target redirect URLs. Add as many banners as needed.
               </p>
             </div>
-            <span className="item-badge published">Exactly 5 Banner Slots</span>
+            <div className="section-header-actions">
+              <span className="item-badge published">{banners.length} Banner Slots</span>
+              <button
+                type="button"
+                className="quick-add-btn"
+                onClick={handleAddBanner}
+              >
+                <Plus size={16} /> Add Banner Slot
+              </button>
+            </div>
           </div>
 
           <div className="banners-grid">
@@ -523,15 +584,61 @@ const LayoutMedia = () => {
               return (
                 <div className="banner-slot-card" key={index}>
                   <div className="banner-slot-header">
-                    <span className="banner-slot-title">Hero Banner #{index + 1}</span>
-                    {banner.imageUrl && (
-                      <span className="item-badge published" style={{ fontSize: '0.7rem' }}>
-                        Active
-                      </span>
-                    )}
+                    <div className="banner-slot-header-info">
+                      <span className="banner-slot-title">Hero Banner #{index + 1}</span>
+                      {banner.imageUrl ? (
+                        <span className="item-badge published" style={{ fontSize: '0.7rem' }}>
+                          Active
+                        </span>
+                      ) : (
+                        <span className="item-badge draft" style={{ fontSize: '0.7rem' }}>
+                          Empty
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="banner-slot-actions">
+                      <button
+                        type="button"
+                        className="banner-action-btn"
+                        title="Move Left"
+                        onClick={() => handleMoveBanner(index, 'left')}
+                        disabled={index === 0}
+                      >
+                        <ChevronLeft size={15} />
+                      </button>
+                      <button
+                        type="button"
+                        className="banner-action-btn"
+                        title="Move Right"
+                        onClick={() => handleMoveBanner(index, 'right')}
+                        disabled={index === banners.length - 1}
+                      >
+                        <ChevronRight size={15} />
+                      </button>
+                      {banner.imageUrl && (
+                        <button
+                          type="button"
+                          className="banner-action-btn"
+                          title="Clear Image"
+                          onClick={() => handleClearBannerImage(index)}
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        className="banner-action-btn delete"
+                        title="Delete Banner Slot"
+                        onClick={() => handleRemoveBanner(index)}
+                        disabled={banners.length <= 1}
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
                   </div>
 
-                  <label className="image-upload-zone category-image-zone">
+                  <label className="image-upload-zone">
                     {isUploading ? (
                       <div className="uploading-loader">
                         <LoaderCircle size={24} className="button-loader" />
@@ -550,7 +657,7 @@ const LayoutMedia = () => {
                       <div className="upload-placeholder">
                         <ImageIcon size={28} />
                         <span>Upload Banner Image</span>
-                        <small>Click or drag image file</small>
+                        <small>Click or drag image file (21:9)</small>
                       </div>
                     )}
                     <input
@@ -578,6 +685,18 @@ const LayoutMedia = () => {
                 </div>
               );
             })}
+
+            <div
+              className="add-category-card add-banner-card"
+              onClick={handleAddBanner}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') handleAddBanner(); }}
+            >
+              <Plus size={28} />
+              <span>Add Hero Banner Slot</span>
+              <small style={{ color: '#94a3b8' }}>Add slot #{banners.length + 1}</small>
+            </div>
           </div>
         </div>
       )}

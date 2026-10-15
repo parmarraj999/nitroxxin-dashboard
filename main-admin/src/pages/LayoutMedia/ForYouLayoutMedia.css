@@ -174,7 +174,41 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
 }
+
+.section-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.quick-add-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background-color: #ff6b00;
+  color: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #ff6b00;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(255, 107, 0, 0.2);
+}
+
+.quick-add-btn:hover {
+  background-color: #e05e00;
+  border-color: #e05e00;
+  box-shadow: 0 4px 12px rgba(255, 107, 0, 0.3);
+  transform: translateY(-1px);
+}
+
 
 .section-header-title {
   display: flex;
@@ -223,12 +257,64 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: 0.5rem;
+}
+
+.banner-slot-header-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .banner-slot-title {
   font-size: 0.9rem;
   font-weight: 600;
   color: #475569; /* Slate 600 */
+}
+
+.banner-slot-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.banner-action-btn {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.banner-action-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.banner-action-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.banner-action-btn.delete {
+  color: #ef4444;
+  background: rgba(239, 68, 68, 0.06);
+  border-color: rgba(239, 68, 68, 0.2);
+}
+
+.banner-action-btn.delete:hover:not(:disabled) {
+  background: #ef4444;
+  color: #ffffff;
+  border-color: #ef4444;
 }
 
 .image-upload-zone {
@@ -440,6 +526,12 @@
   font-size: 0.9rem;
   font-weight: 600;
 }
+
+.add-banner-card {
+  min-height: 240px;
+  aspect-ratio: auto;
+}
+
 
 /* Featured Events & Brands List */
 .layout-items-grid {
