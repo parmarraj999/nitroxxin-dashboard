@@ -33,7 +33,7 @@
   margin-top: 6px;
 }
 
-@media (max-width: 980px) {
+@media (max-width: 768px) {
   .app-layout {
     display: block;
   }

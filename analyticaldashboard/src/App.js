@@ -31,6 +31,8 @@ function App() {
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               <Route path="/events-preview" element={<EventList />} />
+              <Route path="/participants-preview" element={<Participants />} />
+              <Route path="/dashboard-preview" element={<Dashboard />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />
