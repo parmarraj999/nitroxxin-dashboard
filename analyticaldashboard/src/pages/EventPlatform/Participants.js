@@ -1,374 +1,58 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
   Users, 
+  User,
+  Ticket,
+  CalendarDays,
+  Clock,
+  CreditCard,
+  CheckCircle2,
+  AlertTriangle,
+  AlertCircle,
+  Info,
+  MapPin, 
   Search, 
-  Bell, 
-  Settings, 
   Plus, 
   Download, 
-  QrCode, 
-  MoreVertical, 
+  QrCode,
   ChevronDown, 
   ChevronLeft, 
   ChevronRight, 
   ChevronsLeft, 
   ChevronsRight, 
-  ArrowUpDown, 
   ArrowUp, 
   ArrowDown, 
-  CheckCircle2, 
-  Info, 
-  AlertTriangle, 
-  AlertCircle, 
   X, 
-  Trash2, 
   Check, 
-  Mail, 
-  Phone, 
-  Eye, 
-  Ticket,
-  Printer, 
-  ShieldCheck,
-  CheckSquare,
-  Compass,
-  CreditCard,
-  CalendarDays,
-  Bike
+  Trash2, 
+  RefreshCw,
+  Printer
 } from 'lucide-react';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import { useRegistrations } from '../../hooks/useRegistrations';
-import { useEvents } from '../../hooks/useEvents';
+import { EVENT_PARTICIPANTS_DATA } from './participantsData';
 import { downloadCsv, formatDateTime } from '../../utils/formatters';
 import './Participants.css';
-
-// Pure event booking participant data (adventure tours, bike festivals, and enduro rallies)
-const EVENT_BOOKING_PARTICIPANTS = [
-  {
-    id: 'bkg-101',
-    name: 'Zoya Khan',
-    email: 'zoya.khan@gmail.com',
-    phone: '+91 98201 12345',
-    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'All-Access Expedition Pass',
-    ticketNumber: 'NX-89214',
-    ticketPrice: '₹25,000',
-    bookedDate: 'Booked Jan 14, 2026',
-    eventTitle: 'Manali–Leh–Manali Adventure Tour',
-    stageName: 'Batch 1 (Sep 1–6) · Rohtang Crossing',
-    bibNumber: 'BIB-101',
-    vehicle: 'KTM 390 Adventure',
-    vehiclePlate: 'MH02-DX-4412',
-    city: 'Mumbai',
-    bloodGroup: 'O+',
-    emergencyContact: 'Farhan Khan (+91 98201 54321)',
-    status: 'On Progress', // On Track / Racing
-    paymentStatus: 'Paid',
-    wave: 'Wave 1 (07:30 AM)'
-  },
-  {
-    id: 'bkg-102',
-    name: 'Kael Smith',
-    email: 'kael.smith@outlook.com',
-    phone: '+91 97112 34567',
-    avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'VIP Paddock & Race Pass',
-    ticketNumber: 'NX-90412',
-    ticketPrice: '₹2,999',
-    bookedDate: 'Booked Jan 22, 2026',
-    eventTitle: 'Nitroxx MotoFest Pune 2025',
-    stageName: 'Time Trial Track B · Open 400cc',
-    bibNumber: 'BIB-102',
-    vehicle: 'BMW R1250 GS',
-    vehiclePlate: 'MH12-EF-9080',
-    city: 'Pune',
-    bloodGroup: 'A+',
-    emergencyContact: 'Sarah Smith (+91 97112 87654)',
-    status: 'Waiting for Review',
-    paymentStatus: 'Paid',
-    wave: 'Paddock Wave (10:00 AM)'
-  },
-  {
-    id: 'bkg-103',
-    name: 'Anya Petrova',
-    email: 'anya.petrova@gmail.com',
-    phone: '+91 98980 11223',
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Solo Trail Rider Pass',
-    ticketNumber: 'NX-77312',
-    ticketPrice: '₹12,500',
-    bookedDate: 'Booked Feb 03, 2026',
-    eventTitle: 'Monsoon Trail Expedition',
-    stageName: '45km Western Ghats Mud Track',
-    bibNumber: 'BIB-103',
-    vehicle: 'RE Himalayan 450',
-    vehiclePlate: 'KA04-MJ-8812',
-    city: 'Bengaluru',
-    bloodGroup: 'B+',
-    emergencyContact: 'Dmitri Petrov (+91 98980 44556)',
-    status: 'Pending',
-    paymentStatus: 'Payment Pending',
-    wave: 'Wave 2 (08:30 AM)'
-  },
-  {
-    id: 'bkg-104',
-    name: 'Nuraj Rajan',
-    email: 'nuraj.rajan@gmail.com',
-    phone: '+91 99001 22334',
-    avatar: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Official Safety Marshal Pass',
-    ticketNumber: 'NX-MARSHAL-04',
-    ticketPrice: 'Complimentary',
-    bookedDate: 'Booked Feb 10, 2026',
-    eventTitle: 'Western Ghats Enduro Rally',
-    stageName: 'Technical Inspection & Clearance',
-    bibNumber: 'BIB-104',
-    vehicle: 'Triumph Tiger 900 Rally Pro',
-    vehiclePlate: 'GA01-R-3321',
-    city: 'Goa',
-    bloodGroup: 'AB+',
-    emergencyContact: 'Kavita Raj (+91 99001 55667)',
-    status: 'Done', // Checked In
-    paymentStatus: 'Approved',
-    wave: 'Marshal Gate (06:00 AM)'
-  },
-  {
-    id: 'bkg-105',
-    name: 'Ingrid Schmidt',
-    email: 'ingrid.schmidt@gmail.com',
-    phone: '+91 98223 33445',
-    avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Pro Racer Entry Tier',
-    ticketNumber: 'NX-66512',
-    ticketPrice: '₹4,500',
-    bookedDate: 'Booked Feb 15, 2026',
-    eventTitle: 'Nitroxx MotoFest Pune 2025',
-    stageName: 'Open 400cc Category Qualifier',
-    bibNumber: 'BIB-105',
-    vehicle: 'Yamaha Tenere 700',
-    vehiclePlate: 'TS09-FA-7701',
-    city: 'Hyderabad',
-    bloodGroup: 'O-',
-    emergencyContact: 'Lars Schmidt (+91 98223 77889)',
-    status: 'Pending',
-    paymentStatus: 'Payment Pending',
-    wave: 'Wave 3 (11:00 AM)'
-  },
-  {
-    id: 'bkg-106',
-    name: 'Omar Hassan',
-    email: 'omar.hassan@yahoo.com',
-    phone: '+91 97665 44332',
-    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Expedition Convoy Lead Pass',
-    ticketNumber: 'NX-55109',
-    ticketPrice: '₹25,000',
-    bookedDate: 'Booked Feb 20, 2026',
-    eventTitle: 'Manali–Leh–Manali Adventure Tour',
-    stageName: 'Convoy Alpha Route · Pass Crossing',
-    bibNumber: 'BIB-106',
-    vehicle: 'Ducati DesertX',
-    vehiclePlate: 'DL01-AX-9900',
-    city: 'Delhi',
-    bloodGroup: 'A-',
-    emergencyContact: 'Zainab Hassan (+91 97665 88990)',
-    status: 'On Progress',
-    paymentStatus: 'Paid',
-    wave: 'Wave 1 (07:30 AM)'
-  },
-  {
-    id: 'bkg-107',
-    name: 'Arthur Fernandes',
-    email: 'arthur.fernandes@live.com',
-    phone: '+91 98112 55443',
-    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Enduro Downhill Competitor',
-    ticketNumber: 'NX-44321',
-    ticketPrice: '₹3,800',
-    bookedDate: 'Booked Feb 28, 2026',
-    eventTitle: 'Western Ghats Enduro Rally',
-    stageName: 'Stage 3 Rocky Downhill Qualifier',
-    bibNumber: 'BIB-107',
-    vehicle: 'Husqvarna Norden 901',
-    vehiclePlate: 'TN07-BY-1212',
-    city: 'Chennai',
-    bloodGroup: 'B-',
-    emergencyContact: 'Claire Dupont (+91 98112 88776)',
-    status: 'On Progress',
-    paymentStatus: 'Paid',
-    wave: 'Wave 2 (08:30 AM)'
-  },
-  {
-    id: 'bkg-108',
-    name: 'Briana D\'Souza',
-    email: 'briana.dsouza@gmail.com',
-    phone: '+91 98451 99887',
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'VIP Lounge & Paddock Pass',
-    ticketNumber: 'NX-33100',
-    ticketPrice: '₹1,999',
-    bookedDate: 'Booked Mar 02, 2026',
-    eventTitle: 'Sunset Gravel Sprint 2026',
-    stageName: 'Paddock Hospitality & Track Viewing',
-    bibNumber: 'BIB-108',
-    vehicle: 'Kawasaki Versys 650',
-    vehiclePlate: 'KA01-GH-5544',
-    city: 'Bengaluru',
-    bloodGroup: 'AB-',
-    emergencyContact: 'Maya Scott (+91 98451 22331)',
-    status: 'Done',
-    paymentStatus: 'Paid',
-    wave: 'VIP Lounge Entry'
-  },
-  {
-    id: 'bkg-109',
-    name: 'Carlos Alvares',
-    email: 'carlos.alvares@gmail.com',
-    phone: '+91 97234 55667',
-    avatar: 'https://images.unsplash.com/photo-1522075469751-3a6694fb2f61?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Desert 200 Standard Entry',
-    ticketNumber: 'NX-22019',
-    ticketPrice: '₹7,500',
-    bookedDate: 'Booked Mar 08, 2026',
-    eventTitle: 'Desert Sprint 200 Endurance',
-    stageName: 'Dune Section Prologue · Wave 3',
-    bibNumber: 'BIB-109',
-    vehicle: 'Honda Africa Twin',
-    vehiclePlate: 'GJ01-MN-3456',
-    city: 'Ahmedabad',
-    bloodGroup: 'O+',
-    emergencyContact: 'Maria Gomez (+91 97234 88990)',
-    status: 'Inactive',
-    paymentStatus: 'Refunded',
-    wave: 'Cancelled'
-  },
-  {
-    id: 'bkg-110',
-    name: 'Elena Rostova',
-    email: 'elena.rostova@gmail.com',
-    phone: '+91 98334 11223',
-    avatar: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Pro Motocross Women\'s Cup',
-    ticketNumber: 'NX-11984',
-    ticketPrice: '₹5,000',
-    bookedDate: 'Booked Mar 12, 2026',
-    eventTitle: 'Desert Sprint 200 Endurance',
-    stageName: 'Dune Section Alpha · Speed Stage',
-    bibNumber: 'BIB-110',
-    vehicle: 'KTM 450 Rally Replica',
-    vehiclePlate: 'MH01-KL-9009',
-    city: 'Mumbai',
-    bloodGroup: 'A+',
-    emergencyContact: 'Ivan Rostov (+91 98334 55667)',
-    status: 'Done',
-    paymentStatus: 'Paid',
-    wave: 'Pro Wave (07:00 AM)'
-  },
-  {
-    id: 'bkg-111',
-    name: 'Marcus Vance',
-    email: 'marcus.vance@gmail.com',
-    phone: '+91 99123 44556',
-    avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Amateur Sprint Rider',
-    ticketNumber: 'NX-99812',
-    ticketPrice: '₹2,500',
-    bookedDate: 'Booked Mar 18, 2026',
-    eventTitle: 'Sunset Gravel Sprint 2026',
-    stageName: 'Sprint Stage 1 · Novice Class',
-    bibNumber: 'BIB-111',
-    vehicle: 'Suzuki V-Strom 650',
-    vehiclePlate: 'KL07-PQ-6655',
-    city: 'Kochi',
-    bloodGroup: 'B+',
-    emergencyContact: 'Linda Vance (+91 99123 88990)',
-    status: 'Waiting for Review',
-    paymentStatus: 'Paid',
-    wave: 'Wave 2 (08:30 AM)'
-  },
-  {
-    id: 'bkg-112',
-    name: 'Priya Sharma',
-    email: 'priya.sharma@yahoo.com',
-    phone: '+91 98765 12340',
-    avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'VIP Gold Pass & Camp Stay',
-    ticketNumber: 'NX-88712',
-    ticketPrice: '₹15,000',
-    bookedDate: 'Booked Mar 24, 2026',
-    eventTitle: 'Monsoon Trail Expedition',
-    stageName: 'Adventure Trail Wave 2 · Riverside Camp',
-    bibNumber: 'BIB-112',
-    vehicle: 'Triumph Scrambler 1200',
-    vehiclePlate: 'RJ14-ST-2233',
-    city: 'Jaipur',
-    bloodGroup: 'O+',
-    emergencyContact: 'Rohit Sharma (+91 98765 43210)',
-    status: 'Done',
-    paymentStatus: 'Paid',
-    wave: 'Camp Wave (09:00 AM)'
-  },
-  {
-    id: 'bkg-113',
-    name: 'David Kim',
-    email: 'david.kim@gmail.com',
-    phone: '+91 98440 66778',
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Solo High Altitude Explorer',
-    ticketNumber: 'NX-77443',
-    ticketPrice: '₹25,000',
-    bookedDate: 'Booked Apr 01, 2026',
-    eventTitle: 'Manali–Leh–Manali Adventure Tour',
-    stageName: 'Rohtang Checkpoint Group · Batch 2',
-    bibNumber: 'BIB-113',
-    vehicle: 'Royal Enfield Himalayan',
-    vehiclePlate: 'HP01-CD-8877',
-    city: 'Shimla',
-    bloodGroup: 'A+',
-    emergencyContact: 'Min-Ji Kim (+91 98440 99001)',
-    status: 'On Progress',
-    paymentStatus: 'Paid',
-    wave: 'Wave 2 (08:30 AM)'
-  },
-  {
-    id: 'bkg-114',
-    name: 'Fatima Al-Mansoor',
-    email: 'fatima.almansoor@gmail.com',
-    phone: '+91 97123 77889',
-    avatar: 'https://images.unsplash.com/photo-1548142813-c348350df52b?auto=format&fit=crop&w=150&q=80',
-    ticketTier: 'Night Rally Prologue Entry',
-    ticketNumber: 'NX-66231',
-    ticketPrice: '₹8,500',
-    bookedDate: 'Booked Apr 05, 2026',
-    eventTitle: 'Desert Sprint 200 Endurance',
-    stageName: 'Night Rally Prologue · Navigation Special',
-    bibNumber: 'BIB-114',
-    vehicle: 'KTM 790 Adventure R',
-    vehiclePlate: 'RJ15-UV-4433',
-    city: 'Jaisalmer',
-    bloodGroup: 'B+',
-    emergencyContact: 'Tariq Al-Mansoor (+91 97123 11223)',
-    status: 'Pending',
-    paymentStatus: 'Payment Pending',
-    wave: 'Night Prologue (19:00 PM)'
-  }
-];
 
 const Participants = () => {
   const { user } = useAuth();
   const { registrations } = useRegistrations({ hostId: user?.uid });
-  const { events } = useEvents({ hostId: user?.uid });
 
-  const [participantsList, setParticipantsList] = useState(EVENT_BOOKING_PARTICIPANTS);
+  // Master Participants List initialized with event booking participants
+  const [participants, setParticipants] = useState(() => {
+    return EVENT_PARTICIPANTS_DATA;
+  });
 
-  // Filter States
-  const [selectedEvent, setSelectedEvent] = useState('All');
-  const [selectedStatus, setSelectedStatus] = useState('All');
-  const [selectedTier, setSelectedTier] = useState('All');
+  // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedEvent, setSelectedEvent] = useState('All');
+  const [selectedGateStatus, setSelectedGateStatus] = useState('All');
+  const [selectedTier, setSelectedTier] = useState('All');
+  const [selectedCity, setSelectedCity] = useState('All');
 
   // Sorting State
-  const [sortField, setSortField] = useState('name');
+  const [sortField, setSortField] = useState('');
   const [sortDirection, setSortDirection] = useState('asc');
 
   // Selection State
@@ -376,34 +60,33 @@ const Participants = () => {
 
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(7);
-
-  // Row Action Dropdown
-  const [openActionId, setOpenActionId] = useState(null);
+  const [pageSize, setPageSize] = useState(16);
 
   // Modals & Drawers
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
   const [ticketModalParticipant, setTicketModalParticipant] = useState(null);
+  const [isScannerModalOpen, setIsScannerModalOpen] = useState(false);
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState('');
+  const [copiedCode, setCopiedCode] = useState(null);
   const [scanInput, setScanInput] = useState('');
   const [scanSuccess, setScanSuccess] = useState(false);
 
-  // Add Participant Form State
+  // Add Participant Form State (Matches host event creation tiers & packages)
   const [newFormData, setNewFormData] = useState({
     name: '',
     email: '',
     phone: '',
-    ticketTier: 'All-Access Expedition Pass',
-    ticketPrice: '₹25,000',
     eventTitle: 'Manali–Leh–Manali Adventure Tour',
-    stageName: 'Batch 1 (Sep 1–6) · Rohtang Crossing',
-    status: 'Waiting for Review',
-    city: 'Mumbai',
+    tierName: 'Platinum',
+    ticketFor: 'Rider',
+    ticketPrice: '₹25,000',
+    gateStatus: 'Done',
+    paymentStatus: 'Paid',
     vehicle: 'KTM 390 Adventure',
     vehiclePlate: 'MH02-DX-1001',
-    emergencyContact: '',
+    city: 'Mumbai',
     bloodGroup: 'O+',
+    emergencyContact: ''
   });
 
   const searchInputRef = useRef(null);
@@ -411,30 +94,48 @@ const Participants = () => {
   // Merge any live Firebase registrations into the list
   useEffect(() => {
     if (registrations && registrations.length > 0) {
-      const liveItems = registrations.map((r, i) => ({
-        id: r.id || `live-${i}`,
-        name: r.participantName || 'Guest Participant',
-        email: r.participantEmail || 'guest@nitroxx.com',
-        phone: r.participantPhone || '+91 98000 00000',
-        avatar: r.participantPhoto || `https://i.pravatar.cc/150?u=${r.id || i}`,
-        ticketTier: r.ticketType || 'Standard Rider Pass',
-        ticketNumber: r.ticketNumber || `NX-${Date.now().toString(36).toUpperCase()}`,
-        ticketPrice: r.ticketPrice ? `₹${r.ticketPrice}` : '₹4,999',
-        bookedDate: `Booked ${r.registrationDate ? formatDateTime(r.registrationDate).split(',')[0] : 'Today'}`,
-        eventTitle: r.eventTitle || 'Nitroxx MotoFest Pune 2025',
-        stageName: 'Open Class · Track Entry',
-        bibNumber: r.ticketNumber ? `BIB-${r.ticketNumber.slice(-3)}` : `BIB-${300 + i}`,
-        vehicle: r.participant?.vehicleNumber || 'Motorcycle',
-        vehiclePlate: r.participant?.vehicleNumber || 'MH12-LIVE',
-        city: r.participant?.city || 'India',
-        bloodGroup: r.participant?.bloodGroup || 'O+',
-        emergencyContact: r.participant?.emergencyContact || 'Not Specified',
-        status: r.attendanceStatus === 'Checked In' ? 'Done' : r.status === 'Confirmed' ? 'On Progress' : 'Pending',
-        paymentStatus: 'Paid',
-        wave: 'Standard Wave'
-      }));
+      const liveItems = registrations.map((r, i) => {
+        const rawTier = r.ticketType || 'Standard';
+        let tierName = 'Standard';
+        let ticketFor = 'Participant';
 
-      setParticipantsList(prev => {
+        if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
+        else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
+        else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
+        else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
+        else if (rawTier.toLowerCase().includes('explorer')) tierName = 'Explorer';
+
+        if (r.participant?.vehicleNumber) ticketFor = 'Rider';
+
+        return {
+          id: r.id || `live-${i}`,
+          name: r.participantName || r.participant?.fullName || 'Registered Participant',
+          email: r.participantEmail || r.participant?.email || 'guest@nitroxx.com',
+          phone: r.participantPhone || r.participant?.phone || '+91 98000 00000',
+          avatar: r.participantPhoto || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80`,
+          avatarInitial: (r.participantName || 'R').charAt(0).toUpperCase(),
+          eventTitle: r.eventTitle || 'Nitroxx MotoFest Pune 2025',
+          tierName,
+          ticketFor,
+          ticketTier: `${tierName} · ${ticketFor}`,
+          ticketNumber: r.ticketNumber || `NX-${Date.now().toString(36).toUpperCase()}`,
+          bibNumber: r.ticketNumber ? `BIB-${r.ticketNumber.slice(-3)}` : `BIB-${300 + i}`,
+          ticketPrice: r.ticketPrice ? `₹${Number(r.ticketPrice).toLocaleString()}` : '₹4,999',
+          priceNumeric: Number(r.ticketPrice || 4999),
+          bookedDate: r.registrationDate ? formatDateTime(r.registrationDate).split(',')[0] : 'Just now',
+          bookedMinutes: 0,
+          paymentStatus: 'Paid',
+          gateStatus: r.attendanceStatus === 'Checked In' ? 'Done' : r.status === 'Confirmed' ? 'On Progress' : 'Pending Gate',
+          vehicle: r.participant?.vehicleNumber || 'Motorcycle',
+          vehiclePlate: r.participant?.vehicleNumber || 'MH12-LIVE',
+          city: r.participant?.city || 'India',
+          bloodGroup: r.participant?.bloodGroup || 'O+',
+          emergencyContact: r.participant?.emergencyContact || 'Listed with Team',
+          wave: 'General Wave (08:00 AM)'
+        };
+      });
+
+      setParticipants(prev => {
         const existingIds = new Set(prev.map(p => p.id));
         const newUniques = liveItems.filter(item => !existingIds.has(item.id));
         return [...newUniques, ...prev];
@@ -442,23 +143,21 @@ const Participants = () => {
     }
   }, [registrations]);
 
-  // CMD+K / CTRL+K keyboard shortcut
+  // Keyboard shortcut (⌘K or Ctrl+K) to focus search
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if ((e.metaKey || e.ctrlKey) && (e.key === 'k' || e.key === '1')) {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
         e.preventDefault();
         searchInputRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        setTicketModalParticipant(null);
+        setIsScannerModalOpen(false);
+        setIsAddModalOpen(false);
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, []);
-
-  // Close dropdown on outside click
-  useEffect(() => {
-    const handleDocClick = () => setOpenActionId(null);
-    document.addEventListener('click', handleDocClick);
-    return () => document.removeEventListener('click', handleDocClick);
   }, []);
 
   const showToast = (msg) => {
@@ -466,73 +165,144 @@ const Participants = () => {
     setTimeout(() => setToastMessage(''), 3000);
   };
 
-  // Event dropdown options
+  const handleCopyCode = (code, e) => {
+    e?.stopPropagation();
+    navigator.clipboard?.writeText(code);
+    setCopiedCode(code);
+    showToast(`Copied ${code} to clipboard!`);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  // Distinct Filter Options
   const eventOptions = useMemo(() => {
-    const set = new Set(participantsList.map(p => p.eventTitle));
-    return ['All', ...Array.from(set)];
-  }, [participantsList]);
+    const set = new Set(participants.map(p => p.eventTitle).filter(Boolean));
+    return ['All', ...Array.from(set).sort()];
+  }, [participants]);
 
-  // Ticket Tier options
+  // Ticket Tiers as defined when host creates events
   const tierOptions = useMemo(() => {
-    const set = new Set(participantsList.map(p => p.ticketTier));
-    return ['All', ...Array.from(set)];
-  }, [participantsList]);
+    const set = new Set(participants.map(p => p.tierName).filter(Boolean));
+    return ['All', ...Array.from(set).sort()];
+  }, [participants]);
 
-  // Filtered and Sorted Rows
-  const filteredRows = useMemo(() => {
-    let result = [...participantsList];
+  const cityOptions = useMemo(() => {
+    const set = new Set(participants.map(p => p.city).filter(Boolean));
+    return ['All', ...Array.from(set).sort()];
+  }, [participants]);
 
+  // Filtering & Sorting
+  const filteredParticipants = useMemo(() => {
+    let result = [...participants];
+
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(p => 
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.email && p.email.toLowerCase().includes(q)) ||
+        (p.phone && p.phone.includes(q)) ||
+        (p.ticketNumber && p.ticketNumber.toLowerCase().includes(q)) ||
+        (p.bibNumber && p.bibNumber.toLowerCase().includes(q)) ||
+        (p.eventTitle && p.eventTitle.toLowerCase().includes(q)) ||
+        (p.tierName && p.tierName.toLowerCase().includes(q)) ||
+        (p.ticketTier && p.ticketTier.toLowerCase().includes(q)) ||
+        (p.ticketFor && p.ticketFor.toLowerCase().includes(q)) ||
+        (p.vehicle && p.vehicle.toLowerCase().includes(q)) ||
+        (p.city && p.city.toLowerCase().includes(q))
+      );
+    }
+
+    // Event filter
     if (selectedEvent !== 'All') {
       result = result.filter(p => p.eventTitle === selectedEvent);
     }
 
-    if (selectedStatus !== 'All') {
-      result = result.filter(p => p.status === selectedStatus);
+    // Gate Status filter
+    if (selectedGateStatus !== 'All') {
+      result = result.filter(p => p.gateStatus === selectedGateStatus);
     }
 
+    // Ticket Tier filter
     if (selectedTier !== 'All') {
-      result = result.filter(p => p.ticketTier === selectedTier);
+      result = result.filter(p => p.tierName === selectedTier || (p.ticketTier && p.ticketTier.includes(selectedTier)));
     }
 
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase().trim();
-      result = result.filter(p => 
-        p.name.toLowerCase().includes(q) ||
-        p.email.toLowerCase().includes(q) ||
-        p.phone.includes(q) ||
-        p.ticketNumber.toLowerCase().includes(q) ||
-        p.bibNumber.toLowerCase().includes(q) ||
-        p.ticketTier.toLowerCase().includes(q) ||
-        p.eventTitle.toLowerCase().includes(q) ||
-        p.vehicle.toLowerCase().includes(q) ||
-        p.city.toLowerCase().includes(q)
-      );
+    // City filter
+    if (selectedCity !== 'All') {
+      result = result.filter(p => p.city === selectedCity);
     }
 
-    // Sort
-    result.sort((a, b) => {
-      let valA = a[sortField] || '';
-      let valB = b[sortField] || '';
-      if (typeof valA === 'string') valA = valA.toLowerCase();
-      if (typeof valB === 'string') valB = valB.toLowerCase();
+    // Column Sorting
+    if (sortField) {
+      result.sort((a, b) => {
+        let valA = a[sortField];
+        let valB = b[sortField];
 
-      if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-      if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
-      return 0;
-    });
+        if (valA === undefined || valA === null) valA = '';
+        if (valB === undefined || valB === null) valB = '';
+
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return sortDirection === 'asc' ? valA - valB : valB - valA;
+        }
+
+        const strA = String(valA).toLowerCase();
+        const strB = String(valB).toLowerCase();
+
+        if (strA < strB) return sortDirection === 'asc' ? -1 : 1;
+        if (strA > strB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
 
     return result;
-  }, [participantsList, selectedEvent, selectedStatus, selectedTier, searchQuery, sortField, sortDirection]);
+  }, [
+    participants, 
+    searchQuery, 
+    selectedEvent, 
+    selectedGateStatus, 
+    selectedTier, 
+    selectedCity, 
+    sortField, 
+    sortDirection
+  ]);
 
   // Paginated Rows
-  const totalItems = filteredRows.length;
+  const totalItems = filteredParticipants.length;
   const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+  
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
+
   const paginatedRows = useMemo(() => {
     const start = (currentPage - 1) * pageSize;
-    return filteredRows.slice(start, start + pageSize);
-  }, [filteredRows, currentPage, pageSize]);
+    return filteredParticipants.slice(start, start + pageSize);
+  }, [filteredParticipants, currentPage, pageSize]);
 
-  // Sorting
+  // Active filters count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (selectedEvent !== 'All') count++;
+    if (selectedGateStatus !== 'All') count++;
+    if (selectedTier !== 'All') count++;
+    if (selectedCity !== 'All') count++;
+    if (searchQuery.trim()) count++;
+    return count;
+  }, [selectedEvent, selectedGateStatus, selectedTier, selectedCity, searchQuery]);
+
+  const handleResetFilters = () => {
+    setSelectedEvent('All');
+    setSelectedGateStatus('All');
+    setSelectedTier('All');
+    setSelectedCity('All');
+    setSearchQuery('');
+    setCurrentPage(1);
+    showToast('Filters reset to default.');
+  };
+
+  // Sorting toggle
   const handleSort = (field) => {
     if (sortField === field) {
       setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
@@ -542,7 +312,7 @@ const Participants = () => {
     }
   };
 
-  // Row Selection Handlers
+  // Selection Handlers
   const handleSelectAll = (e) => {
     if (e.target.checked) {
       setSelectedRowIds(new Set(paginatedRows.map(p => p.id)));
@@ -566,77 +336,67 @@ const Participants = () => {
   // Toggle Check In status directly
   const handleToggleCheckIn = (id, e) => {
     e?.stopPropagation();
-    setParticipantsList(prev => prev.map(p => {
+    setParticipants(prev => prev.map(p => {
       if (p.id === id) {
-        const nextStatus = p.status === 'Done' ? 'On Progress' : 'Done';
-        showToast(nextStatus === 'Done' ? `Checked In: ${p.name}` : `Reset Status for: ${p.name}`);
-        return { ...p, status: nextStatus };
+        const nextStatus = p.gateStatus === 'Done' ? 'On Progress' : 'Done';
+        showToast(nextStatus === 'Done' ? `Checked In: ${p.name}` : `Reset Attendance: ${p.name}`);
+        return { ...p, gateStatus: nextStatus };
       }
       return p;
     }));
-    setOpenActionId(null);
   };
 
-  const handleDeleteRow = (id, e) => {
-    e?.stopPropagation();
-    setParticipantsList(prev => prev.filter(p => p.id !== id));
-    setSelectedRowIds(prev => {
-      const next = new Set(prev);
-      next.delete(id);
-      return next;
-    });
-    setOpenActionId(null);
-    showToast('Participant booking removed.');
-  };
-
-  // Bulk operations
+  // Bulk Operations
   const handleBulkCheckIn = () => {
-    setParticipantsList(prev => prev.map(p => selectedRowIds.has(p.id) ? { ...p, status: 'Done' } : p));
+    setParticipants(prev => prev.map(p => selectedRowIds.has(p.id) ? { ...p, gateStatus: 'Done' } : p));
     showToast(`Checked in ${selectedRowIds.size} participants.`);
     setSelectedRowIds(new Set());
   };
 
   const handleBulkDelete = () => {
-    setParticipantsList(prev => prev.filter(p => !selectedRowIds.has(p.id)));
-    showToast(`Removed ${selectedRowIds.size} bookings.`);
-    setSelectedRowIds(new Set());
+    if (window.confirm(`Cancel bookings for ${selectedRowIds.size} selected participants?`)) {
+      setParticipants(prev => prev.filter(p => !selectedRowIds.has(p.id)));
+      showToast(`Removed ${selectedRowIds.size} participant bookings.`);
+      setSelectedRowIds(new Set());
+    }
   };
 
   // Export CSV
   const handleExportCSV = () => {
     const listToExport = selectedRowIds.size > 0 
-      ? participantsList.filter(p => selectedRowIds.has(p.id))
-      : filteredRows;
+      ? participants.filter(p => selectedRowIds.has(p.id))
+      : filteredParticipants;
 
-    downloadCsv('nitroxx_booking_participants.csv', listToExport.map(p => ({
-      TicketNumber: p.ticketNumber,
-      BibNumber: p.bibNumber,
-      Name: p.name,
+    downloadCsv('event_participants_directory.csv', listToExport.map(p => ({
+      ParticipantName: p.name,
       Email: p.email,
       Phone: p.phone,
-      Event: p.eventTitle,
-      Stage: p.stageName,
-      TicketTier: p.ticketTier,
+      Tier: p.tierName,
+      TicketFor: p.ticketFor,
+      TicketNumber: p.ticketNumber,
+      BibNumber: p.bibNumber,
+      EventTitle: p.eventTitle,
+      BookedDate: p.bookedDate,
       TicketPrice: p.ticketPrice,
       PaymentStatus: p.paymentStatus,
-      GateStatus: p.status,
+      GateStatus: p.gateStatus,
       Vehicle: p.vehicle,
       VehiclePlate: p.vehiclePlate,
       City: p.city,
       BloodGroup: p.bloodGroup,
-      EmergencyContact: p.emergencyContact,
+      EmergencyContact: p.emergencyContact
     })));
 
-    showToast(`Exported ${listToExport.length} booking records.`);
+    showToast(`Exported ${listToExport.length} participant records.`);
   };
 
-  // Fast Gate Check-In (Scanner simulation)
+  // Fast Gate Scanner Simulation
   const handleGateScanValidate = (e) => {
     e.preventDefault();
     if (!scanInput.trim()) return;
 
     const term = scanInput.toLowerCase().trim();
-    const found = participantsList.find(p => 
+    const found = participants.find(p => 
       p.bibNumber.toLowerCase().includes(term) ||
       p.ticketNumber.toLowerCase().includes(term) ||
       p.email.toLowerCase().includes(term) ||
@@ -644,102 +404,123 @@ const Participants = () => {
     );
 
     if (found) {
-      setParticipantsList(prev => prev.map(p => p.id === found.id ? { ...p, status: 'Done' } : p));
+      setParticipants(prev => prev.map(p => p.id === found.id ? { ...p, gateStatus: 'Done' } : p));
       setScanSuccess(true);
       showToast(`Gate Approved: ${found.name} (${found.bibNumber})`);
       setTimeout(() => {
         setScanSuccess(false);
         setScanInput('');
-      }, 1600);
+      }, 1500);
     } else {
-      alert(`No active booking found for "${scanInput}". Try entering BIB-101 or NX-89214.`);
+      alert(`No active participant booking found for "${scanInput}". Try entering BIB-101 or NX-89214.`);
     }
   };
 
-  // Submit New Booking
-  const handleCreateNewBooking = (e) => {
+  // Add Participant Form Submit (Uses event host creation tier structure)
+  const handleCreateBooking = (e) => {
     e.preventDefault();
-    if (!newFormData.name || !newFormData.email) return;
+    if (!newFormData.name.trim() || !newFormData.email.trim()) return;
 
     const newId = `bkg-${Date.now()}`;
-    const newBib = `BIB-${Math.floor(115 + Math.random() * 880)}`;
+    const newBib = `BIB-${Math.floor(121 + Math.random() * 800)}`;
     const newTicket = `NX-${Math.floor(10000 + Math.random() * 90000)}`;
 
     const newBooking = {
       id: newId,
-      name: newFormData.name,
-      email: newFormData.email,
-      phone: newFormData.phone || '+91 98000 12345',
+      name: newFormData.name.trim(),
+      email: newFormData.email.trim(),
+      phone: newFormData.phone.trim() || '+91 98000 12345',
       avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
-      ticketTier: newFormData.ticketTier,
-      ticketNumber: newTicket,
-      ticketPrice: newFormData.ticketPrice || '₹4,999',
-      bookedDate: `Booked ${new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`,
+      avatarInitial: newFormData.name.trim().charAt(0).toUpperCase(),
       eventTitle: newFormData.eventTitle,
-      stageName: newFormData.stageName,
+      tierName: newFormData.tierName,
+      ticketFor: newFormData.ticketFor,
+      ticketTier: `${newFormData.tierName} · ${newFormData.ticketFor}`,
+      ticketNumber: newTicket,
       bibNumber: newBib,
+      ticketPrice: newFormData.ticketPrice || '₹4,999',
+      priceNumeric: parseInt(newFormData.ticketPrice.replace(/[^0-9]/g, ''), 10) || 4999,
+      bookedDate: 'Just now',
+      bookedMinutes: 0,
+      paymentStatus: newFormData.paymentStatus,
+      gateStatus: newFormData.gateStatus,
       vehicle: newFormData.vehicle || 'KTM 390 Adventure',
       vehiclePlate: newFormData.vehiclePlate || 'MH12-NEW',
       city: newFormData.city || 'Mumbai',
       bloodGroup: newFormData.bloodGroup || 'O+',
       emergencyContact: newFormData.emergencyContact || 'Listed with Team',
-      status: newFormData.status,
-      paymentStatus: 'Paid',
       wave: 'General Wave (08:00 AM)'
     };
 
-    setParticipantsList(prev => [newBooking, ...prev]);
+    setParticipants(prev => [newBooking, ...prev]);
     setIsAddModalOpen(false);
+    setNewFormData({
+      name: '',
+      email: '',
+      phone: '',
+      eventTitle: 'Manali–Leh–Manali Adventure Tour',
+      tierName: 'Platinum',
+      ticketFor: 'Rider',
+      ticketPrice: '₹25,000',
+      gateStatus: 'Done',
+      paymentStatus: 'Paid',
+      vehicle: 'KTM 390 Adventure',
+      vehiclePlate: 'MH02-DX-1001',
+      city: 'Mumbai',
+      bloodGroup: 'O+',
+      emergencyContact: ''
+    });
     showToast(`Registered booking for ${newBooking.name} (${newBib})`);
   };
 
   // Quick stats
-  const totalCheckedIn = participantsList.filter(p => p.status === 'Done').length;
-  const totalPending = participantsList.filter(p => p.status === 'Pending' || p.status === 'Waiting for Review').length;
-  const totalOnTrack = participantsList.filter(p => p.status === 'On Progress').length;
+  const totalCheckedIn = participants.filter(p => p.gateStatus === 'Done').length;
+  const totalOnTrack = participants.filter(p => p.gateStatus === 'On Progress').length;
+  const totalPending = participants.filter(p => p.gateStatus === 'Pending Gate' || p.gateStatus === 'Waiting for Review').length;
 
-  // Status Badge Pill
-  const renderStatusBadge = (status) => {
+  // Gate Status Pill Badge
+  const renderGateBadge = (status) => {
     switch (status) {
+      case 'Done':
+        return (
+          <span className="gate-status-pill done" title="Checked in & approved at gate">
+            <CheckCircle2 size={12} strokeWidth={2.4} />
+            Done
+          </span>
+        );
       case 'On Progress':
         return (
-          <span className="status-badge-pill status-on-progress" title="Participant is on track / racing">
-            <Info size={13} strokeWidth={2.2} />
+          <span className="gate-status-pill on-progress" title="Participant is on track / racing">
+            <Info size={12} strokeWidth={2.4} />
             On Progress
           </span>
         );
       case 'Waiting for Review':
         return (
-          <span className="status-badge-pill status-waiting" title="Scrutineering review pending">
-            <Info size={13} strokeWidth={2.2} />
+          <span className="gate-status-pill waiting" title="Scrutineering or review pending">
+            <Info size={12} strokeWidth={2.4} />
             Waiting for Review
           </span>
         );
+      case 'Pending Gate':
       case 'Pending':
         return (
-          <span className="status-badge-pill status-pending" title="Payment or gate check pending">
-            <AlertTriangle size={13} strokeWidth={2.2} />
+          <span className="gate-status-pill pending" title="Gate check or clearance pending">
+            <AlertTriangle size={12} strokeWidth={2.4} />
             Pending
-          </span>
-        );
-      case 'Done':
-        return (
-          <span className="status-badge-pill status-done" title="Checked in and approved at gate">
-            <CheckCircle2 size={13} strokeWidth={2.2} />
-            Done
           </span>
         );
       case 'Inactive':
         return (
-          <span className="status-badge-pill status-inactive" title="Booking cancelled or refunded">
-            <AlertCircle size={13} strokeWidth={2.2} />
+          <span className="gate-status-pill inactive" title="Booking cancelled or refunded">
+            <AlertCircle size={12} strokeWidth={2.4} />
             Inactive
           </span>
         );
       default:
         return (
-          <span className="status-badge-pill status-waiting">
-            <Info size={13} strokeWidth={2.2} />
+          <span className="gate-status-pill waiting">
+            <Info size={12} strokeWidth={2.4} />
             {status}
           </span>
         );
@@ -747,380 +528,468 @@ const Participants = () => {
   };
 
   return (
-    <AppLayout searchPlaceholder="Search bookings, bib numbers, tickets, events...">
-      <div className="participants-page-shell">
+    <AppLayout searchPlaceholder="Search participants, ticket IDs, bib numbers, events...">
+      <div className="ptable-page-wrapper">
 
         {/* Floating Toast Notification */}
         {toastMessage && (
-          <div className="floating-bulk-bar" style={{ bottom: '80px', background: '#10b981' }}>
-            <Check size={16} />
+          <div className="ptable-floating-toast">
+            <CheckCircle2 size={16} className="toast-icon" />
             <span>{toastMessage}</span>
           </div>
         )}
 
-        {/* Page Header Row */}
-        <div className="participants-header-row">
-          <div className="participants-title-wrap">
-            <div className="participants-icon-badge">
-              <Users size={22} strokeWidth={1.8} />
+        {/* Page Header */}
+        <div className="ptable-header-section">
+          <div className="ptable-header-title-block">
+            <div className="ptable-badge-icon">
+              <Users size={20} strokeWidth={2} />
             </div>
-            <div className="participants-heading-text">
-              <h1>Booking Participants</h1>
-              <p>Real-time directory of attendee bookings, ticket passes, check-ins, and race gate operations.</p>
-            </div>
-          </div>
-
-          <div className="header-right-tools">
-            <button className="header-action-bell" title="Live Event Activity" onClick={() => showToast('All gate check-in scanners active.')}>
-              <Bell size={18} />
-              <span className="bell-unread-dot" />
-            </button>
-          </div>
-        </div>
-
-        {/* Summary Metric Strip */}
-        <div className="booking-stats-strip">
-          <div className="stat-strip-card">
-            <div className="stat-icon-wrap blue">
-              <Ticket size={18} />
-            </div>
-            <div className="stat-meta-block">
-              <span className="stat-meta-label">Total Bookings</span>
-              <strong className="stat-meta-val">{participantsList.length} Registered</strong>
+            <div>
+              <h1 className="ptable-main-title">Event Participants & Bookings</h1>
+              <p className="ptable-sub-title">
+                Directory of attendee bookings, event packages & ticket tiers, gate clearance, and operational status.
+              </p>
             </div>
           </div>
 
-          <div className="stat-strip-card">
-            <div className="stat-icon-wrap green">
-              <CheckCircle2 size={18} />
-            </div>
-            <div className="stat-meta-block">
-              <span className="stat-meta-label">Checked In</span>
-              <strong className="stat-meta-val">{totalCheckedIn} Attendees ({Math.round((totalCheckedIn / participantsList.length) * 100)}%)</strong>
-            </div>
-          </div>
-
-          <div className="stat-strip-card">
-            <div className="stat-icon-wrap amber">
-              <AlertTriangle size={18} />
-            </div>
-            <div className="stat-meta-block">
-              <span className="stat-meta-label">Pending Gate</span>
-              <strong className="stat-meta-val">{totalPending} Pending</strong>
-            </div>
-          </div>
-
-          <div className="stat-strip-card">
-            <div className="stat-icon-wrap purple">
-              <Compass size={18} />
-            </div>
-            <div className="stat-meta-block">
-              <span className="stat-meta-label">On Track / Racing</span>
-              <strong className="stat-meta-val">{totalOnTrack} Active</strong>
-            </div>
-          </div>
-        </div>
-
-        {/* Control Toolbar */}
-        <div className="participants-toolbar">
-          {/* Left: Dropdown Filters */}
-          <div className="toolbar-filters-left">
-            {/* Event Filter */}
-            <div className="filter-select-wrapper">
-              <select 
-                className="filter-select-input"
-                value={selectedEvent}
-                onChange={(e) => { setSelectedEvent(e.target.value); setCurrentPage(1); }}
-              >
-                <option value="All">All Events</option>
-                {eventOptions.filter(e => e !== 'All').map((ev, i) => (
-                  <option key={i} value={ev}>{ev}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="filter-select-chevron" />
-            </div>
-
-            {/* Gate Status Filter */}
-            <div className="filter-select-wrapper">
-              <select 
-                className="filter-select-input"
-                value={selectedStatus}
-                onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-              >
-                <option value="All">All Gate Status</option>
-                <option value="On Progress">On Progress (Active)</option>
-                <option value="Waiting for Review">Waiting for Review</option>
-                <option value="Pending">Pending Gate</option>
-                <option value="Done">Done (Checked In)</option>
-                <option value="Inactive">Inactive</option>
-              </select>
-              <ChevronDown size={14} className="filter-select-chevron" />
-            </div>
-
-            {/* Ticket Tier Filter */}
-            <div className="filter-select-wrapper">
-              <select 
-                className="filter-select-input"
-                value={selectedTier}
-                onChange={(e) => { setSelectedTier(e.target.value); setCurrentPage(1); }}
-              >
-                <option value="All">All Ticket Passes</option>
-                {tierOptions.filter(t => t !== 'All').map((t, i) => (
-                  <option key={i} value={t}>{t}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="filter-select-chevron" />
-            </div>
-          </div>
-
-          {/* Right: Search, Settings, and Action Buttons */}
-          <div className="toolbar-actions-right">
-            <div className="table-search-box">
-              <Search size={15} className="search-leading-icon" />
-              <input 
-                ref={searchInputRef}
-                type="text" 
-                placeholder="Search..." 
-                value={searchQuery}
-                onChange={(e) => { setSearchQuery(e.target.value); setCurrentPage(1); }}
-                className="table-search-input"
-              />
-              <span className="search-shortcut-badge">⌘1</span>
-            </div>
-
+          <div className="ptable-header-actions">
             <button 
-              className="btn-icon-setting" 
-              title="Table Column View"
-              onClick={() => showToast('Column layout set to Event Participant standard.')}
-            >
-              <Settings size={17} />
-            </button>
-
-            {/* Action Buttons */}
-            <button 
-              className="btn-action-outline" 
+              className="ptable-btn-secondary"
               onClick={() => setIsScannerModalOpen(true)}
-              title="Fast Gate Check-In & Scanner"
+              title="Fast Gate QR & Bib Check-In"
             >
               <QrCode size={15} />
               <span>Fast Check-In</span>
             </button>
 
             <button 
-              className="btn-action-outline" 
+              className="ptable-btn-secondary"
               onClick={handleExportCSV}
-              title="Export visible or selected records to CSV"
+              title="Export all or selected records to CSV"
             >
               <Download size={15} />
-              <span>Export</span>
+              <span>Export CSV</span>
             </button>
 
             <button 
-              className="btn-action-primary" 
+              className="ptable-btn-primary"
               onClick={() => setIsAddModalOpen(true)}
             >
-              <Plus size={16} strokeWidth={2.2} />
+              <Plus size={16} strokeWidth={2.5} />
               <span>Add Participant</span>
             </button>
           </div>
         </div>
 
-        {/* Main Table Card */}
-        <div className="participants-table-card">
-          <div className="table-responsive-container">
-            <table className="participants-modern-table">
+        {/* Metric Quick-Strip */}
+        <div className="ptable-metric-strip">
+          <div className="metric-pill-item">
+            <span className="metric-pill-label">Total Bookings:</span>
+            <span className="metric-pill-val">{participants.length} Registered</span>
+          </div>
+          <div className="metric-pill-item">
+            <span className="metric-pill-label">Checked In:</span>
+            <span className="metric-pill-val text-green">{totalCheckedIn} Attendees ({Math.round((totalCheckedIn / participants.length) * 100 || 0)}%)</span>
+          </div>
+          <div className="metric-pill-item">
+            <span className="metric-pill-label">On Track / Active:</span>
+            <span className="metric-pill-val text-blue">{totalOnTrack} Riders</span>
+          </div>
+          <div className="metric-pill-item">
+            <span className="metric-pill-label">Pending Gate:</span>
+            <span className="metric-pill-val text-amber">{totalPending} Pending</span>
+          </div>
+        </div>
+
+        {/* Toolbar: Search and Filter Dropdowns */}
+        <div className="ptable-toolbar-container">
+          {/* Search Box */}
+          <div className="ptable-search-wrapper">
+            <Search size={15} className="ptable-search-icon" />
+            <input 
+              ref={searchInputRef}
+              type="text" 
+              placeholder="Search participants, ticket IDs, bibs, tiers, events, cities..." 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="ptable-search-input"
+            />
+            {searchQuery ? (
+              <button 
+                className="ptable-search-clear" 
+                onClick={() => setSearchQuery('')}
+                title="Clear Search"
+              >
+                <X size={13} />
+              </button>
+            ) : (
+              <span className="ptable-search-shortcut" title="Press ⌘K or Ctrl+K to search">⌘K</span>
+            )}
+          </div>
+
+          {/* Quick Filter Selects */}
+          <div className="ptable-filter-group">
+            {/* Event Filter */}
+            <div className="ptable-select-wrapper">
+              <span className="select-prefix-label">Event:</span>
+              <select 
+                value={selectedEvent}
+                onChange={(e) => { setSelectedEvent(e.target.value); setCurrentPage(1); }}
+                className="ptable-select-input"
+              >
+                <option value="All">All Events</option>
+                {eventOptions.filter(ev => ev !== 'All').map((ev, i) => (
+                  <option key={i} value={ev}>{ev}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="ptable-select-chevron" />
+            </div>
+
+            {/* Ticket Tier Filter (as created by host) */}
+            <div className="ptable-select-wrapper">
+              <span className="select-prefix-label">Tier:</span>
+              <select 
+                value={selectedTier}
+                onChange={(e) => { setSelectedTier(e.target.value); setCurrentPage(1); }}
+                className="ptable-select-input"
+              >
+                <option value="All">All Tiers</option>
+                {tierOptions.filter(t => t !== 'All').map((t, i) => (
+                  <option key={i} value={t}>{t}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="ptable-select-chevron" />
+            </div>
+
+            {/* Gate Status Filter */}
+            <div className="ptable-select-wrapper">
+              <span className="select-prefix-label">Gate:</span>
+              <select 
+                value={selectedGateStatus}
+                onChange={(e) => { setSelectedGateStatus(e.target.value); setCurrentPage(1); }}
+                className="ptable-select-input"
+              >
+                <option value="All">All Statuses</option>
+                <option value="Done">Done (Checked In)</option>
+                <option value="On Progress">On Progress (On Track)</option>
+                <option value="Waiting for Review">Waiting for Review</option>
+                <option value="Pending Gate">Pending Gate</option>
+                <option value="Inactive">Inactive</option>
+              </select>
+              <ChevronDown size={14} className="ptable-select-chevron" />
+            </div>
+
+            {/* City Location Filter */}
+            <div className="ptable-select-wrapper">
+              <span className="select-prefix-label">City:</span>
+              <select 
+                value={selectedCity}
+                onChange={(e) => { setSelectedCity(e.target.value); setCurrentPage(1); }}
+                className="ptable-select-input"
+              >
+                <option value="All">All Cities</option>
+                {cityOptions.filter(c => c !== 'All').map((city, i) => (
+                  <option key={i} value={city}>{city}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="ptable-select-chevron" />
+            </div>
+
+            {/* Reset Button */}
+            {activeFiltersCount > 0 && (
+              <button 
+                className="ptable-reset-filters-btn"
+                onClick={handleResetFilters}
+                title="Reset all filters to default"
+              >
+                <RefreshCw size={13} />
+                <span>Reset ({activeFiltersCount})</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Active Filter Chips */}
+        {activeFiltersCount > 0 && (
+          <div className="ptable-active-chips-bar">
+            <span className="chips-title">Active Filters:</span>
+            {searchQuery && (
+              <span className="filter-chip">
+                Search: "{searchQuery}"
+                <button onClick={() => setSearchQuery('')}><X size={11} /></button>
+              </span>
+            )}
+            {selectedEvent !== 'All' && (
+              <span className="filter-chip">
+                Event: {selectedEvent}
+                <button onClick={() => setSelectedEvent('All')}><X size={11} /></button>
+              </span>
+            )}
+            {selectedTier !== 'All' && (
+              <span className="filter-chip">
+                Tier: {selectedTier}
+                <button onClick={() => setSelectedTier('All')}><X size={11} /></button>
+              </span>
+            )}
+            {selectedGateStatus !== 'All' && (
+              <span className="filter-chip">
+                Status: {selectedGateStatus}
+                <button onClick={() => setSelectedGateStatus('All')}><X size={11} /></button>
+              </span>
+            )}
+            {selectedCity !== 'All' && (
+              <span className="filter-chip">
+                City: {selectedCity}
+                <button onClick={() => setSelectedCity('All')}><X size={11} /></button>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Main Table Card (Batch section removed, Ticket & Tier enhanced) */}
+        <div className="ptable-card-container">
+          <div className="ptable-scroll-frame">
+            <table className="ptable-custom-table">
               <thead>
                 <tr>
-                  <th className="th-checkbox-col">
+                  {/* Checkbox Column */}
+                  <th className="ptable-th th-checkbox">
                     <input 
                       type="checkbox" 
-                      className="table-checkbox"
+                      className="ptable-checkbox-input"
                       checked={isAllSelected}
                       onChange={handleSelectAll}
+                      title="Select all on this page"
                     />
                   </th>
 
-                  <th className="th-sortable" onClick={() => handleSort('name')}>
-                    <div className="th-content">
+                  {/* 1. Participant Name Column */}
+                  <th 
+                    className="ptable-th th-sortable th-name" 
+                    onClick={() => handleSort('name')}
+                    title="Sort by Participant Name"
+                  >
+                    <div className="th-content-flex">
+                      <User size={13.5} className="th-header-icon" />
                       <span>Participant Name</span>
-                      {sortField === 'name' ? (
-                        sortDirection === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
-                      ) : (
-                        <ArrowUpDown size={13} />
+                      {sortField === 'name' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
                       )}
                     </div>
                   </th>
 
-                  <th className="th-sortable" onClick={() => handleSort('ticketTier')}>
-                    <div className="th-content">
-                      <span>Ticket & Pass</span>
-                      {sortField === 'ticketTier' ? (
-                        sortDirection === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
-                      ) : (
-                        <ArrowUpDown size={13} />
+                  {/* 2. Ticket & Tier Column (Tier as created by host) */}
+                  <th 
+                    className="ptable-th th-sortable th-ticket" 
+                    onClick={() => handleSort('tierName')}
+                    title="Sort by Ticket Tier"
+                  >
+                    <div className="th-content-flex">
+                      <Ticket size={13.5} className="th-header-icon" />
+                      <span>Ticket & Tier</span>
+                      {sortField === 'tierName' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
                       )}
                     </div>
                   </th>
 
-                  <th className="th-sortable" onClick={() => handleSort('eventTitle')}>
-                    <div className="th-content">
-                      <span>Event & Batch</span>
-                      {sortField === 'eventTitle' ? (
-                        sortDirection === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
-                      ) : (
-                        <ArrowUpDown size={13} />
+                  {/* 3. Event Joined Column */}
+                  <th 
+                    className="ptable-th th-sortable th-event" 
+                    onClick={() => handleSort('eventTitle')}
+                    title="Sort by Event Title"
+                  >
+                    <div className="th-content-flex">
+                      <CalendarDays size={13.5} className="th-header-icon" />
+                      <span>Event Joined</span>
+                      {sortField === 'eventTitle' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
                       )}
                     </div>
                   </th>
 
-                  <th className="th-sortable" onClick={() => handleSort('status')}>
-                    <div className="th-content">
+                  {/* 4. Booking Date Column */}
+                  <th 
+                    className="ptable-th th-sortable th-date" 
+                    onClick={() => handleSort('bookedMinutes')}
+                    title="Sort by Booking Date"
+                  >
+                    <div className="th-content-flex">
+                      <Clock size={13.5} className="th-header-icon" />
+                      <span>Booking date</span>
+                      {sortField === 'bookedMinutes' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* 5. Ticket Price & Payment Column */}
+                  <th 
+                    className="ptable-th th-sortable th-price" 
+                    onClick={() => handleSort('priceNumeric')}
+                    title="Sort by Ticket Price"
+                  >
+                    <div className="th-content-flex">
+                      <CreditCard size={13.5} className="th-header-icon" />
+                      <span>Price & Status</span>
+                      {sortField === 'priceNumeric' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* 6. Gate Status Column */}
+                  <th 
+                    className="ptable-th th-sortable th-gate"
+                    onClick={() => handleSort('gateStatus')}
+                    title="Sort by Gate Status"
+                  >
+                    <div className="th-content-flex">
+                      <CheckCircle2 size={13.5} className="th-header-icon" />
                       <span>Gate Status</span>
-                      {sortField === 'status' ? (
-                        sortDirection === 'asc' ? <ArrowUp size={13} /> : <ArrowDown size={13} />
-                      ) : (
-                        <ArrowUpDown size={13} />
+                      {sortField === 'gateStatus' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
                       )}
                     </div>
                   </th>
 
-                  <th className="th-action-col"></th>
+                  {/* 7. Vehicle & City Column */}
+                  <th 
+                    className="ptable-th th-sortable th-vehicle"
+                    onClick={() => handleSort('city')}
+                    title="Sort by City"
+                  >
+                    <div className="th-content-flex">
+                      <MapPin size={13.5} className="th-header-icon" />
+                      <span>Vehicle & City</span>
+                      {sortField === 'city' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
                 </tr>
               </thead>
 
               <tbody>
                 {paginatedRows.length === 0 ? (
                   <tr>
-                    <td colSpan="6" style={{ textAlign: 'center', padding: '48px 20px', color: '#6b7280' }}>
-                      <Users size={32} style={{ margin: '0 auto 10px', opacity: 0.4 }} />
-                      <p style={{ fontWeight: 600, fontSize: '15px', color: '#111827' }}>No booking participants found</p>
-                      <p style={{ fontSize: '13px' }}>Try resetting filters or clear your search term.</p>
+                    <td colSpan="8" className="ptable-empty-cell">
+                      <div className="empty-state-box">
+                        <Users size={36} className="empty-state-icon" />
+                        <h3>No event participants found</h3>
+                        <p>No participant booking matches your current search or tier filter criteria.</p>
+                        <button className="ptable-btn-secondary" onClick={handleResetFilters}>
+                          Clear all filters
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ) : (
-                  paginatedRows.map((entry) => {
-                    const isSelected = selectedRowIds.has(entry.id);
-                    const isMenuOpen = openActionId === entry.id;
+                  paginatedRows.map((item) => {
+                    const isSelected = selectedRowIds.has(item.id);
 
                     return (
                       <tr 
-                        key={entry.id} 
-                        className={isSelected ? 'row-selected' : ''}
-                        onClick={() => setTicketModalParticipant(entry)}
-                        style={{ cursor: 'pointer' }}
+                        key={item.id} 
+                        className={`ptable-row ${isSelected ? 'row-selected' : ''}`}
+                        onClick={() => setTicketModalParticipant(item)}
                       >
-                        {/* Checkbox column */}
-                        <td className="td-checkbox-col" onClick={(e) => e.stopPropagation()}>
+                        {/* Checkbox Column */}
+                        <td className="ptable-td td-checkbox" onClick={(e) => e.stopPropagation()}>
                           <input 
                             type="checkbox" 
-                            className="table-checkbox"
+                            className="ptable-checkbox-input"
                             checked={isSelected}
-                            onChange={(e) => handleSelectRow(entry.id, e)}
+                            onChange={(e) => handleSelectRow(item.id, e)}
                           />
                         </td>
 
-                        {/* Column 1: Participant Name & Email/Phone */}
-                        <td>
-                          <div className="member-cell-flex">
-                            {entry.avatar ? (
+                        {/* 1. Participant Name & Avatar / Email */}
+                        <td className="ptable-td td-name">
+                          <div className="company-name-cell">
+                            {item.avatar ? (
                               <img 
-                                src={entry.avatar} 
-                                alt={entry.name} 
-                                className="member-avatar-img"
+                                src={item.avatar} 
+                                alt={item.name} 
+                                className="member-avatar-mini"
                                 onError={(e) => { e.target.style.display = 'none'; }}
                               />
                             ) : (
-                              <div className="member-avatar-fallback">
-                                {entry.name.slice(0, 1)}
-                              </div>
+                              <span className="monogram-avatar-circle">
+                                {item.avatarInitial || item.name.charAt(0)}
+                              </span>
                             )}
-                            <div className="member-text-wrap">
-                              <span className="member-name-text">{entry.name}</span>
-                              <span className="member-email-text">{entry.email}</span>
+                            <div className="participant-text-block">
+                              <span className="company-title-text">{item.name}</span>
+                              <span className="participant-sub-email">{item.email}</span>
                             </div>
                           </div>
                         </td>
 
-                        {/* Column 2: Ticket Pass & Booking details */}
-                        <td>
-                          <div className="cell-stacked-text">
-                            <span className="cell-primary-text">{entry.ticketTier}</span>
-                            <span className="cell-secondary-text">
-                              <span className="bib-pill-tag" style={{ marginRight: '6px' }}>{entry.bibNumber}</span>
-                              {entry.bookedDate} · {entry.ticketPrice}
+                        {/* 2. Ticket & Tier (Tier Badge as used when host creates event + BIB & Ticket Number) */}
+                        <td className="ptable-td td-ticket">
+                          <div className="ticket-tier-cell-block">
+                            <div className="tier-badge-row">
+                              <span className={`event-tier-badge tier-${(item.tierName || 'standard').toLowerCase().replace(/\s+/g, '-')}`}>
+                                {item.tierName || 'Standard'}
+                              </span>
+                              {item.ticketFor && (
+                                <span className="ticket-for-subpill">{item.ticketFor}</span>
+                              )}
+                            </div>
+                            <span 
+                              className="domain-pill-badge" 
+                              onClick={(e) => handleCopyCode(item.ticketNumber, e)}
+                              title="Click to copy Ticket ID"
+                            >
+                              <span className="bib-accent-tag">{item.bibNumber}</span>
+                              {item.ticketNumber}
+                              {copiedCode === item.ticketNumber ? (
+                                <Check size={11} className="pill-copy-icon success" />
+                              ) : null}
                             </span>
                           </div>
                         </td>
 
-                        {/* Column 3: Event & Stage/Batch */}
-                        <td>
-                          <div className="cell-stacked-text">
-                            <span className="cell-primary-text">{entry.eventTitle}</span>
-                            <span className="cell-secondary-text">{entry.stageName}</span>
+                        {/* 3. Event Joined Column */}
+                        <td className="ptable-td td-event">
+                          <div className="avatar-name-cell">
+                            <span className="monogram-avatar-circle event-circle">
+                              {item.eventTitle ? item.eventTitle.charAt(0) : 'E'}
+                            </span>
+                            <span className="cell-person-name bold">{item.eventTitle}</span>
                           </div>
                         </td>
 
-                        {/* Column 4: Gate & Attendance Status Badge */}
-                        <td>
-                          {renderStatusBadge(entry.status)}
+                        {/* 4. Booking Date Column */}
+                        <td className="ptable-td td-date">
+                          <span className="creation-date-text">{item.bookedDate}</span>
                         </td>
 
-                        {/* Column 5: Action Menu */}
-                        <td className="th-action-col" onClick={(e) => e.stopPropagation()}>
-                          <div className="row-action-wrap">
-                            <button 
-                              className={`row-action-dots-btn ${isMenuOpen ? 'active' : ''}`}
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setOpenActionId(isMenuOpen ? null : entry.id);
-                              }}
-                              title="More Options"
-                            >
-                              <MoreVertical size={16} />
-                            </button>
-
-                            {/* Dropdown Menu */}
-                            {isMenuOpen && (
-                              <div className="row-action-dropdown">
-                                <button 
-                                  className="dropdown-action-btn"
-                                  onClick={() => setTicketModalParticipant(entry)}
-                                >
-                                  <Ticket size={14} />
-                                  <span>View Digital Pass</span>
-                                </button>
-
-                                <button 
-                                  className="dropdown-action-btn"
-                                  onClick={(e) => handleToggleCheckIn(entry.id, e)}
-                                >
-                                  <CheckSquare size={14} />
-                                  <span>{entry.status === 'Done' ? 'Reset Attendance' : 'Gate Check-In (Done)'}</span>
-                                </button>
-
-                                <button 
-                                  className="dropdown-action-btn"
-                                  onClick={() => {
-                                    showToast(`Ticket pass resent to ${entry.email}`);
-                                    setOpenActionId(null);
-                                  }}
-                                >
-                                  <Mail size={14} />
-                                  <span>Send Pass via Email</span>
-                                </button>
-
-                                <div className="dropdown-divider" />
-
-                                <button 
-                                  className="dropdown-action-btn danger"
-                                  onClick={(e) => handleDeleteRow(entry.id, e)}
-                                >
-                                  <Trash2 size={14} />
-                                  <span>Cancel Booking</span>
-                                </button>
-                              </div>
-                            )}
+                        {/* 5. Ticket Price & Payment Column */}
+                        <td className="ptable-td td-price">
+                          <div className="price-cell-stack">
+                            <span className="employee-count-num bold">{item.ticketPrice}</span>
+                            <span className={`payment-pill-tag ${item.paymentStatus?.toLowerCase()}`}>
+                              {item.paymentStatus}
+                            </span>
                           </div>
+                        </td>
+
+                        {/* 6. Gate Status Column */}
+                        <td className="ptable-td td-gate" onClick={(e) => handleToggleCheckIn(item.id, e)} title="Click to toggle Check-In">
+                          {renderGateBadge(item.gateStatus)}
+                        </td>
+
+                        {/* 7. Vehicle & City Column */}
+                        <td className="ptable-td td-vehicle">
+                          <span className="address-truncated-text" title={`${item.vehicle} (${item.vehiclePlate}) · ${item.city}`}>
+                            <span className="city-accent">{item.city}</span> · {item.vehicle}
+                          </span>
                         </td>
                       </tr>
                     );
@@ -1131,33 +1000,36 @@ const Participants = () => {
           </div>
 
           {/* Table Pagination Footer */}
-          <div className="table-pagination-footer">
-            <div className="pagination-left-info">
-              Page {currentPage} of {totalPages}
+          <div className="ptable-footer-pagination">
+            <div className="pagination-count-label">
+              Showing {filteredParticipants.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{' '}
+              {Math.min(currentPage * pageSize, filteredParticipants.length)} of {filteredParticipants.length} participants
             </div>
 
-            <div className="pagination-nav-center">
+            <div className="pagination-controls-center">
+              {/* First Page */}
               <button 
-                className="page-nav-btn" 
+                className="pagination-nav-btn" 
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(1)}
                 title="First Page"
               >
-                <ChevronsLeft size={14} />
+                <ChevronsLeft size={15} />
               </button>
 
+              {/* Prev Page */}
               <button 
-                className="page-nav-btn" 
+                className="pagination-nav-btn" 
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                 title="Previous Page"
               >
-                <ChevronLeft size={14} />
+                <ChevronLeft size={15} />
               </button>
 
               {/* Numbered Page Buttons */}
               {Array.from({ length: totalPages }, (_, idx) => idx + 1)
-                .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 2)
+                .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
                 .reduce((acc, page, idx, arr) => {
                   if (idx > 0 && page - arr[idx - 1] > 1) {
                     acc.push('ellipsis-' + page);
@@ -1167,12 +1039,12 @@ const Participants = () => {
                 }, [])
                 .map((item, idx) => {
                   if (typeof item === 'string') {
-                    return <span key={idx} className="page-nav-ellipsis">...</span>;
+                    return <span key={idx} className="pagination-ellipsis">…</span>;
                   }
                   return (
                     <button 
                       key={item} 
-                      className={`page-nav-btn ${currentPage === item ? 'active' : ''}`}
+                      className={`pagination-page-number ${currentPage === item ? 'active' : ''}`}
                       onClick={() => setCurrentPage(item)}
                     >
                       {item}
@@ -1180,41 +1052,46 @@ const Participants = () => {
                   );
                 })}
 
+              {/* Next Page */}
               <button 
-                className="page-nav-btn" 
-                disabled={currentPage === totalPages}
+                className="pagination-nav-btn" 
+                disabled={currentPage === totalPages || totalPages === 0}
                 onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                 title="Next Page"
               >
-                <ChevronRight size={14} />
+                <ChevronRight size={15} />
               </button>
 
+              {/* Last Page */}
               <button 
-                className="page-nav-btn" 
-                disabled={currentPage === totalPages}
+                className="pagination-nav-btn" 
+                disabled={currentPage === totalPages || totalPages === 0}
                 onClick={() => setCurrentPage(totalPages)}
                 title="Last Page"
               >
-                <ChevronsRight size={14} />
+                <ChevronsRight size={15} />
               </button>
             </div>
 
-            <div className="page-size-selector-wrap">
-              <div className="filter-select-wrapper">
+            {/* Rows Per Page Selector */}
+            <div className="pagination-page-size-wrap">
+              <span className="size-label">Rows per page:</span>
+              <div className="size-select-box">
                 <select 
-                  className="page-size-select"
                   value={pageSize}
                   onChange={(e) => {
                     setPageSize(Number(e.target.value));
                     setCurrentPage(1);
                   }}
+                  className="page-size-dropdown"
                 >
-                  <option value={7}>7 / page</option>
+                  <option value={8}>8 / page</option>
                   <option value={10}>10 / page</option>
-                  <option value={20}>20 / page</option>
+                  <option value={16}>16 / page</option>
+                  <option value={24}>24 / page</option>
                   <option value={50}>50 / page</option>
                 </select>
-                <ChevronDown size={12} className="filter-select-chevron" />
+                <ChevronDown size={13} className="size-chevron" />
               </div>
             </div>
           </div>
@@ -1222,55 +1099,71 @@ const Participants = () => {
 
         {/* Floating Bulk Action Bar */}
         {selectedRowIds.size > 0 && (
-          <div className="floating-bulk-bar">
-            <span className="bulk-count-tag">{selectedRowIds.size} selected</span>
+          <div className="ptable-bulk-floating-bar">
+            <span className="bulk-badge-count">{selectedRowIds.size} selected</span>
 
-            <button className="bulk-action-btn" onClick={handleBulkCheckIn}>
+            <button className="bulk-bar-btn" onClick={handleBulkCheckIn}>
               <CheckCircle2 size={14} />
-              <span>Check In All (Done)</span>
+              <span>Gate Check-In (Done)</span>
             </button>
 
-            <button className="bulk-action-btn" onClick={() => {
-              setParticipantsList(prev => prev.map(p => selectedRowIds.has(p.id) ? { ...p, status: 'On Progress' } : p));
-              showToast(`Marked ${selectedRowIds.size} participants On Track.`);
-              setSelectedRowIds(new Set());
-            }}>
+            <button 
+              className="bulk-bar-btn" 
+              onClick={() => {
+                setParticipants(prev => prev.map(p => selectedRowIds.has(p.id) ? { ...p, gateStatus: 'On Progress' } : p));
+                showToast(`Marked ${selectedRowIds.size} participants On Track.`);
+                setSelectedRowIds(new Set());
+              }}
+            >
               <Info size={14} />
               <span>Mark On Track</span>
             </button>
 
-            <button className="bulk-action-btn" onClick={handleExportCSV}>
+            <button className="bulk-bar-btn" onClick={handleExportCSV}>
               <Download size={14} />
-              <span>Export</span>
+              <span>Export CSV</span>
             </button>
 
-            <button className="bulk-action-btn danger-action" onClick={handleBulkDelete}>
+            <button className="bulk-bar-btn danger" onClick={handleBulkDelete}>
               <Trash2 size={14} />
               <span>Cancel Bookings</span>
             </button>
 
-            <button className="bulk-close-btn" onClick={() => setSelectedRowIds(new Set())} title="Deselect All">
+            <button 
+              className="bulk-close-btn" 
+              onClick={() => setSelectedRowIds(new Set())}
+              title="Deselect all"
+            >
               <X size={15} />
             </button>
           </div>
         )}
 
-        {/* Digital Ticket Boarding Pass Modal */}
+        {/* Digital Boarding Pass Ticket Modal */}
         {ticketModalParticipant && (
-          <div className="participant-modal-backdrop" onClick={() => setTicketModalParticipant(null)}>
-            <div className="digital-ticket-card" onClick={e => e.stopPropagation()}>
+          <div className="ptable-modal-backdrop" onClick={() => setTicketModalParticipant(null)}>
+            <div className="digital-ticket-modal-card" onClick={(e) => e.stopPropagation()}>
               <div className="ticket-hero-banner">
                 <div className="ticket-header-top">
-                  <span className="ticket-brand-badge">⚡ Nitroxx Verified Pass</span>
-                  <button className="modal-close-icon-btn" style={{ color: '#fff' }} onClick={() => setTicketModalParticipant(null)}>
+                  <span className="ticket-brand-badge">⚡ Nitroxx Verified Booking Pass</span>
+                  <button className="modal-close-icon white" onClick={() => setTicketModalParticipant(null)}>
                     <X size={18} />
                   </button>
                 </div>
                 <h2 className="ticket-event-name">{ticketModalParticipant.eventTitle}</h2>
-                <p className="ticket-stage-sub">{ticketModalParticipant.stageName}</p>
+                <div style={{ marginTop: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                  <span className={`event-tier-badge tier-${(ticketModalParticipant.tierName || 'standard').toLowerCase().replace(/\s+/g, '-')}`}>
+                    {ticketModalParticipant.tierName || 'Standard'} Tier
+                  </span>
+                  {ticketModalParticipant.ticketFor && (
+                    <span className="ticket-for-subpill" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
+                      {ticketModalParticipant.ticketFor}
+                    </span>
+                  )}
+                </div>
               </div>
 
-              {/* Perforation line with round notches */}
+              {/* Perforation line */}
               <div className="ticket-perforation-row">
                 <div className="ticket-notch-left" />
                 <div className="ticket-dashed-line" />
@@ -1288,7 +1181,7 @@ const Participants = () => {
                     <h3>{ticketModalParticipant.name}</h3>
                     <p>{ticketModalParticipant.email} · {ticketModalParticipant.phone}</p>
                     <div style={{ marginTop: '6px' }}>
-                      {renderStatusBadge(ticketModalParticipant.status)}
+                      {renderGateBadge(ticketModalParticipant.gateStatus)}
                     </div>
                   </div>
                 </div>
@@ -1299,8 +1192,8 @@ const Participants = () => {
                     <strong>{ticketModalParticipant.bibNumber}</strong>
                   </div>
                   <div className="ticket-info-item">
-                    <span>Ticket Pass</span>
-                    <strong>{ticketModalParticipant.ticketTier}</strong>
+                    <span>Package Tier</span>
+                    <strong>{ticketModalParticipant.tierName} ({ticketModalParticipant.ticketFor})</strong>
                   </div>
                   <div className="ticket-info-item">
                     <span>Vehicle & Plate</span>
@@ -1327,21 +1220,21 @@ const Participants = () => {
 
                 <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
                   <button 
-                    className="btn-action-primary" 
+                    className="ptable-btn-primary" 
                     style={{ flex: 1, justifyContent: 'center' }}
                     onClick={() => {
-                      const next = ticketModalParticipant.status === 'Done' ? 'On Progress' : 'Done';
-                      setParticipantsList(prev => prev.map(p => p.id === ticketModalParticipant.id ? { ...p, status: next } : p));
-                      setTicketModalParticipant(prev => ({ ...prev, status: next }));
-                      showToast(next === 'Done' ? 'Approved & Marked Done!' : 'Status reset.');
+                      const next = ticketModalParticipant.gateStatus === 'Done' ? 'On Progress' : 'Done';
+                      setParticipants(prev => prev.map(p => p.id === ticketModalParticipant.id ? { ...p, gateStatus: next } : p));
+                      setTicketModalParticipant(prev => ({ ...prev, gateStatus: next }));
+                      showToast(next === 'Done' ? 'Gate Verified: Checked In!' : 'Gate Status Reset.');
                     }}
                   >
                     <CheckCircle2 size={16} />
-                    <span>{ticketModalParticipant.status === 'Done' ? 'Reset Attendance' : 'Confirm Check-In'}</span>
+                    <span>{ticketModalParticipant.gateStatus === 'Done' ? 'Reset Attendance' : 'Confirm Gate Check-In (Done)'}</span>
                   </button>
 
                   <button 
-                    className="btn-action-outline"
+                    className="ptable-btn-secondary"
                     onClick={() => window.print()}
                     title="Print Gate Pass"
                   >
@@ -1353,13 +1246,16 @@ const Participants = () => {
           </div>
         )}
 
-        {/* Fast Gate Check-In & QR Scanner Modal */}
+        {/* Fast Gate QR & Bib Check-In Scanner Modal */}
         {isScannerModalOpen && (
-          <div className="participant-modal-backdrop" onClick={() => setIsScannerModalOpen(false)}>
-            <div className="participant-modal-card" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
+          <div className="ptable-modal-backdrop" onClick={() => setIsScannerModalOpen(false)}>
+            <div className="ptable-modal-card" style={{ maxWidth: '440px' }} onClick={e => e.stopPropagation()}>
               <div className="modal-header-bar">
-                <h2>Fast Gate Check-In Scanner</h2>
-                <button className="modal-close-icon-btn" onClick={() => setIsScannerModalOpen(false)}>
+                <div className="modal-title-wrap">
+                  <QrCode size={18} />
+                  <h3>Fast Gate Check-In Scanner</h3>
+                </div>
+                <button className="modal-close-icon" onClick={() => setIsScannerModalOpen(false)}>
                   <X size={18} />
                 </button>
               </div>
@@ -1368,9 +1264,9 @@ const Participants = () => {
                 <div className="scanner-viewport">
                   <div className="scanner-laser" />
                   <div className="scanner-target-box">
-                    <QrCode size={48} strokeWidth={1.5} color="rgba(255,255,255,0.7)" />
+                    <QrCode size={44} strokeWidth={1.5} color="rgba(255,255,255,0.75)" />
                   </div>
-                  <span style={{ marginTop: '12px', fontSize: '11px', color: '#94a3b8' }}>
+                  <span style={{ marginTop: '10px', fontSize: '11.5px', color: '#94a3b8' }}>
                     Scan QR Ticket Pass or Enter Bib Code below
                   </span>
                 </div>
@@ -1383,7 +1279,7 @@ const Participants = () => {
                 )}
 
                 <form onSubmit={handleGateScanValidate} style={{ marginTop: '16px' }}>
-                  <div className="form-group-item">
+                  <div className="form-field-group">
                     <label>Enter Bib Number or Ticket ID</label>
                     <div style={{ display: 'flex', gap: '8px' }}>
                       <input 
@@ -1394,81 +1290,88 @@ const Participants = () => {
                         style={{ flex: 1 }}
                         autoFocus
                       />
-                      <button type="submit" className="btn-action-primary">
+                      <button type="submit" className="ptable-btn-primary">
                         Validate
                       </button>
                     </div>
                   </div>
                 </form>
 
-                <div style={{ marginTop: '16px', background: '#f8fafc', padding: '10px', borderRadius: '8px', fontSize: '11.5px', color: '#64748b' }}>
-                  💡 <strong>Marshal Quick Check:</strong> Enter any Bib number (e.g. <code>BIB-101</code> to <code>BIB-114</code>) to approve and mark attendance immediately.
+                <div style={{ marginTop: '14px', background: '#f8fafc', padding: '10px 12px', borderRadius: '8px', fontSize: '11.5px', color: '#64748b' }}>
+                  💡 <strong>Gate Quick Test:</strong> Enter any Bib number (e.g. <code>BIB-101</code>, <code>BIB-102</code>, or <code>BIB-106</code>) to validate and check in immediately.
                 </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Add Participant Booking Modal */}
+        {/* Add Participant Booking Modal (Matches host event creation packages & tiers) */}
         {isAddModalOpen && (
-          <div className="participant-modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
-            <div className="participant-modal-card" onClick={e => e.stopPropagation()}>
+          <div className="ptable-modal-backdrop" onClick={() => setIsAddModalOpen(false)}>
+            <div className="ptable-modal-card" onClick={(e) => e.stopPropagation()}>
               <div className="modal-header-bar">
-                <h2>New Participant Booking</h2>
-                <button className="modal-close-icon-btn" onClick={() => setIsAddModalOpen(false)}>
+                <div className="modal-title-wrap">
+                  <User size={18} />
+                  <h3>New Participant Booking</h3>
+                </div>
+                <button 
+                  className="modal-close-icon" 
+                  onClick={() => setIsAddModalOpen(false)}
+                >
                   <X size={18} />
                 </button>
               </div>
 
-              <form onSubmit={handleCreateNewBooking}>
-                <div className="modal-form-content">
-                  <div className="form-group-item">
+              <form onSubmit={handleCreateBooking}>
+                <div className="modal-form-grid">
+                  <div className="form-field-group">
                     <label>Participant Full Name *</label>
                     <input 
                       type="text" 
                       required 
-                      placeholder="e.g. Arjun Rathore"
+                      placeholder="e.g. Rohit Malhotra" 
                       value={newFormData.name}
-                      onChange={e => setNewFormData({ ...newFormData, name: e.target.value })}
+                      onChange={(e) => setNewFormData({ ...newFormData, name: e.target.value })}
+                      autoFocus
                     />
                   </div>
 
-                  <div className="form-group-item">
+                  <div className="form-field-group">
                     <label>Email Address *</label>
                     <input 
                       type="email" 
                       required 
-                      placeholder="e.g. arjun@gmail.com"
+                      placeholder="e.g. rohit@gmail.com" 
                       value={newFormData.email}
-                      onChange={e => setNewFormData({ ...newFormData, email: e.target.value })}
+                      onChange={(e) => setNewFormData({ ...newFormData, email: e.target.value })}
                     />
                   </div>
 
-                  <div className="form-group-item">
-                    <label>Contact Phone *</label>
+                  <div className="form-field-group">
+                    <label>Phone Number</label>
                     <input 
                       type="tel" 
-                      placeholder="e.g. +91 98201 99887"
+                      placeholder="e.g. +91 98201 55667" 
                       value={newFormData.phone}
-                      onChange={e => setNewFormData({ ...newFormData, phone: e.target.value })}
+                      onChange={(e) => setNewFormData({ ...newFormData, phone: e.target.value })}
                     />
                   </div>
 
-                  <div className="form-group-item">
+                  <div className="form-field-group">
                     <label>City of Origin</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Mumbai"
+                      placeholder="e.g. Mumbai" 
                       value={newFormData.city}
-                      onChange={e => setNewFormData({ ...newFormData, city: e.target.value })}
+                      onChange={(e) => setNewFormData({ ...newFormData, city: e.target.value })}
                     />
                   </div>
 
-                  <div className="form-group-item">
-                    <label>Event *</label>
+                  <div className="form-field-group full">
+                    <label>Event Joined *</label>
                     <select 
                       value={newFormData.eventTitle}
-                      onChange={e => setNewFormData({ ...newFormData, eventTitle: e.target.value })}
+                      onChange={(e) => setNewFormData({ ...newFormData, eventTitle: e.target.value })}
                     >
                       <option value="Manali–Leh–Manali Adventure Tour">Manali–Leh–Manali Adventure Tour</option>
                       <option value="Nitroxx MotoFest Pune 2025">Nitroxx MotoFest Pune 2025</option>
@@ -1479,79 +1382,87 @@ const Participants = () => {
                     </select>
                   </div>
 
-                  <div className="form-group-item">
-                    <label>Ticket Pass Tier</label>
+                  {/* Tier as created when host creates event */}
+                  <div className="form-field-group">
+                    <label>Package Tier Name *</label>
                     <select 
-                      value={newFormData.ticketTier}
-                      onChange={e => setNewFormData({ ...newFormData, ticketTier: e.target.value })}
+                      value={newFormData.tierName}
+                      onChange={(e) => setNewFormData({ ...newFormData, tierName: e.target.value })}
                     >
-                      <option value="All-Access Expedition Pass">All-Access Expedition Pass (₹25,000)</option>
-                      <option value="VIP Paddock & Race Pass">VIP Paddock & Race Pass (₹2,999)</option>
-                      <option value="Solo Trail Rider Pass">Solo Trail Rider Pass (₹12,500)</option>
-                      <option value="Pro Racer Entry Tier">Pro Racer Entry Tier (₹4,500)</option>
-                      <option value="Official Safety Marshal Pass">Official Safety Marshal Pass (Complimentary)</option>
-                      <option value="Desert 200 Standard Entry">Desert 200 Standard Entry (₹7,500)</option>
+                      <option value="Platinum">Platinum</option>
+                      <option value="VIP">VIP</option>
+                      <option value="Plus">Plus</option>
+                      <option value="Standard">Standard</option>
+                      <option value="Pro Rider">Pro Rider</option>
+                      <option value="General Admission">General Admission</option>
                     </select>
                   </div>
 
-                  <div className="form-group-item">
-                    <label>Batch / Stage</label>
+                  {/* Ticket For as created when host creates event */}
+                  <div className="form-field-group">
+                    <label>Ticket For *</label>
+                    <select 
+                      value={newFormData.ticketFor}
+                      onChange={(e) => setNewFormData({ ...newFormData, ticketFor: e.target.value })}
+                    >
+                      <option value="Rider">Rider</option>
+                      <option value="Pillion">Pillion</option>
+                      <option value="Participant">Participant</option>
+                      <option value="VIP">VIP</option>
+                      <option value="Driver">Driver</option>
+                      <option value="Camping">Camping</option>
+                      <option value="Volunteer">Volunteer</option>
+                    </select>
+                  </div>
+
+                  <div className="form-field-group">
+                    <label>Price (₹)</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. Batch 1 · High Altitude Crossing"
-                      value={newFormData.stageName}
-                      onChange={e => setNewFormData({ ...newFormData, stageName: e.target.value })}
+                      placeholder="e.g. ₹25,000"
+                      value={newFormData.ticketPrice}
+                      onChange={(e) => setNewFormData({ ...newFormData, ticketPrice: e.target.value })}
                     />
                   </div>
 
-                  <div className="form-group-item">
+                  <div className="form-field-group">
                     <label>Initial Gate Status</label>
                     <select 
-                      value={newFormData.status}
-                      onChange={e => setNewFormData({ ...newFormData, status: e.target.value })}
+                      value={newFormData.gateStatus}
+                      onChange={(e) => setNewFormData({ ...newFormData, gateStatus: e.target.value })}
                     >
-                      <option value="Waiting for Review">Waiting for Review</option>
-                      <option value="On Progress">On Progress (On Track)</option>
                       <option value="Done">Done (Checked In)</option>
-                      <option value="Pending">Pending</option>
+                      <option value="On Progress">On Progress (Active)</option>
+                      <option value="Waiting for Review">Waiting for Review</option>
+                      <option value="Pending Gate">Pending Gate</option>
                     </select>
                   </div>
 
-                  <div className="form-group-item">
-                    <label>Vehicle / Motorcycle Model</label>
+                  <div className="form-field-group">
+                    <label>Vehicle Model</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. KTM 390 Adventure"
+                      placeholder="e.g. KTM 390 Adventure" 
                       value={newFormData.vehicle}
-                      onChange={e => setNewFormData({ ...newFormData, vehicle: e.target.value })}
+                      onChange={(e) => setNewFormData({ ...newFormData, vehicle: e.target.value })}
                     />
                   </div>
 
-                  <div className="form-group-item">
+                  <div className="form-field-group">
                     <label>Vehicle Plate Number</label>
                     <input 
                       type="text" 
-                      placeholder="e.g. MH02-DX-1001"
+                      placeholder="e.g. MH02-DX-1001" 
                       value={newFormData.vehiclePlate}
-                      onChange={e => setNewFormData({ ...newFormData, vehiclePlate: e.target.value })}
+                      onChange={(e) => setNewFormData({ ...newFormData, vehiclePlate: e.target.value })}
                     />
                   </div>
 
-                  <div className="form-group-item">
-                    <label>Emergency Contact</label>
-                    <input 
-                      type="text" 
-                      placeholder="Name & Contact number"
-                      value={newFormData.emergencyContact}
-                      onChange={e => setNewFormData({ ...newFormData, emergencyContact: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="form-group-item">
+                  <div className="form-field-group">
                     <label>Blood Group</label>
                     <select 
                       value={newFormData.bloodGroup}
-                      onChange={e => setNewFormData({ ...newFormData, bloodGroup: e.target.value })}
+                      onChange={(e) => setNewFormData({ ...newFormData, bloodGroup: e.target.value })}
                     >
                       <option value="O+">O+</option>
                       <option value="A+">A+</option>
@@ -1565,11 +1476,15 @@ const Participants = () => {
                   </div>
                 </div>
 
-                <div className="modal-actions-footer">
-                  <button type="button" className="btn-action-outline" onClick={() => setIsAddModalOpen(false)}>
+                <div className="modal-actions-bar">
+                  <button 
+                    type="button" 
+                    className="ptable-btn-secondary" 
+                    onClick={() => setIsAddModalOpen(false)}
+                  >
                     Cancel
                   </button>
-                  <button type="submit" className="btn-action-primary">
+                  <button type="submit" className="ptable-btn-primary">
                     Create Booking Pass
                   </button>
                 </div>

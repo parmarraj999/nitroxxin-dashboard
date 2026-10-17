@@ -27,6 +27,7 @@ import './EventPlatform.css';
 import './EventManagementFlow.css';
 
 // Exact reference events from user screenshot (Image 1)
+
 const DEFAULT_EVENTS = [
   {
     id: 'nitroxx-manali-leh',
