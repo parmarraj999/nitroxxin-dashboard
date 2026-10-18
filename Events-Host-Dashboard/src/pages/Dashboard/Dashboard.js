@@ -7,6 +7,8 @@ import {
   BarChart,
   Bar,
   Cell,
+  PieChart,
+  Pie,
   XAxis,
   YAxis,
   Tooltip,
@@ -35,6 +37,7 @@ import {
   Zap,
   Landmark,
   ArrowUpRight,
+  Timer,
 } from 'lucide-react';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -66,6 +69,33 @@ const CustomCashflowTooltip = ({ active, payload }) => {
   return null;
 };
 
+// Custom tooltip for Live Ticket Sales Donut Pie Chart
+const CustomPieTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="live-pie-tooltip">
+        <div className="pie-tooltip-title" style={{ color: data.color }}>
+          {data.name}
+        </div>
+        <div className="pie-tooltip-row">
+          <span>Tickets:</span>
+          <strong>{data.value} / {data.total} ({data.pct})</strong>
+        </div>
+        <div className="pie-tooltip-row">
+          <span>Price:</span>
+          <strong>{currency(data.price)} each</strong>
+        </div>
+        <div className="pie-tooltip-row">
+          <span>Revenue:</span>
+          <strong style={{ color: '#10b981' }}>{currency(data.value * data.price)}</strong>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 const Dashboard = () => {
   const { user, profile } = useAuth();
   const { events = [] } = useEvents(profile?.role === 'Host' ? { hostId: user?.uid } : {});
@@ -78,6 +108,7 @@ const Dashboard = () => {
   const [dateFilter, setDateFilter] = useState('This Month');
   const [participantSearch, setParticipantSearch] = useState('');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+  const [liveEventStatus, setLiveEventStatus] = useState('Live');
 
   // Stat Card timeframe states (Image 1 style)
   const [cardTimeframes, setCardTimeframes] = useState({
@@ -198,15 +229,81 @@ const Dashboard = () => {
     setOpenCardDropdown(null);
   };
 
-  // 3. Upcoming & Live Events Data
-  const liveEvent = {
-    id: 'live-01',
-    title: 'Nitroxx Supercross Championship 2026',
-    venue: 'Buddh International Circuit, Greater Noida',
-    attendeesInside: '1,420 / 1,500 Inside',
-    gateStatus: 'All 4 Gates Operational',
-    progress: 94,
+  // 3. Live Event Data & Telemetry (🟢 Event Status, 🎟️ Live Ticket Sales, 👥 Check-ins, 💰 Live Revenue)
+  const ticketPackagesData = useMemo(() => [
+    { name: 'VIP Paddock Pass', value: 220, total: 220, price: 4500, color: '#ff6a00', pct: '100%', soldOut: true },
+    { name: 'Pro Rider Pit Access', value: 380, total: 400, price: 2500, color: '#5457ff', pct: '95.0%', soldOut: false },
+    { name: 'Grandstand Entry', value: 540, total: 600, price: 1400, color: '#10b981', pct: '90.0%', soldOut: false },
+    { name: 'Early Bird Fan Zone', value: 280, total: 280, price: 950, color: '#f59e0b', pct: '100%', soldOut: true },
+  ], []);
+
+  const liveStatusConfig = {
+    'Live': {
+      statusLabel: 'Live Now',
+      statusClass: 'status-live',
+      badgeColor: '#10b981',
+      timeStarted: '02:30 PM (2h 45m ago)',
+      timeRemaining: '01h 15m Remaining',
+      progressPct: 68,
+      progressLabel: '68% Event Elapsed (Main Heat 2 in Progress)',
+      totalCheckedIn: 1385,
+      totalCapacity: 1420,
+      checkInPct: '97.5%',
+      insideArena: '1,340 Inside (45 momentary exit)',
+      gateA: { name: 'Gate A (VIP & Pitlane)', checked: 215, total: 220, pct: '97.7%' },
+      gateB: { name: 'Gate B (Grandstand East)', checked: 590, total: 620, pct: '95.2%' },
+      gateC: { name: 'Gate C (General Paddock)', checked: 580, total: 580, pct: '100%' },
+      scanVelocity: '⚡ 18 scans/min • 1.9s avg scan time',
+      liveRevenue: 3140000,
+      revenueVelocity: '+₹42,500 in last hour',
+      avgTicketValue: 2211,
+      boxOfficeAddons: 118000,
+    },
+    'Upcoming': {
+      statusLabel: 'Starting Soon',
+      statusClass: 'status-upcoming',
+      badgeColor: '#f59e0b',
+      timeStarted: 'Gates Open: 01:30 PM (Starts in 45m)',
+      timeRemaining: 'Starts at 02:30 PM (04h 00m Duration)',
+      progressPct: 15,
+      progressLabel: '15% Pre-Event Warmup (Gates Actively Admitting)',
+      totalCheckedIn: 420,
+      totalCapacity: 1420,
+      checkInPct: '29.6%',
+      insideArena: '420 Early Arrivals Inside',
+      gateA: { name: 'Gate A (VIP & Pitlane)', checked: 110, total: 220, pct: '50.0%' },
+      gateB: { name: 'Gate B (Grandstand East)', checked: 180, total: 620, pct: '29.0%' },
+      gateC: { name: 'Gate C (General Paddock)', checked: 130, total: 580, pct: '22.4%' },
+      scanVelocity: '⚡ 34 scans/min • High influx rate',
+      liveRevenue: 2860000,
+      revenueVelocity: '+₹18,000 in last hour',
+      avgTicketValue: 2014,
+      boxOfficeAddons: 42000,
+    },
+    'Ending Soon': {
+      statusLabel: 'Ending Soon',
+      statusClass: 'status-ending',
+      badgeColor: '#ef4444',
+      timeStarted: '02:30 PM (3h 48m ago)',
+      timeRemaining: '12m Remaining (Final Lap & Podium)',
+      progressPct: 95,
+      progressLabel: '95% Event Elapsed (Final Lap & Awards Stage)',
+      totalCheckedIn: 1418,
+      totalCapacity: 1420,
+      checkInPct: '99.8%',
+      insideArena: '1,280 Inside (Podium gathering)',
+      gateA: { name: 'Gate A (VIP & Pitlane)', checked: 220, total: 220, pct: '100%' },
+      gateB: { name: 'Gate B (Grandstand East)', checked: 618, total: 620, pct: '99.6%' },
+      gateC: { name: 'Gate C (General Paddock)', checked: 580, total: 580, pct: '100%' },
+      scanVelocity: '🏁 Egress flow active • Turnstiles open for exit',
+      liveRevenue: 3480000,
+      revenueVelocity: '+₹78,000 on-ground upgrades total',
+      avgTicketValue: 2450,
+      boxOfficeAddons: 195000,
+    },
   };
+
+  const activeLive = liveStatusConfig[liveEventStatus] || liveStatusConfig['Live'];
 
   const nextUpcomingEvents = [
     { id: 'up-1', month: 'OCT', day: '24', title: 'Himalayan Enduro High Altitude Raid', venue: 'Manali Pass, HP', booked: '142 / 160 Slots', pct: 88 },
@@ -792,36 +889,332 @@ const Dashboard = () => {
         </section>
 
         {/* =========================================================================
-            ROW 2: UPCOMING & LIVE EVENTS & TOP PERFORMING EVENTS
+            LIVE EVENT OPERATIONS CENTER (Real-time telemetry, Pie Chart, Check-ins, Revenue)
+            🟢 Event Status (Live / Upcoming / Ending Soon, Time Started, Time Remaining, Progress Bar)
+            🎟️ Live Ticket Sales (Donut Pie Chart + Package Breakdown)
+            👥 Current Check-ins (Gate Progress & Telemetry)
+            💰 Live Revenue (Real-time Velocity & Streams)
+            ========================================================================= */}
+        <section className="live-event-command-center" aria-label="Live Event Operations Console">
+          {/* Top Bar with Event Info and Interactive Status Switcher */}
+          <div className="live-command-header">
+            <div className="live-event-title-group">
+              <div className="live-pulsing-icon-box">
+                <Radio size={20} className="live-broadcast-icon" />
+              </div>
+              <div>
+                <div className="live-event-meta-tag">
+                  <span className="live-meta-dot" /> Live Event Operations Center
+                </div>
+                <h2 className="live-event-headline">Nitroxx Supercross Championship 2026</h2>
+                <div className="live-event-location">
+                  <MapPin size={12} />
+                  <span>Buddh International Circuit, Greater Noida • Track B (Main Arena)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* 🟢 Event Status Switcher (Live / Upcoming / Ending Soon) */}
+            <div className="live-status-selector-wrap">
+              <span className="live-selector-label">Event Status:</span>
+              <div className="live-status-buttons-pill">
+                <button
+                  type="button"
+                  className={`live-status-choice-btn ${liveEventStatus === 'Live' ? 'active live' : ''}`}
+                  onClick={() => setLiveEventStatus('Live')}
+                >
+                  <span className="live-choice-dot dot-live" />
+                  <span>Live</span>
+                </button>
+                <button
+                  type="button"
+                  className={`live-status-choice-btn ${liveEventStatus === 'Upcoming' ? 'active upcoming' : ''}`}
+                  onClick={() => setLiveEventStatus('Upcoming')}
+                >
+                  <span className="live-choice-dot dot-upcoming" />
+                  <span>Upcoming</span>
+                </button>
+                <button
+                  type="button"
+                  className={`live-status-choice-btn ${liveEventStatus === 'Ending Soon' ? 'active ending' : ''}`}
+                  onClick={() => setLiveEventStatus('Ending Soon')}
+                >
+                  <span className="live-choice-dot dot-ending" />
+                  <span>Ending Soon</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Timing Strip & Event Progress Bar */}
+          <div className="live-timing-strip">
+            <div className="live-timing-metrics-grid">
+              <div className="timing-metric-card">
+                <div className="timing-metric-label">
+                  <Clock size={13} />
+                  <span>Time Started</span>
+                </div>
+                <div className="timing-metric-val">{activeLive.timeStarted}</div>
+              </div>
+
+              <div className="timing-metric-card">
+                <div className="timing-metric-label">
+                  <Timer size={13} />
+                  <span>Time Remaining</span>
+                </div>
+                <div className="timing-metric-val highlight">{activeLive.timeRemaining}</div>
+              </div>
+
+              <div className="timing-metric-card">
+                <div className="timing-metric-label">
+                  <ShieldCheck size={13} />
+                  <span>Event Progress</span>
+                </div>
+                <div className="timing-metric-val">{activeLive.progressPct}% Elapsed</div>
+              </div>
+            </div>
+
+            {/* Event Progress Bar with milestones */}
+            <div className="live-progress-container">
+              <div className="live-progress-header-row">
+                <span className="live-progress-text">{activeLive.progressLabel}</span>
+                <span className="live-progress-pct-badge">{activeLive.progressPct}%</span>
+              </div>
+              <div className="live-progress-track">
+                <div
+                  className="live-progress-bar-fill"
+                  style={{ width: `${activeLive.progressPct}%` }}
+                />
+              </div>
+              <div className="live-progress-milestones">
+                <span>Gates Open (0%)</span>
+                <span>Qualifiers (30%)</span>
+                <span>Main Heat (60%)</span>
+                <span>Final Lap (90%)</span>
+                <span>Podium (100%)</span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3-Column Core Telemetry: Ticket Sales (Pie Chart), Check-ins, Live Revenue */}
+          <div className="live-core-telemetry-grid">
+            {/* 🎟️ COLUMN 1: LIVE TICKET SALES (PIE CHART + BREAKDOWN) */}
+            <div className="live-telemetry-card">
+              <div className="telemetry-card-header">
+                <div className="telemetry-title-group">
+                  <div className="telemetry-icon-box orange">
+                    <Ticket size={16} />
+                  </div>
+                  <div>
+                    <h3 className="telemetry-title">Live Ticket Sales</h3>
+                    <p className="telemetry-sub">Package Breakdown & Capacity</p>
+                  </div>
+                </div>
+                <span className="telemetry-badge-count">
+                  1,420 / 1,500 Sold
+                </span>
+              </div>
+
+              {/* Pie / Donut Chart with Center Metric */}
+              <div className="pie-chart-section">
+                <div className="donut-chart-box">
+                  <ResponsiveContainer width={170} height={170}>
+                    <PieChart>
+                      <Tooltip content={<CustomPieTooltip />} />
+                      <Pie
+                        data={ticketPackagesData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={72}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {ticketPackagesData.map((entry, index) => (
+                          <Cell key={`slice-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="donut-center-overlay">
+                    <span className="donut-center-big">1,420</span>
+                    <span className="donut-center-txt">Tickets</span>
+                    <span className="donut-center-pill">94.7%</span>
+                  </div>
+                </div>
+
+                {/* Ticket Package Breakdown List */}
+                <div className="ticket-package-breakdown">
+                  {ticketPackagesData.map((pkg, idx) => (
+                    <div key={idx} className="ticket-package-item">
+                      <div className="pkg-left-info">
+                        <span className="pkg-color-dot" style={{ backgroundColor: pkg.color }} />
+                        <div>
+                          <div className="pkg-name">{pkg.name}</div>
+                          <div className="pkg-price-unit">{currency(pkg.price)} / ticket</div>
+                        </div>
+                      </div>
+                      <div className="pkg-right-info">
+                        <div className="pkg-sold-ratio">
+                          <strong>{pkg.value}</strong>/{pkg.total}
+                        </div>
+                        <span className={`pkg-status-badge ${pkg.soldOut ? 'sold-out' : ''}`}>
+                          {pkg.soldOut ? 'Sold Out' : pkg.pct}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* 👥 COLUMN 2: CURRENT CHECK-INS */}
+            <div className="live-telemetry-card">
+              <div className="telemetry-card-header">
+                <div className="telemetry-title-group">
+                  <div className="telemetry-icon-box blue">
+                    <Users size={16} />
+                  </div>
+                  <div>
+                    <h3 className="telemetry-title">Current Check-ins</h3>
+                    <p className="telemetry-sub">Live Arena Turnstiles & Gates</p>
+                  </div>
+                </div>
+                <span className="telemetry-badge-count green">
+                  {activeLive.checkInPct} Inside
+                </span>
+              </div>
+
+              {/* Big Check-in Numbers */}
+              <div className="checkin-headline-box">
+                <div className="checkin-big-numbers">
+                  <span className="checkin-primary">{activeLive.totalCheckedIn.toLocaleString('en-IN')}</span>
+                  <span className="checkin-slash">/</span>
+                  <span className="checkin-total">{activeLive.totalCapacity.toLocaleString('en-IN')}</span>
+                </div>
+                <div className="checkin-status-subtitle">
+                  <CheckCircle2 size={13} color="#10b981" />
+                  <span>{activeLive.insideArena}</span>
+                </div>
+              </div>
+
+              {/* Gate Breakdown with Progress Bars */}
+              <div className="gates-breakdown-list">
+                <div className="gate-row">
+                  <div className="gate-header-line">
+                    <span className="gate-name">{activeLive.gateA.name}</span>
+                    <span className="gate-ratio">{activeLive.gateA.checked}/{activeLive.gateA.total} ({activeLive.gateA.pct})</span>
+                  </div>
+                  <div className="gate-progress-track">
+                    <div className="gate-progress-fill" style={{ width: activeLive.gateA.pct, backgroundColor: '#ff6a00' }} />
+                  </div>
+                </div>
+
+                <div className="gate-row">
+                  <div className="gate-header-line">
+                    <span className="gate-name">{activeLive.gateB.name}</span>
+                    <span className="gate-ratio">{activeLive.gateB.checked}/{activeLive.gateB.total} ({activeLive.gateB.pct})</span>
+                  </div>
+                  <div className="gate-progress-track">
+                    <div className="gate-progress-fill" style={{ width: activeLive.gateB.pct, backgroundColor: '#5457ff' }} />
+                  </div>
+                </div>
+
+                <div className="gate-row">
+                  <div className="gate-header-line">
+                    <span className="gate-name">{activeLive.gateC.name}</span>
+                    <span className="gate-ratio">{activeLive.gateC.checked}/{activeLive.gateC.total} ({activeLive.gateC.pct})</span>
+                  </div>
+                  <div className="gate-progress-track">
+                    <div className="gate-progress-fill" style={{ width: activeLive.gateC.pct, backgroundColor: '#10b981' }} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Gate Scanner Velocity & Quick Actions */}
+              <div className="gate-velocity-footer">
+                <div className="velocity-tag">
+                  {activeLive.scanVelocity}
+                </div>
+                <Link to="/participants" className="gate-manage-link">
+                  Scan Desk →
+                </Link>
+              </div>
+            </div>
+
+            {/* 💰 COLUMN 3: LIVE REVENUE */}
+            <div className="live-telemetry-card">
+              <div className="telemetry-card-header">
+                <div className="telemetry-title-group">
+                  <div className="telemetry-icon-box green">
+                    <IndianRupee size={16} />
+                  </div>
+                  <div>
+                    <h3 className="telemetry-title">Live Revenue</h3>
+                    <p className="telemetry-sub">Real-Time Event Inflow</p>
+                  </div>
+                </div>
+                <div className="revenue-pulse-indicator">
+                  <span className="pulse-ping" />
+                  <span>Real-time</span>
+                </div>
+              </div>
+
+              {/* Big Revenue Headline */}
+              <div className="revenue-headline-box">
+                <div className="revenue-big-value">
+                  {currency(activeLive.liveRevenue)}
+                </div>
+                <div className="revenue-velocity-pill">
+                  <ArrowUpRight size={13} />
+                  <span>{activeLive.revenueVelocity}</span>
+                </div>
+              </div>
+
+              {/* Revenue Streams Breakdown */}
+              <div className="revenue-streams-box">
+                <div className="stream-item">
+                  <span className="stream-label">Online Ticket Sales</span>
+                  <span className="stream-value">₹29,62,000</span>
+                </div>
+                <div className="stream-item">
+                  <span className="stream-label">Box Office & Upgrades</span>
+                  <span className="stream-value">{currency(activeLive.boxOfficeAddons)}</span>
+                </div>
+                <div className="stream-item">
+                  <span className="stream-label">Avg. Revenue / Attendee</span>
+                  <span className="stream-value">{currency(activeLive.avgTicketValue)}</span>
+                </div>
+              </div>
+
+              {/* Payout Status Banner */}
+              <div className="live-payout-banner">
+                <div className="payout-banner-content">
+                  <ShieldCheck size={14} color="#10b981" />
+                  <span>Host Payout Gateway Active & Verified</span>
+                </div>
+                <Link to="/settings" className="payout-view-link">
+                  Settings
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================================
+            ROW 2: UPCOMING EVENTS & TOP PERFORMING EVENTS
             ========================================================================= */}
         <div className="dash-grid-2col">
-          {/* SECTION 3: UPCOMING & LIVE EVENTS */}
+          {/* SECTION 3: UPCOMING EVENTS */}
           <div className="dash-card">
             <div className="dash-card-header">
               <div className="dash-card-title-group">
                 <div className="dash-card-icon-box">
-                  <Radio size={16} color="#dc2626" />
+                  <Calendar size={16} color="#ff6a00" />
                 </div>
-                <h3 className="dash-card-title">Upcoming & Live Events</h3>
+                <h3 className="dash-card-title">Upcoming Events</h3>
               </div>
               <Link to="/events" className="dash-card-pill-btn">View All</Link>
-            </div>
-
-            {/* Live event banner */}
-            <div className="live-event-banner">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
-                <span style={{ fontSize: '13.5px', fontWeight: 700, color: '#111827' }}>{liveEvent.title}</span>
-                <span className="live-badge-pulse">
-                  <span className="pulse-dot" /> Live Now
-                </span>
-              </div>
-              <div style={{ fontSize: '11.5px', color: '#6b7280', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span>{liveEvent.venue}</span>
-                <strong style={{ color: '#ea580c' }}>{liveEvent.attendeesInside}</strong>
-              </div>
-              <div style={{ marginTop: '8px', display: 'flex', justifyContent: 'flex-end' }}>
-                <Link to="/participants" className="btn-quick-manage">Quick Manage →</Link>
-              </div>
             </div>
 
             {/* Upcoming events list */}

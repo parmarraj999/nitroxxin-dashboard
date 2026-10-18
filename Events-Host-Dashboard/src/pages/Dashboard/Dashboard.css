@@ -1197,6 +1197,757 @@
 }
 
 /* ==========================================================================
+   LIVE EVENT OPERATIONS COMMAND CENTER
+   ========================================================================== */
+.live-event-command-center {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.live-event-command-center::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #ff6a00 0%, #ff8c38 35%, #10b981 75%, #5457ff 100%);
+}
+
+.live-command-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.live-event-title-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.live-pulsing-icon-box {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #fff1eb 0%, #fee2e2 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ea580c;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.15);
+  position: relative;
+}
+
+.live-pulsing-icon-box::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  border: 2px solid rgba(234, 88, 12, 0.4);
+  animation: livePing 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes livePing {
+  0% { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(1.35); opacity: 0; }
+}
+
+.live-event-meta-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #ea580c;
+  margin-bottom: 3px;
+}
+
+.live-meta-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #ea580c;
+  animation: pulseDot 1.5s infinite;
+}
+
+.live-event-headline {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.live-event-location {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: #64748b;
+  margin-top: 3px;
+}
+
+/* Event Status Switcher (Live / Upcoming / Ending Soon) */
+.live-status-selector-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.live-selector-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.live-status-buttons-pill {
+  display: inline-flex;
+  background: #f8fafc;
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+  gap: 4px;
+}
+
+.live-status-choice-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.live-status-choice-btn:hover {
+  color: #1e293b;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.live-choice-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.live-choice-dot.dot-live { background-color: #10b981; }
+.live-choice-dot.dot-upcoming { background-color: #f59e0b; }
+.live-choice-dot.dot-ending { background-color: #ef4444; }
+
+.live-status-choice-btn.active.live {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+  box-shadow: 0 1px 3px rgba(16, 185, 129, 0.15);
+}
+
+.live-status-choice-btn.active.live .dot-live {
+  animation: pulseDot 1.4s infinite;
+}
+
+.live-status-choice-btn.active.upcoming {
+  background: #fffbeb;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.15);
+}
+
+.live-status-choice-btn.active.ending {
+  background: #fef2f2;
+  color: #991b1b;
+  border: 1px solid #fecaca;
+  box-shadow: 0 1px 3px rgba(239, 68, 68, 0.15);
+}
+
+/* Timing Strip & Event Progress Bar */
+.live-timing-strip {
+  background: #f8fafc;
+  border: 1px solid #eef2f6;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 22px;
+}
+
+.live-timing-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.timing-metric-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timing-metric-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.timing-metric-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: #1e293b;
+}
+
+.timing-metric-val.highlight {
+  color: #ea580c;
+}
+
+.live-progress-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.live-progress-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12.5px;
+}
+
+.live-progress-text {
+  font-weight: 600;
+  color: #334155;
+}
+
+.live-progress-pct-badge {
+  font-size: 11.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  background: #ffedd5;
+  color: #c2410c;
+  border-radius: 999px;
+}
+
+.live-progress-track {
+  width: 100%;
+  height: 8px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+}
+
+.live-progress-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6a00 0%, #f97316 60%, #10b981 100%);
+  border-radius: 999px;
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px rgba(255, 106, 0, 0.4);
+}
+
+.live-progress-milestones {
+  display: flex;
+  justify-content: space-between;
+  font-size: 10.5px;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* 3-Column Core Telemetry Grid */
+.live-core-telemetry-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.live-telemetry-card {
+  background: #ffffff;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  padding: 18px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.live-telemetry-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  border-color: #e2e8f0;
+}
+
+.telemetry-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  gap: 8px;
+}
+
+.telemetry-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.telemetry-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.telemetry-icon-box.orange { background: #fff7ed; color: #ea580c; }
+.telemetry-icon-box.blue { background: #eff6ff; color: #2563eb; }
+.telemetry-icon-box.green { background: #ecfdf5; color: #059669; }
+
+.telemetry-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.telemetry-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin: 1px 0 0 0;
+}
+
+.telemetry-badge-count {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  background: #f1f5f9;
+  color: #334155;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.telemetry-badge-count.green {
+  background: #ecfdf5;
+  color: #065f46;
+}
+
+/* Pie Chart Donut & Package List */
+.pie-chart-section {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.donut-chart-box {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.donut-center-overlay {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.donut-center-big {
+  font-size: 17px;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+}
+
+.donut-center-txt {
+  font-size: 10px;
+  color: #64748b;
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+.donut-center-pill {
+  font-size: 9.5px;
+  font-weight: 700;
+  padding: 1px 5px;
+  background: #ffedd5;
+  color: #ea580c;
+  border-radius: 4px;
+  margin-top: 3px;
+}
+
+.ticket-package-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 12px;
+}
+
+.ticket-package-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 6px;
+  border-radius: 6px;
+  transition: background 0.12s ease;
+}
+
+.ticket-package-item:hover {
+  background: #f8fafc;
+}
+
+.pkg-left-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pkg-color-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+
+.pkg-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: #1e293b;
+}
+
+.pkg-price-unit {
+  font-size: 10.5px;
+  color: #64748b;
+}
+
+.pkg-right-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-align: right;
+}
+
+.pkg-sold-ratio {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.pkg-sold-ratio strong {
+  color: #0f172a;
+}
+
+.pkg-status-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.pkg-status-badge.sold-out {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+/* Custom Live Pie Tooltip */
+.live-pie-tooltip {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 10px 14px;
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  font-size: 12px;
+}
+
+.pie-tooltip-title {
+  font-weight: 700;
+  font-size: 12.5px;
+  margin-bottom: 6px;
+  padding-bottom: 4px;
+  border-bottom: 1px solid #1e293b;
+}
+
+.pie-tooltip-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 3px;
+  color: #cbd5e1;
+}
+
+.pie-tooltip-row strong {
+  color: #ffffff;
+}
+
+/* Check-ins Telemetry */
+.checkin-headline-box {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+
+.checkin-big-numbers {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.checkin-primary {
+  font-size: 26px;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1;
+}
+
+.checkin-slash {
+  font-size: 18px;
+  color: #94a3b8;
+  font-weight: 500;
+}
+
+.checkin-total {
+  font-size: 16px;
+  color: #64748b;
+  font-weight: 600;
+}
+
+.checkin-status-subtitle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #059669;
+  margin-top: 6px;
+}
+
+.gates-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.gate-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.gate-header-line {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+}
+
+.gate-name {
+  font-weight: 600;
+  color: #334155;
+}
+
+.gate-ratio {
+  font-weight: 600;
+  color: #64748b;
+  font-size: 11px;
+}
+
+.gate-progress-track {
+  width: 100%;
+  height: 6px;
+  border-radius: 999px;
+  background: #f1f5f9;
+  overflow: hidden;
+}
+
+.gate-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.4s ease;
+}
+
+.gate-velocity-footer {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+}
+
+.velocity-tag {
+  color: #475569;
+  font-weight: 600;
+}
+
+.gate-manage-link {
+  color: #ff6a00;
+  font-weight: 700;
+  text-decoration: none;
+  font-size: 11.5px;
+  transition: color 0.12s ease;
+}
+
+.gate-manage-link:hover {
+  color: #e05d00;
+  text-decoration: underline;
+}
+
+/* Live Revenue Telemetry */
+.revenue-pulse-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #059669;
+  background: #ecfdf5;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.pulse-ping {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulseDot 1.4s infinite;
+}
+
+.revenue-headline-box {
+  background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%);
+  border: 1px solid #d1fae5;
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 14px;
+}
+
+.revenue-big-value {
+  font-size: 26px;
+  font-weight: 800;
+  color: #065f46;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.revenue-velocity-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  color: #047857;
+  background: rgba(255, 255, 255, 0.8);
+  padding: 2px 7px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
+.revenue-streams-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.stream-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  padding: 5px 8px;
+  background: #f8fafc;
+  border-radius: 6px;
+}
+
+.stream-label {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.stream-value {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.live-payout-banner {
+  margin-top: auto;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+}
+
+.payout-banner-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: #475569;
+  font-weight: 500;
+}
+
+.payout-view-link {
+  color: #2563eb;
+  font-weight: 600;
+  text-decoration: none;
+  font-size: 11px;
+}
+
+.payout-view-link:hover {
+  text-decoration: underline;
+}
+
+/* Responsive updates for Live Command Center */
+@media (max-width: 1024px) {
+  .live-core-telemetry-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  .live-timing-metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+}
+
+/* ==========================================================================
    RESPONSIVE MEDIA QUERIES
    ========================================================================== */
 @media (max-width: 1200px) {
