@@ -37,7 +37,8 @@ import {
   Image as ImageIcon,
   CheckCircle,
   X,
-  MessageSquare
+  MessageSquare,
+  UserCheck
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -121,7 +122,6 @@ const SIDEBAR_GROUPS = [
     items: [
       { label: 'All Events', icon: ClipboardList, path: '/events' },
       { label: 'Create Event', icon: Plus, path: '/events/create' },
-      { label: 'Hosts', icon: Users, path: '/events/hosts' },
       { label: 'Organizer Logos', icon: ShieldCheck, path: '/organizer-logos' },
       { label: 'Categories', icon: Tags, path: '/events/categories' },
       { label: 'Bookings', icon: ShoppingCart, path: '/events/bookings' },
@@ -132,13 +132,12 @@ const SIDEBAR_GROUPS = [
     ]
   },
   {
-    title: 'VENDOR MANAGEMENT',
+    title: 'VENDOR & HOST MANAGEMENT',
     items: [
       { label: 'Vendor List', icon: Store, path: '/vendors' },
       { label: 'Pending Approval', icon: Shield, path: '/vendors/pending' },
-      { label: 'Vendor Products', icon: Package, path: '/vendors/products' },
-      { label: 'Vendor Events', icon: ClipboardList, path: '/vendors/events' },
-      { label: 'Payouts', icon: BadgeIndianRupee, path: '/vendors/payouts' }
+      { label: 'Host List', icon: Users, path: '/hosts' },
+      { label: 'Pending Host Approval', icon: UserCheck, path: '/hosts/pending' }
     ]
   },
   {

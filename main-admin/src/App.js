@@ -14,6 +14,7 @@ import VendorDetails from './pages/VendorDetails/VendorDetails';
 import VendorServicePage from './pages/VendorDetails/VendorServicePage';
 import Hosts from './pages/Hosts/Hosts';
 import HostDetails from './pages/Hosts/HostDetails';
+import HostApplicationsPage from './pages/Hosts/HostApplicationsPage';
 import ForYouLayoutMedia from './pages/LayoutMedia/ForYouLayoutMedia';
 import EventsLayoutMedia from './pages/LayoutMedia/EventsLayoutMedia';
 import AccessoriesLayoutMedia from './pages/LayoutMedia/AccessoriesLayoutMedia';
@@ -121,6 +122,12 @@ function App() {
               <Route path="vendors/products" element={<VendorProductsPage />} />
               <Route path="vendors/events" element={<VendorEventsPage />} />
               <Route path="vendors/payouts" element={<VendorPayoutsPage />} />
+
+              {/* Host Approval & Management Routes */}
+              <Route path="hosts" element={<Hosts />} />
+              <Route path="hosts/:hostId" element={<HostDetails />} />
+              <Route path="hosts/pending" element={<HostApplicationsPage />} />
+              <Route path="hosts/applications" element={<HostApplicationsPage />} />
 
               {/* Store & Catalog Management Routes */}
               <Route path="categories" element={<ProductCategoriesPage />} />

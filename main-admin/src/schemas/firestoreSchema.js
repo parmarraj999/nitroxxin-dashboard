@@ -34,7 +34,8 @@ export const COLLECTIONS = {
   transactions: 'transactions',
   queries: 'query',
   query: 'query',
-  organizerLogos: 'organizer_logos'
+  organizerLogos: 'organizer_logos',
+  hostApplications: 'host_applications'
 };
 
 export const PRODUCT_STATUSES = {

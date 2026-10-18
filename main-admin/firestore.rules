@@ -154,6 +154,14 @@ service cloud.firestore {
       allow read, update, delete: if signedIn();
     }
 
+    match /event_host/{hostId} {
+      allow read, write: if true;
+    }
+
+    match /host_applications/{appId} {
+      allow read, write: if true;
+    }
+
     match /{collectionName}/{docId} {
       allow create: if collectionName in [
         'product_variants',

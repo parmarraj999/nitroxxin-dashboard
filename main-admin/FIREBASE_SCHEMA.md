@@ -25,6 +25,8 @@ This dashboard uses these top-level collections:
 - `return_policies`
 - `certifications`
 - `bike_compatibility`
+- `event_host`
+- `host_applications`
 
 The executable structure and default field maps live in `src/schemas/firestoreSchema.js`.
 

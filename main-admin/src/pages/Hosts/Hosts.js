@@ -18,7 +18,6 @@ import './Hosts.css';
 export default function Hosts() {
   const navigate = useNavigate();
   const [hosts, setHosts] = useState([]);
-  console.log(hosts )
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -90,6 +89,16 @@ export default function Hosts() {
         <div>
           <h1 className="page-title">Event Hosts</h1>
           <p className="page-subtitle">Manage organizers, verified community leaders, contact info, and hosted events.</p>
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button 
+            className="btn-primary" 
+            onClick={() => navigate('/hosts/pending')}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}
+          >
+            <ShieldCheck size={16} />
+            Pending Host Approvals
+          </button>
         </div>
       </div>
 
@@ -177,7 +186,7 @@ export default function Hosts() {
                         <tr 
                           key={host.id} 
                           className="host-row"
-                          onClick={() => navigate(`/events/hosts/${host.id}`)}
+                          onClick={() => navigate(`/hosts/${host.id}`)}
                           style={{ cursor: 'pointer' }}
                         >
                           <td>
