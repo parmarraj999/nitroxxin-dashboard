@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { Bar, BarChart, CartesianGrid, Cell, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import {
-  Bookmark,
   Calendar,
   CheckCircle2,
   Copy,
@@ -33,7 +32,6 @@ import {
   registerForEvent,
   subscribeToEvent,
   subscribeToEventBookings,
-  toggleBookmark,
   updateEvent,
   updateEventBookingStatus,
   updateRegistration,

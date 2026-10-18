@@ -21,13 +21,11 @@ import {
   Filter,
   Plus,
   ChevronRight,
-  ArrowUpRight,
   CheckCircle2,
   Clock,
   ShieldCheck,
   AlertCircle,
   Users,
-  Download,
   DollarSign,
   Smartphone,
   BarChart3,
@@ -41,7 +39,6 @@ import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { useEvents } from '../../hooks/useEvents';
-import { useNotifications } from '../../hooks/useNotifications';
 import { useRegistrations } from '../../hooks/useRegistrations';
 import { currency } from '../../utils/formatters';
 import './Dashboard.css';
@@ -52,11 +49,10 @@ const Dashboard = () => {
   const { registrations = [] } = useRegistrations(
     profile?.role === 'Host' ? { hostId: user?.uid } : { userId: user?.uid }
   );
-  const { notifications = [] } = useNotifications(user?.uid);
   const analytics = useAnalytics(events, registrations);
 
   // States
-  const [dateFilter, setDateFilter] = useState('This Month');
+  const [dateFilter] = useState('This Month');
   const [chartView, setChartView] = useState('revenue'); // 'revenue' or 'tickets'
   const [participantSearch, setParticipantSearch] = useState('');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);

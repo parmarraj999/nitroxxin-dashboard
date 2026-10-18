@@ -2,16 +2,13 @@ import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { 
   Sparkles,
-  Inbox,
   Users,
   CalendarDays,
-  Globe2,
   Plus,
   BarChart3,
   UserCircle,
   LayoutDashboard,
   Search,
-  ChevronDown,
   LogOut,
   X,
   Send,
