@@ -4,8 +4,6 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   Tooltip,
@@ -21,19 +19,19 @@ import {
   Filter,
   Plus,
   ChevronRight,
+  ChevronDown,
   CheckCircle2,
   Clock,
   ShieldCheck,
   AlertCircle,
   Users,
-  DollarSign,
-  Smartphone,
-  BarChart3,
   Star,
   MapPin,
   X,
   CreditCard,
   Zap,
+  Landmark,
+  ArrowUpRight,
 } from 'lucide-react';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -42,6 +40,26 @@ import { useEvents } from '../../hooks/useEvents';
 import { useRegistrations } from '../../hooks/useRegistrations';
 import { currency } from '../../utils/formatters';
 import './Dashboard.css';
+
+// Custom dark tooltip for Cashflow chart matching Image 2
+const CustomCashflowTooltip = ({ active, payload }) => {
+  if (active && payload && payload.length) {
+    const data = payload[0].payload;
+    return (
+      <div className="cashflow-dark-tooltip">
+        <div className="tooltip-date-header">{data.fullDate || data.name}</div>
+        <div className="tooltip-data-row">
+          <span className="tooltip-dot" />
+          <span className="tooltip-amount">{data.displayAmt || currency(data.amount)}</span>
+          <span className="tooltip-growth">
+            <ArrowUpRight size={12} /> {data.growth || '+22.7%'}
+          </span>
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
 
 const Dashboard = () => {
   const { user, profile } = useAuth();
@@ -52,10 +70,24 @@ const Dashboard = () => {
   const analytics = useAnalytics(events, registrations);
 
   // States
-  const [dateFilter] = useState('This Month');
-  const [chartView, setChartView] = useState('revenue'); // 'revenue' or 'tickets'
+  const [dateFilter, setDateFilter] = useState('This Month');
   const [participantSearch, setParticipantSearch] = useState('');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
+
+  // Stat Card timeframe states (Image 1 style)
+  const [cardTimeframes, setCardTimeframes] = useState({
+    1: '12 Months',
+    2: '12 Months',
+    3: '12 Months',
+    4: '12 Months',
+  });
+  const [openCardDropdown, setOpenCardDropdown] = useState(null);
+
+  // Cashflow & Revenue Analytics state (Image 2 style)
+  const [cashflowPeriod, setCashflowPeriod] = useState('12 Months'); // '7 Days' | '30 Days' | '12 Months' | '5 Years' | '10 Years' | 'Custom'
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [customStartDate, setCustomStartDate] = useState('2026-01-01');
+  const [customEndDate, setCustomEndDate] = useState('2026-12-31');
 
   // 1. Overview Calculated Data
   const totalCalculatedRevenue = analytics.totalRevenue > 0 ? analytics.totalRevenue : 842500;
@@ -63,13 +95,82 @@ const Dashboard = () => {
   const totalCalculatedEvents = events.length > 0 ? events.length : 24;
   const totalLiveEvents = events.filter((e) => e.status === 'Live' || e.status === 'Published').length || 3;
 
-  // 2. Revenue & Ticket Chart Data
-  const revenueChartData = useMemo(() => [
-    { name: 'Week 1', revenue: 145000, tickets: 420 },
-    { name: 'Week 2', revenue: 210000, tickets: 680 },
-    { name: 'Week 3', revenue: 198000, tickets: 610 },
-    { name: 'Week 4', revenue: 289500, tickets: 940 },
+  // Stat Card mini sparklines (Image 1 replica)
+  const sparkline1 = useMemo(() => [
+    { v: 12 }, { v: 18 }, { v: 15 }, { v: 24 }, { v: 20 }, { v: 32 }, { v: 40 }, { v: 35 }, { v: 48 }, { v: 56 }, { v: 50 }, { v: 58 }, { v: 72 }
   ], []);
+
+  const sparkline2 = useMemo(() => [
+    { v: 10 }, { v: 14 }, { v: 20 }, { v: 18 }, { v: 28 }, { v: 24 }, { v: 38 }, { v: 44 }, { v: 36 }, { v: 50 }, { v: 62 }, { v: 55 }, { v: 75 }
+  ], []);
+
+  const sparkline3 = useMemo(() => [
+    { v: 15 }, { v: 22 }, { v: 19 }, { v: 30 }, { v: 26 }, { v: 42 }, { v: 38 }, { v: 52 }, { v: 48 }, { v: 64 }, { v: 70 }, { v: 65 }, { v: 82 }
+  ], []);
+
+  const sparkline4 = useMemo(() => [
+    { v: 8 }, { v: 12 }, { v: 10 }, { v: 16 }, { v: 14 }, { v: 20 }, { v: 18 }, { v: 22 }, { v: 25 }, { v: 22 }, { v: 26 }, { v: 24 }, { v: 30 }
+  ], []);
+
+  // 2. Revenue Analytics Data (Image 2 style with original Host Revenue scale)
+  const cashflowDataMap = useMemo(() => ({
+    '12 Months': [
+      { name: 'Jan', amount: 145000, displayAmt: '₹1.45L', growth: '+12.4%', fullDate: 'Jan 15' },
+      { name: 'Feb', amount: 180000, displayAmt: '₹1.80L', growth: '+14.2%', fullDate: 'Feb 18' },
+      { name: 'Mar', amount: 210000, displayAmt: '₹2.10L', growth: '+16.0%', fullDate: 'Mar 12' },
+      { name: 'Apr', amount: 245000, displayAmt: '₹2.45L', growth: '+15.5%', fullDate: 'Apr 20' },
+      { name: 'May', amount: 198000, displayAmt: '₹1.98L', growth: '+11.2%', fullDate: 'May 10' },
+      { name: 'Jun', amount: 280000, displayAmt: '₹2.80L', growth: '+18.4%', fullDate: 'Jun 05' },
+      { name: 'Jun 13', amount: 340000, displayAmt: '₹3.40L', growth: '+22.7%', fullDate: 'Jun 13' },
+      { name: 'Jul', amount: 420000, displayAmt: '₹4.20L', growth: '+25.1%', fullDate: 'Jul 22' },
+      { name: 'Aug', amount: 510000, displayAmt: '₹5.10L', growth: '+28.6%', fullDate: 'Aug 16' },
+      { name: 'Sep', amount: 480000, displayAmt: '₹4.80L', growth: '+20.3%', fullDate: 'Sep 19' },
+      { name: 'Oct', amount: 650000, displayAmt: '₹6.50L', growth: '+31.4%', fullDate: 'Oct 14' },
+      { name: 'Nov', amount: 780000, displayAmt: '₹7.80L', growth: '+36.8%', fullDate: 'Nov 11' },
+      { name: 'Dec', amount: 842500, displayAmt: '₹8.42L', growth: '+42.0%', fullDate: 'Dec 28' },
+    ],
+    '5 Years': [
+      { name: '2022', amount: 240000, displayAmt: '₹2.40L', growth: '+15.0%', fullDate: 'Year 2022' },
+      { name: '2023', amount: 380000, displayAmt: '₹3.80L', growth: '+22.5%', fullDate: 'Year 2023' },
+      { name: '2024', amount: 540000, displayAmt: '₹5.40L', growth: '+28.0%', fullDate: 'Year 2024' },
+      { name: '2025', amount: 710000, displayAmt: '₹7.10L', growth: '+33.4%', fullDate: 'Year 2025' },
+      { name: '2026', amount: 842500, displayAmt: '₹8.42L', growth: '+41.0%', fullDate: 'Year 2026' },
+    ],
+    '10 Years': [
+      { name: '2017', amount: 80000, displayAmt: '₹80k', growth: '+10.0%', fullDate: 'Year 2017' },
+      { name: '2019', amount: 160000, displayAmt: '₹1.60L', growth: '+16.0%', fullDate: 'Year 2019' },
+      { name: '2021', amount: 320000, displayAmt: '₹3.20L', growth: '+24.0%', fullDate: 'Year 2021' },
+      { name: '2023', amount: 510000, displayAmt: '₹5.10L', growth: '+30.5%', fullDate: 'Year 2023' },
+      { name: '2025', amount: 720000, displayAmt: '₹7.20L', growth: '+36.0%', fullDate: 'Year 2025' },
+      { name: '2026', amount: 842500, displayAmt: '₹8.42L', growth: '+42.0%', fullDate: 'Year 2026' },
+    ],
+    '30 Days': [
+      { name: 'Week 1', amount: 145000, displayAmt: '₹1.45L', growth: '+12.0%', fullDate: 'Week 1' },
+      { name: 'Week 2', amount: 210000, displayAmt: '₹2.10L', growth: '+15.4%', fullDate: 'Week 2' },
+      { name: 'Week 3', amount: 198000, displayAmt: '₹1.98L', growth: '+13.8%', fullDate: 'Week 3' },
+      { name: 'Week 4', amount: 289500, displayAmt: '₹2.90L', growth: '+21.5%', fullDate: 'Week 4' },
+    ],
+    '7 Days': [
+      { name: 'Mon', amount: 35000, displayAmt: '₹35k', growth: '+8.2%', fullDate: 'Monday' },
+      { name: 'Tue', amount: 48000, displayAmt: '₹48k', growth: '+12.0%', fullDate: 'Tuesday' },
+      { name: 'Wed', amount: 42000, displayAmt: '₹42k', growth: '+10.5%', fullDate: 'Wednesday' },
+      { name: 'Thu', amount: 65000, displayAmt: '₹65k', growth: '+17.2%', fullDate: 'Thursday' },
+      { name: 'Fri', amount: 98000, displayAmt: '₹98k', growth: '+24.8%', fullDate: 'Friday' },
+      { name: 'Sat', amount: 145000, displayAmt: '₹1.45L', growth: '+32.0%', fullDate: 'Saturday' },
+      { name: 'Sun', amount: 185000, displayAmt: '₹1.85L', growth: '+38.5%', fullDate: 'Sunday' },
+    ],
+  }), []);
+
+  const activeCashflowData = cashflowDataMap[cashflowPeriod] || cashflowDataMap['12 Months'];
+
+  const getCashflowHeadline = () => {
+    return currency(totalCalculatedRevenue);
+  };
+
+  const selectCardTimeframe = (cardId, tf) => {
+    setCardTimeframes((prev) => ({ ...prev, [cardId]: tf }));
+    setOpenCardDropdown(null);
+  };
 
   // 3. Upcoming & Live Events Data
   const liveEvent = {
@@ -87,7 +188,7 @@ const Dashboard = () => {
     { id: 'up-3', month: 'NOV', day: '15', title: 'Aravalli Dirt Sprint Series Round 4', venue: 'Leopard Trail, Gurugram', booked: '95 / 120 Slots', pct: 79 },
   ];
 
-  // 4. Recent Participants (Image 2 style)
+  // 4. Recent Participants
   const recentParticipantsData = [
     {
       id: 'LD21301',
@@ -201,7 +302,10 @@ const Dashboard = () => {
           </div>
 
           <div className="dash-top-actions">
-            <button className="dash-select-pill">
+            <button 
+              className="dash-select-pill"
+              onClick={() => setDateFilter((prev) => (prev === 'This Month' ? 'This Year' : 'This Month'))}
+            >
               <Calendar size={14} />
               <span>{dateFilter}</span>
               <ChevronRight size={12} style={{ transform: 'rotate(90deg)' }} />
@@ -256,244 +360,426 @@ const Dashboard = () => {
         )}
 
         {/* =========================================================================
-            SECTION 10: QUICK ACTIONS (Image 3 Pastel Style)
+            SECTION 1: MODERN STAT CARDS (Exact Replication of Image 1 UI)
+            Preserving original host metrics: Total Events, Live Events, Tickets Sold, Total Revenue
             ========================================================================= */}
-        <section className="quick-actions-card-strip" aria-label="Quick Actions">
-          <Link to="/events/new" className="quick-action-tile">
-            <div className="quick-action-icon-pill orange">
-              <Plus size={18} />
-            </div>
-            <div className="quick-action-text">
-              <span className="quick-action-title">➕ Create Event</span>
-              <span className="quick-action-sub">New rally or race</span>
-            </div>
-          </Link>
-
-          <Link to="/participants" className="quick-action-tile">
-            <div className="quick-action-icon-pill mint">
-              <Ticket size={18} />
-            </div>
-            <div className="quick-action-text">
-              <span className="quick-action-title">🎟 Manage Tickets</span>
-              <span className="quick-action-sub">Tiers & passes</span>
-            </div>
-          </Link>
-
-          <Link to="/participants" className="quick-action-tile">
-            <div className="quick-action-icon-pill blue">
-              <Smartphone size={18} />
-            </div>
-            <div className="quick-action-text">
-              <span className="quick-action-title">📱 Scan QR</span>
-              <span className="quick-action-sub">Gate fast check-in</span>
-            </div>
-          </Link>
-
-          <Link to="/analytics" className="quick-action-tile">
-            <div className="quick-action-icon-pill purple">
-              <BarChart3 size={18} />
-            </div>
-            <div className="quick-action-text">
-              <span className="quick-action-title">📊 View Analytics</span>
-              <span className="quick-action-sub">Detailed revenue</span>
-            </div>
-          </Link>
-
-          <a href="#payouts-section" className="quick-action-tile">
-            <div className="quick-action-icon-pill pink">
-              <DollarSign size={18} />
-            </div>
-            <div className="quick-action-text">
-              <span className="quick-action-title">💰 View Payouts</span>
-              <span className="quick-action-sub">Disbursements</span>
-            </div>
-          </a>
-        </section>
-
-        {/* =========================================================================
-            SECTION 1: OVERVIEW DIVIDED STAT CARD (Exact Replication of Image 1)
-            ========================================================================= */}
-        <section className="overview-divided-card" aria-label="Overview KPI Cards">
-          {/* Stat 1: Total Events */}
-          <div className="stat-divided-col">
-            <div className="stat-label-row">
-              <Calendar size={15} className="stat-icon" />
-              <span>Total Events</span>
-            </div>
-            <div className="stat-big-number">{totalCalculatedEvents}</div>
-            <p className="stat-trend-sub">
-              <span className="trend-highlight">+12%(3)</span>
-              <span className="trend-neutral">• vs Last Months</span>
-            </p>
-          </div>
-
-          {/* Stat 2: Live Events */}
-          <div className="stat-divided-col">
-            <div className="stat-label-row">
-              <Radio size={15} className="stat-icon" color="#dc2626" />
-              <span>Live Events</span>
-            </div>
-            <div className="stat-big-number">{totalLiveEvents}</div>
-            <p className="stat-trend-sub">
-              <span className="trend-highlight">Active Now</span>
-              <span className="trend-neutral">• Real-time telemetry</span>
-            </p>
-          </div>
-
-          {/* Stat 3: Tickets Sold */}
-          <div className="stat-divided-col">
-            <div className="stat-label-row">
-              <Ticket size={15} className="stat-icon" />
-              <span>Tickets Sold</span>
-            </div>
-            <div className="stat-big-number">{totalCalculatedTickets.toLocaleString('en-IN')}</div>
-            <p className="stat-trend-sub">
-              <span className="trend-highlight">+18%(420)</span>
-              <span className="trend-neutral">• vs Last Months</span>
-            </p>
-          </div>
-
-          {/* Stat 4: Total Revenue */}
-          <div className="stat-divided-col">
-            <div className="stat-label-row">
-              <IndianRupee size={15} className="stat-icon" />
-              <span>Total Revenue</span>
-            </div>
-            <div className="stat-big-number">{currency(totalCalculatedRevenue)}</div>
-            <p className="stat-trend-sub">
-              <span className="trend-highlight">+20%(₹1.4L)</span>
-              <span className="trend-neutral">• vs Last Months</span>
-            </p>
-          </div>
-        </section>
-
-        {/* =========================================================================
-            ROW 1: REVENUE ANALYTICS & ATTENDANCE / CHECK-INS
-            ========================================================================= */}
-        <div className="dash-grid-2col">
-          {/* SECTION 2: REVENUE ANALYTICS */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <div className="dash-card-title-group">
-                <div className="dash-card-icon-box">
-                  <BarChart3 size={16} />
-                </div>
-                <h3 className="dash-card-title">Revenue Analytics</h3>
+        <section className="stat-cards-grid-modern" aria-label="Key Performance Indicators">
+          {/* Card 1: Total Events */}
+          <div className="stat-card-modern">
+            <div className="stat-card-top-row">
+              <div className="stat-card-icon-square">
+                <Calendar size={18} />
               </div>
-              <div className="chart-segmented-control" style={{ margin: 0 }}>
+              <div className="stat-card-dropdown-wrap">
                 <button
-                  className={`chart-tab-pill ${chartView === 'revenue' ? 'active' : ''}`}
-                  onClick={() => setChartView('revenue')}
+                  className="stat-card-timeframe-btn"
+                  onClick={() => setOpenCardDropdown(openCardDropdown === 1 ? null : 1)}
                 >
-                  Revenue Chart
+                  <span>{cardTimeframes[1]}</span>
+                  <ChevronDown size={13} />
                 </button>
-                <button
-                  className={`chart-tab-pill ${chartView === 'tickets' ? 'active' : ''}`}
-                  onClick={() => setChartView('tickets')}
-                >
-                  Ticket Sales Chart
-                </button>
+                {openCardDropdown === 1 && (
+                  <div className="stat-card-dropdown-menu">
+                    {['7 Days', '30 Days', '12 Months', 'All Time'].map((tf) => (
+                      <button
+                        key={tf}
+                        className={`stat-dropdown-item ${cardTimeframes[1] === tf ? 'active' : ''}`}
+                        onClick={() => selectCardTimeframe(1, tf)}
+                      >
+                        {tf}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            <div className="revenue-stats-subhead">
-              <span className="rev-big-val">
-                {chartView === 'revenue' ? currency(totalCalculatedRevenue) : `${totalCalculatedTickets} Tickets`}
-              </span>
-              <span className="rev-tag-badge">+14.2% vs last month</span>
-            </div>
-
-            <div style={{ width: '100%', height: 210 }}>
-              <ResponsiveContainer width="100%" height="100%">
-                {chartView === 'revenue' ? (
-                  <AreaChart data={revenueChartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+            <div className="stat-card-bottom-row">
+              <div className="stat-card-metrics-col">
+                <div className="stat-card-value">{totalCalculatedEvents}</div>
+                <div className="stat-card-label">Total Events</div>
+              </div>
+              <div className="stat-card-sparkline-wrap">
+                <ResponsiveContainer width={120} height={50}>
+                  <AreaChart data={sparkline1} margin={{ top: 4, right: 2, left: 2, bottom: 2 }}>
                     <defs>
-                      <linearGradient id="revenueColorGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ff6a00" stopOpacity={0.25} />
-                        <stop offset="95%" stopColor="#ff6a00" stopOpacity={0.0} />
+                      <linearGradient id="sparkGrad1" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.0} />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(val) => `₹${val / 1000}k`} />
-                    <Tooltip formatter={(val) => currency(val)} />
-                    <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#ff6a00" strokeWidth={2.5} fill="url(#revenueColorGrad)" />
+                    <Area
+                      type="monotone"
+                      dataKey="v"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      fill="url(#sparkGrad1)"
+                      dot={false}
+                      isAnimationActive={true}
+                    />
                   </AreaChart>
-                ) : (
-                  <BarChart data={revenueChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                    <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                    <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                    <Tooltip />
-                    <Bar dataKey="tickets" name="Tickets Sold" fill="#ff6a00" radius={[4, 4, 0, 0]} />
-                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* Card 2: Live Events */}
+          <div className="stat-card-modern">
+            <div className="stat-card-top-row">
+              <div className="stat-card-icon-square">
+                <Radio size={18} color="#dc2626" />
+              </div>
+              <div className="stat-card-dropdown-wrap">
+                <button
+                  className="stat-card-timeframe-btn"
+                  onClick={() => setOpenCardDropdown(openCardDropdown === 2 ? null : 2)}
+                >
+                  <span>{cardTimeframes[2]}</span>
+                  <ChevronDown size={13} />
+                </button>
+                {openCardDropdown === 2 && (
+                  <div className="stat-card-dropdown-menu">
+                    {['7 Days', '30 Days', '12 Months', 'All Time'].map((tf) => (
+                      <button
+                        key={tf}
+                        className={`stat-dropdown-item ${cardTimeframes[2] === tf ? 'active' : ''}`}
+                        onClick={() => selectCardTimeframe(2, tf)}
+                      >
+                        {tf}
+                      </button>
+                    ))}
+                  </div>
                 )}
-              </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="stat-card-bottom-row">
+              <div className="stat-card-metrics-col">
+                <div className="stat-card-value">{totalLiveEvents}</div>
+                <div className="stat-card-label">Live Events</div>
+              </div>
+              <div className="stat-card-sparkline-wrap">
+                <ResponsiveContainer width={120} height={50}>
+                  <AreaChart data={sparkline2} margin={{ top: 4, right: 2, left: 2, bottom: 2 }}>
+                    <defs>
+                      <linearGradient id="sparkGrad2" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <Area
+                      type="monotone"
+                      dataKey="v"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      fill="url(#sparkGrad2)"
+                      dot={false}
+                      isAnimationActive={true}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
             </div>
           </div>
 
-          {/* SECTION 5: ATTENDANCE / CHECK-INS */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <div className="dash-card-title-group">
-                <div className="dash-card-icon-box">
-                  <CheckCircle2 size={16} color="#16a34a" />
-                </div>
-                <h3 className="dash-card-title">Attendance / Check-ins</h3>
+          {/* Card 3: Tickets Sold */}
+          <div className="stat-card-modern">
+            <div className="stat-card-top-row">
+              <div className="stat-card-icon-square">
+                <Ticket size={18} />
               </div>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#16a34a' }}>83.5% Completed</span>
-            </div>
-
-            <div className="checkin-progress-hero">
-              <div className="checkin-hero-numbers">
-                <div className="checkin-hero-left">2,840 Checked In</div>
-                <div className="checkin-hero-right">of 3,400 Total Attendees</div>
-              </div>
-              <div className="checkin-progress-track">
-                <div className="checkin-progress-fill" style={{ width: '83.5%' }} />
-              </div>
-            </div>
-
-            <div className="checkin-breakdown-row">
-              <div className="checkin-chip-card">
-                <span className="checkin-chip-label">Checked-in Users</span>
-                <span className="checkin-chip-val" style={{ color: '#16a34a' }}>2,840</span>
-                <span style={{ fontSize: '10.5px', color: '#9ca3af' }}>Fast gate scanned</span>
-              </div>
-              <div className="checkin-chip-card">
-                <span className="checkin-chip-label">Remaining Attendees</span>
-                <span className="checkin-chip-val" style={{ color: '#ea580c' }}>560</span>
-                <span style={{ fontSize: '10.5px', color: '#9ca3af' }}>Expected arrival</span>
-              </div>
-              <div className="checkin-chip-card">
-                <span className="checkin-chip-label">Avg Scan Speed</span>
-                <span className="checkin-chip-val" style={{ color: '#111827' }}>3.8s</span>
-                <span style={{ fontSize: '10.5px', color: '#16a34a' }}>-22% below SLA</span>
+              <div className="stat-card-dropdown-wrap">
+                <button
+                  className="stat-card-timeframe-btn"
+                  onClick={() => setOpenCardDropdown(openCardDropdown === 3 ? null : 3)}
+                >
+                  <span>{cardTimeframes[3]}</span>
+                  <ChevronDown size={13} />
+                </button>
+                {openCardDropdown === 3 && (
+                  <div className="stat-card-dropdown-menu">
+                    {['7 Days', '30 Days', '12 Months', 'All Time'].map((tf) => (
+                      <button
+                        key={tf}
+                        className={`stat-dropdown-item ${cardTimeframes[3] === tf ? 'active' : ''}`}
+                        onClick={() => selectCardTimeframe(3, tf)}
+                      >
+                        {tf}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
-            <div style={{ marginTop: '14px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '3px' }}>
-                  <span>Gate A (VIP & Pitlane)</span>
-                  <strong>94% (1,420 entries)</strong>
+            <div className="stat-card-bottom-row">
+              <div className="stat-card-metrics-col">
+                <div className="stat-card-value">
+                  {totalCalculatedTickets > 0 ? totalCalculatedTickets.toLocaleString('en-IN') : 3844}
                 </div>
-                <div className="checkin-progress-track" style={{ height: '5px' }}>
-                  <div className="checkin-progress-fill" style={{ width: '94%' }} />
-                </div>
+                <div className="stat-card-label">Tickets Sold</div>
               </div>
-              <div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11.5px', marginBottom: '3px' }}>
-                  <span>Gate B (General Grandstand)</span>
-                  <strong>78% (1,420 entries)</strong>
-                </div>
-                <div className="checkin-progress-track" style={{ height: '5px' }}>
-                  <div className="checkin-progress-fill" style={{ width: '78%' }} />
-                </div>
+              <div className="stat-card-sparkline-wrap">
+                <ResponsiveContainer width={120} height={50}>
+                  <AreaChart data={sparkline3} margin={{ top: 4, right: 2, left: 2, bottom: 2 }}>
+                    <defs>
+                      <linearGradient id="sparkGrad3" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <Area
+                      type="monotone"
+                      dataKey="v"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      fill="url(#sparkGrad3)"
+                      dot={false}
+                      isAnimationActive={true}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
               </div>
             </div>
           </div>
-        </div>
+
+          {/* Card 4: Total Revenue */}
+          <div className="stat-card-modern">
+            <div className="stat-card-top-row">
+              <div className="stat-card-icon-square">
+                <IndianRupee size={18} />
+              </div>
+              <div className="stat-card-dropdown-wrap">
+                <button
+                  className="stat-card-timeframe-btn"
+                  onClick={() => setOpenCardDropdown(openCardDropdown === 4 ? null : 4)}
+                >
+                  <span>{cardTimeframes[4]}</span>
+                  <ChevronDown size={13} />
+                </button>
+                {openCardDropdown === 4 && (
+                  <div className="stat-card-dropdown-menu">
+                    {['7 Days', '30 Days', '12 Months', 'All Time'].map((tf) => (
+                      <button
+                        key={tf}
+                        className={`stat-dropdown-item ${cardTimeframes[4] === tf ? 'active' : ''}`}
+                        onClick={() => selectCardTimeframe(4, tf)}
+                      >
+                        {tf}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="stat-card-bottom-row">
+              <div className="stat-card-metrics-col">
+                <div className="stat-card-value">{currency(totalCalculatedRevenue)}</div>
+                <div className="stat-card-label">Total Revenue</div>
+              </div>
+              <div className="stat-card-sparkline-wrap">
+                <ResponsiveContainer width={120} height={50}>
+                  <AreaChart data={sparkline4} margin={{ top: 4, right: 2, left: 2, bottom: 2 }}>
+                    <defs>
+                      <linearGradient id="sparkGrad4" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.25} />
+                        <stop offset="100%" stopColor="#3b82f6" stopOpacity={0.0} />
+                      </linearGradient>
+                    </defs>
+                    <Area
+                      type="monotone"
+                      dataKey="v"
+                      stroke="#3b82f6"
+                      strokeWidth={2}
+                      fill="url(#sparkGrad4)"
+                      dot={false}
+                      isAnimationActive={true}
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* =========================================================================
+            SECTION 2: CASHFLOW / REVENUE ANALYTICS (Exact Replication of Image 2)
+            With single line graph and comprehensive date filters
+            ========================================================================= */}
+        <section className="cashflow-analytics-card" aria-label="Cashflow and Revenue Analytics">
+          <div className="cashflow-card-header">
+            <div className="cashflow-title-group">
+              <div className="cashflow-icon-box">
+                <Landmark size={18} />
+              </div>
+              <span className="cashflow-title-text">Cashflow</span>
+            </div>
+
+            <div className="cashflow-controls-group">
+              {/* Preset Period Pills from Image 2 */}
+              <div className="cashflow-period-pills">
+                {['12 Months', '5 Years', '10 Years'].map((period) => (
+                  <button
+                    key={period}
+                    className={`cashflow-pill-btn ${cashflowPeriod === period ? 'active' : ''}`}
+                    onClick={() => setCashflowPeriod(period)}
+                  >
+                    {period}
+                  </button>
+                ))}
+              </div>
+
+              {/* Date Filter Dropdown with Custom Date Range */}
+              <div className="cashflow-date-dropdown-wrap">
+                <button
+                  className="cashflow-date-picker-btn"
+                  onClick={() => setShowDatePicker(!showDatePicker)}
+                >
+                  <Calendar size={13} />
+                  <span>{cashflowPeriod}</span>
+                  <ChevronDown size={12} />
+                </button>
+
+                {showDatePicker && (
+                  <div className="cashflow-date-menu">
+                    <div className="date-menu-header">Date Filter Range</div>
+                    {['7 Days', '30 Days', '12 Months', '5 Years', '10 Years', 'Custom Range'].map((p) => (
+                      <button
+                        key={p}
+                        className={`date-menu-option ${cashflowPeriod === p ? 'selected' : ''}`}
+                        onClick={() => {
+                          setCashflowPeriod(p);
+                          if (p !== 'Custom Range') setShowDatePicker(false);
+                        }}
+                      >
+                        {p}
+                      </button>
+                    ))}
+
+                    {cashflowPeriod === 'Custom Range' && (
+                      <div className="custom-range-inputs">
+                        <label>
+                          From:
+                          <input
+                            type="date"
+                            value={customStartDate}
+                            onChange={(e) => setCustomStartDate(e.target.value)}
+                          />
+                        </label>
+                        <label>
+                          To:
+                          <input
+                            type="date"
+                            value={customEndDate}
+                            onChange={(e) => setCustomEndDate(e.target.value)}
+                          />
+                        </label>
+                        <button
+                          className="btn-apply-date-range"
+                          onClick={() => setShowDatePicker(false)}
+                        >
+                          Apply Filter
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Big Headline Metric and Single Line Legend */}
+          <div className="cashflow-subhead-row">
+            <div className="cashflow-big-headline">{getCashflowHeadline(cashflowPeriod)}</div>
+            <div className="cashflow-single-legend">
+              <span className="legend-ring-dot" />
+              <span>Revenue</span>
+            </div>
+          </div>
+
+          {/* Single Line Graph with smooth curve & soft area fill */}
+          <div className="cashflow-chart-wrapper" style={{ width: '100%', height: 280 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart
+                data={activeCashflowData}
+                margin={{ top: 15, right: 15, left: -10, bottom: 0 }}
+              >
+                <defs>
+                  <linearGradient id="cashflowGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.14} />
+                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid
+                  strokeDasharray="3 3"
+                  vertical={false}
+                  stroke="#f1f5f9"
+                />
+                <XAxis
+                  dataKey="name"
+                  axisLine={false}
+                  tickLine={false}
+                  tick={({ x, y, payload }) => {
+                    const isHighlight = payload.value === 'Jun 13';
+                    return (
+                      <g transform={`translate(${x},${y})`}>
+                        {isHighlight && (
+                          <rect
+                            x={-24}
+                            y={6}
+                            width={48}
+                            height={20}
+                            rx={5}
+                            fill="#f1f5f9"
+                          />
+                        )}
+                        <text
+                          x={0}
+                          y={isHighlight ? 20 : 18}
+                          textAnchor="middle"
+                          fill={isHighlight ? '#0f172a' : '#94a3b8'}
+                          fontSize={isHighlight ? 12 : 11}
+                          fontWeight={isHighlight ? 600 : 400}
+                        >
+                          {payload.value}
+                        </text>
+                      </g>
+                    );
+                  }}
+                />
+                <YAxis
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fontSize: 11, fill: '#94a3b8' }}
+                  tickFormatter={(val) => {
+                    if (val >= 10000000) return `₹${val / 10000000}Cr`;
+                    if (val >= 100000) return `₹${val / 100000}L`;
+                    if (val >= 1000) return `₹${val / 1000}k`;
+                    return `₹${val}`;
+                  }}
+                />
+                <Tooltip
+                  content={<CustomCashflowTooltip />}
+                  cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }}
+                />
+                <Area
+                  type="monotone"
+                  dataKey="amount"
+                  stroke="#3b82f6"
+                  strokeWidth={2.5}
+                  fill="url(#cashflowGrad)"
+                  activeDot={{
+                    r: 6,
+                    fill: '#ffffff',
+                    stroke: '#3b82f6',
+                    strokeWidth: 3,
+                  }}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </section>
 
         {/* =========================================================================
             ROW 2: UPCOMING & LIVE EVENTS & TOP PERFORMING EVENTS

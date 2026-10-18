@@ -142,147 +142,450 @@
 }
 
 /* ==========================================================================
-   10. QUICK ACTIONS BAR (Image 3 Style Pastel Icons)
+/* ==========================================================================
+   1. MODERN STAT CARDS (Exact Replication of Image 1)
    ========================================================================== */
-.quick-actions-card-strip {
+.stat-cards-grid-modern {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 12px;
-  margin-bottom: 22px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  margin-bottom: 24px;
 }
 
-.quick-action-tile {
+@media (max-width: 1100px) {
+  .stat-cards-grid-modern {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .stat-cards-grid-modern {
+    grid-template-columns: 1fr;
+  }
+}
+
+.stat-card-modern {
   background: #ffffff;
-  border: 1px solid #eef0f3;
-  border-radius: 14px;
-  padding: 12px 14px;
+  border: 1px solid #f1f5f9;
+  border-radius: 18px;
+  padding: 18px 20px 16px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 16px;
+  position: relative;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.stat-card-modern:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.04);
+}
+
+.stat-card-top-row {
   display: flex;
   align-items: center;
-  gap: 12px;
-  text-decoration: none;
-  color: #111827;
+  justify-content: space-between;
+}
+
+.stat-card-icon-square {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid #f0f2f5;
+  background-color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1e293b;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.stat-card-dropdown-wrap {
+  position: relative;
+}
+
+.stat-card-timeframe-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 500;
   cursor: pointer;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
   transition: all 0.15s ease;
 }
 
-.quick-action-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-  border-color: #d1d5db;
+.stat-card-timeframe-btn:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
 }
 
-.quick-action-icon-pill {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.quick-action-icon-pill.mint { background-color: #dcfce7; color: #15803d; }
-.quick-action-icon-pill.purple { background-color: #ede9fe; color: #6d28d9; }
-.quick-action-icon-pill.blue { background-color: #e0f2fe; color: #0284c7; }
-.quick-action-icon-pill.pink { background-color: #fce7f3; color: #be185d; }
-.quick-action-icon-pill.orange { background-color: #ffedd5; color: #c2410c; }
-
-.quick-action-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.quick-action-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.quick-action-sub {
-  font-size: 11px;
-  color: #6b7280;
-}
-
-/* ==========================================================================
-   1. OVERVIEW DIVIDED STAT CARD (Exact Replication of Image 1)
-   ========================================================================== */
-.overview-divided-card {
-  background: #ffffff;
-  border: 1px solid #eef0f3;
-  border-radius: 16px;
-  padding: 22px 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  position: relative;
-}
-
-.stat-divided-col {
-  padding: 0 20px;
-  display: flex;
-  flex-direction: column;
-  position: relative;
-}
-
-.stat-divided-col:first-child {
-  padding-left: 4px;
-}
-
-.stat-divided-col:not(:last-child)::after {
-  content: '';
+.stat-card-dropdown-menu {
   position: absolute;
-  top: 4px;
-  bottom: 4px;
+  top: calc(100% + 4px);
   right: 0;
-  width: 1px;
-  background-color: #f0f2f5; /* Vertical divider line from Image 1 */
+  width: 120px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  padding: 4px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.stat-label-row {
+.stat-dropdown-item {
+  width: 100%;
+  text-align: left;
+  padding: 6px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.stat-dropdown-item:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.stat-dropdown-item.active {
+  background-color: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.stat-card-bottom-row {
   display: flex;
-  align-items: center;
-  gap: 7px;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.stat-card-metrics-col {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.stat-card-value {
+  font-size: 28px;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.stat-card-label {
   font-size: 13px;
   font-weight: 500;
-  color: #4b5563;
-  margin-bottom: 8px;
+  color: #64748b;
 }
 
-.stat-icon {
-  color: #6b7280;
-}
-
-.stat-big-number {
-  font-size: 30px;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.02em;
-  line-height: 1.1;
-  margin-bottom: 6px;
-}
-
-.stat-trend-sub {
-  font-size: 12px;
+.stat-card-sparkline-wrap {
+  width: 120px;
+  height: 50px;
   display: flex;
-  align-items: center;
-  gap: 4px;
-  margin: 0;
-}
-
-.trend-highlight {
-  color: #16a34a;
-  font-weight: 600;
-}
-
-.trend-neutral {
-  color: #6b7280;
+  align-items: flex-end;
+  justify-content: flex-end;
+  overflow: hidden;
 }
 
 /* ==========================================================================
-   BASE CARD STYLES (Soft background, rounded corners from Image 3)
+   2. CASHFLOW & REVENUE ANALYTICS CARD (Exact Replication of Image 2)
    ========================================================================== */
+.cashflow-analytics-card {
+  background: #ffffff;
+  border: 1px solid #f1f5f9;
+  border-radius: 20px;
+  padding: 24px 28px 20px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.02);
+  margin-bottom: 24px;
+  display: flex;
+  flex-direction: column;
+}
+
+.cashflow-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.cashflow-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.cashflow-icon-box {
+  color: #64748b;
+  display: flex;
+  align-items: center;
+}
+
+.cashflow-title-text {
+  font-size: 14.5px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.cashflow-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.cashflow-period-pills {
+  display: inline-flex;
+  align-items: center;
+  background-color: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.cashflow-pill-btn {
+  padding: 5px 14px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #64748b;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.cashflow-pill-btn:hover {
+  color: #0f172a;
+}
+
+.cashflow-pill-btn.active {
+  background-color: #ffffff;
+  color: #0f172a;
+  font-weight: 600;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+.cashflow-date-dropdown-wrap {
+  position: relative;
+}
+
+.cashflow-date-picker-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 9px;
+  border: 1px solid #e2e8f0;
+  background-color: #ffffff;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  transition: all 0.15s ease;
+}
+
+.cashflow-date-picker-btn:hover {
+  background-color: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+.cashflow-date-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: 220px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.12);
+  padding: 8px;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.date-menu-header {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: #94a3b8;
+  padding: 4px 8px 6px;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 3px;
+}
+
+.date-menu-option {
+  width: 100%;
+  text-align: left;
+  padding: 7px 10px;
+  border: none;
+  background: transparent;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #334155;
+  cursor: pointer;
+  transition: background 0.1s ease;
+}
+
+.date-menu-option:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+}
+
+.date-menu-option.selected {
+  background-color: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.custom-range-inputs {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.custom-range-inputs label {
+  font-size: 11px;
+  color: #64748b;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.custom-range-inputs input {
+  padding: 4px 6px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.btn-apply-date-range {
+  margin-top: 4px;
+  background-color: #0f172a;
+  color: #ffffff;
+  border: none;
+  padding: 6px 10px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-apply-date-range:hover {
+  background-color: #1e293b;
+}
+
+.cashflow-subhead-row {
+  margin: 8px 0 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cashflow-big-headline {
+  font-size: 36px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+.cashflow-single-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12.5px;
+  color: #334155;
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.legend-ring-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 2px solid #3b82f6;
+  background-color: #ffffff;
+  display: inline-block;
+}
+
+/* Custom dark hover tooltip from Image 2 */
+.cashflow-dark-tooltip {
+  background-color: #1e293b;
+  color: #ffffff;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+  font-family: inherit;
+}
+
+.tooltip-date-header {
+  font-size: 11px;
+  color: #94a3b8;
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.tooltip-data-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.tooltip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #3b82f6;
+  display: inline-block;
+}
+
+.tooltip-amount {
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.tooltip-growth {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #22c55e;
+  font-size: 11px;
+  font-weight: 600;
+  background: rgba(34, 197, 94, 0.12);
+  padding: 1px 5px;
+  border-radius: 4px;
+}
 .dash-card {
   background: #ffffff;
   border: 1px solid #eef0f3;
@@ -365,125 +668,6 @@
   margin-bottom: 24px;
 }
 
-/* 2. REVENUE ANALYTICS CARD */
-.revenue-stats-subhead {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 14px;
-}
-
-.rev-big-val {
-  font-size: 26px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.rev-tag-badge {
-  font-size: 11.5px;
-  font-weight: 600;
-  color: #16a34a;
-  background-color: #dcfce7;
-  padding: 2px 7px;
-  border-radius: 5px;
-}
-
-.chart-segmented-control {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 14px;
-}
-
-.chart-tab-pill {
-  padding: 4px 12px;
-  border-radius: 6px;
-  font-size: 11.5px;
-  font-weight: 500;
-  border: 1px solid transparent;
-  background: #f9fafb;
-  color: #6b7280;
-  cursor: pointer;
-  transition: all 0.12s ease;
-}
-
-.chart-tab-pill.active {
-  background-color: #fff7ed;
-  border-color: #fed7aa;
-  color: #ea580c;
-  font-weight: 600;
-}
-
-/* 5. ATTENDANCE & CHECK-INS CARD */
-.checkin-progress-hero {
-  background: #f9fafb;
-  border: 1px solid #f0f1f3;
-  border-radius: 12px;
-  padding: 14px 16px;
-  margin-bottom: 16px;
-}
-
-.checkin-hero-numbers {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 8px;
-}
-
-.checkin-hero-left {
-  font-size: 22px;
-  font-weight: 700;
-  color: #111827;
-}
-
-.checkin-hero-right {
-  font-size: 12px;
-  color: #6b7280;
-}
-
-.checkin-progress-track {
-  width: 100%;
-  height: 8px;
-  background-color: #e5e7eb;
-  border-radius: 999px;
-  overflow: hidden;
-  display: flex;
-}
-
-.checkin-progress-fill {
-  height: 100%;
-  background-color: #16a34a;
-  border-radius: 999px;
-  transition: width 0.3s ease;
-}
-
-.checkin-breakdown-row {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
-}
-
-.checkin-chip-card {
-  padding: 10px 12px;
-  border-radius: 10px;
-  border: 1px solid #f0f1f3;
-  background: #ffffff;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-}
-
-.checkin-chip-label {
-  font-size: 11px;
-  color: #6b7280;
-  font-weight: 500;
-}
-
-.checkin-chip-val {
-  font-size: 16px;
-  font-weight: 700;
-  color: #111827;
-}
 
 /* 3. UPCOMING & LIVE EVENTS */
 .live-event-banner {
