@@ -1,9 +1,0 @@
-[build]
-  base = "Events-Host-Dashboard"
-  publish = "Events-Host-Dashboard/build"
-  command = "CI=false npm run build"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
