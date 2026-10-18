@@ -4,6 +4,9 @@ import {
   ResponsiveContainer,
   AreaChart,
   Area,
+  BarChart,
+  Bar,
+  Cell,
   XAxis,
   YAxis,
   Tooltip,
@@ -41,19 +44,21 @@ import { useRegistrations } from '../../hooks/useRegistrations';
 import { currency } from '../../utils/formatters';
 import './Dashboard.css';
 
-// Custom dark tooltip for Cashflow chart matching Image 2
+// Custom dark tooltip for Revenue bar chart matching Image design
 const CustomCashflowTooltip = ({ active, payload }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
     return (
       <div className="cashflow-dark-tooltip">
-        <div className="tooltip-date-header">{data.fullDate || data.name}</div>
+        <div className="tooltip-date-header">{data.fullDate || `Day ${data.name}`}</div>
         <div className="tooltip-data-row">
-          <span className="tooltip-dot" />
-          <span className="tooltip-amount">{data.displayAmt || currency(data.amount)}</span>
-          <span className="tooltip-growth">
-            <ArrowUpRight size={12} /> {data.growth || '+22.7%'}
-          </span>
+          <span className="tooltip-dot" style={{ backgroundColor: '#5457ff' }} />
+          <span className="tooltip-amount">{currency(data.amount)}</span>
+          {data.growth && (
+            <span className="tooltip-growth">
+              <ArrowUpRight size={12} /> {data.growth}
+            </span>
+          )}
         </div>
       </div>
     );
@@ -83,11 +88,12 @@ const Dashboard = () => {
   });
   const [openCardDropdown, setOpenCardDropdown] = useState(null);
 
-  // Cashflow & Revenue Analytics state (Image 2 style)
-  const [cashflowPeriod, setCashflowPeriod] = useState('12 Months'); // '7 Days' | '30 Days' | '12 Months' | '5 Years' | '10 Years' | 'Custom'
+  // Revenue Analytics state (Default: 'This Month' with single day showing bar)
+  const [cashflowPeriod, setCashflowPeriod] = useState('This Month');
+  const [selectedBarIndex, setSelectedBarIndex] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [customStartDate, setCustomStartDate] = useState('2026-01-01');
-  const [customEndDate, setCustomEndDate] = useState('2026-12-31');
+  const [customStartDate, setCustomStartDate] = useState('2026-10-01');
+  const [customEndDate, setCustomEndDate] = useState('2026-10-31');
 
   // 1. Overview Calculated Data
   const totalCalculatedRevenue = analytics.totalRevenue > 0 ? analytics.totalRevenue : 842500;
@@ -112,56 +118,76 @@ const Dashboard = () => {
     { v: 8 }, { v: 12 }, { v: 10 }, { v: 16 }, { v: 14 }, { v: 20 }, { v: 18 }, { v: 22 }, { v: 25 }, { v: 22 }, { v: 26 }, { v: 24 }, { v: 30 }
   ], []);
 
-  // 2. Revenue Analytics Data (Image 2 style with original Host Revenue scale)
+  // 2. Revenue Analytics Bar Data (Capsule bar graph with single day showing bar by default)
   const cashflowDataMap = useMemo(() => ({
-    '12 Months': [
-      { name: 'Jan', amount: 145000, displayAmt: '₹1.45L', growth: '+12.4%', fullDate: 'Jan 15' },
-      { name: 'Feb', amount: 180000, displayAmt: '₹1.80L', growth: '+14.2%', fullDate: 'Feb 18' },
-      { name: 'Mar', amount: 210000, displayAmt: '₹2.10L', growth: '+16.0%', fullDate: 'Mar 12' },
-      { name: 'Apr', amount: 245000, displayAmt: '₹2.45L', growth: '+15.5%', fullDate: 'Apr 20' },
-      { name: 'May', amount: 198000, displayAmt: '₹1.98L', growth: '+11.2%', fullDate: 'May 10' },
-      { name: 'Jun', amount: 280000, displayAmt: '₹2.80L', growth: '+18.4%', fullDate: 'Jun 05' },
-      { name: 'Jun 13', amount: 340000, displayAmt: '₹3.40L', growth: '+22.7%', fullDate: 'Jun 13' },
-      { name: 'Jul', amount: 420000, displayAmt: '₹4.20L', growth: '+25.1%', fullDate: 'Jul 22' },
-      { name: 'Aug', amount: 510000, displayAmt: '₹5.10L', growth: '+28.6%', fullDate: 'Aug 16' },
-      { name: 'Sep', amount: 480000, displayAmt: '₹4.80L', growth: '+20.3%', fullDate: 'Sep 19' },
-      { name: 'Oct', amount: 650000, displayAmt: '₹6.50L', growth: '+31.4%', fullDate: 'Oct 14' },
-      { name: 'Nov', amount: 780000, displayAmt: '₹7.80L', growth: '+36.8%', fullDate: 'Nov 11' },
-      { name: 'Dec', amount: 842500, displayAmt: '₹8.42L', growth: '+42.0%', fullDate: 'Dec 28' },
+    'This Month': [
+      { name: '1', amount: 18500, fullDate: 'Oct 01, 2026', day: 'Thu', growth: '+8.2%' },
+      { name: '2', amount: 22000, fullDate: 'Oct 02, 2026', day: 'Fri', growth: '+10.4%' },
+      { name: '3', amount: 19400, fullDate: 'Oct 03, 2026', day: 'Sat', growth: '+7.8%' },
+      { name: '4', amount: 31000, fullDate: 'Oct 04, 2026', day: 'Sun', growth: '+15.2%' },
+      { name: '5', amount: 24500, fullDate: 'Oct 05, 2026', day: 'Mon', growth: '+11.0%' },
+      { name: '6', amount: 16800, fullDate: 'Oct 06, 2026', day: 'Tue', growth: '+6.5%' },
+      { name: '7', amount: 28000, fullDate: 'Oct 07, 2026', day: 'Wed', growth: '+12.8%' },
+      { name: '8', amount: 35200, fullDate: 'Oct 08, 2026', day: 'Thu', growth: '+16.5%' },
+      { name: '9', amount: 29000, fullDate: 'Oct 09, 2026', day: 'Fri', growth: '+13.2%' },
+      { name: '10', amount: 42500, fullDate: 'Oct 10, 2026', day: 'Sat', growth: '+19.4%' },
+      { name: '11', amount: 38000, fullDate: 'Oct 11, 2026', day: 'Sun', growth: '+17.0%' },
+      { name: '12', amount: 25400, fullDate: 'Oct 12, 2026', day: 'Mon', growth: '+11.5%' },
+      { name: '13', amount: 33800, fullDate: 'Oct 13, 2026', day: 'Tue', growth: '+15.0%' },
+      { name: '14', amount: 46000, fullDate: 'Oct 14, 2026', day: 'Wed', growth: '+21.2%' },
+      { name: '15', amount: 52000, fullDate: 'Oct 15, 2026', day: 'Thu', growth: '+24.5%' },
+      { name: '16', amount: 39500, fullDate: 'Oct 16, 2026', day: 'Fri', growth: '+17.8%' },
+      { name: '17', amount: 44200, fullDate: 'Oct 17, 2026', day: 'Sat', growth: '+20.1%' },
+      { name: '18', amount: 68500, fullDate: 'Oct 18, 2026', day: 'Sun', growth: '+31.4%', isPeak: true },
+      { name: '19', amount: 34000, fullDate: 'Oct 19, 2026', day: 'Mon', growth: '+15.6%' },
+      { name: '20', amount: 28500, fullDate: 'Oct 20, 2026', day: 'Tue', growth: '+12.4%' },
+      { name: '21', amount: 37200, fullDate: 'Oct 21, 2026', day: 'Wed', growth: '+16.8%' },
+      { name: '22', amount: 41000, fullDate: 'Oct 22, 2026', day: 'Thu', growth: '+18.9%' },
+      { name: '23', amount: 30500, fullDate: 'Oct 23, 2026', day: 'Fri', growth: '+13.5%' },
+      { name: '24', amount: 26000, fullDate: 'Oct 24, 2026', day: 'Sat', growth: '+11.2%' },
+      { name: '25', amount: 35000, fullDate: 'Oct 25, 2026', day: 'Sun', growth: '+15.8%' },
+      { name: '26', amount: 29800, fullDate: 'Oct 26, 2026', day: 'Mon', growth: '+13.1%' },
+      { name: '27', amount: 33000, fullDate: 'Oct 27, 2026', day: 'Tue', growth: '+14.9%' },
+      { name: '28', amount: 27500, fullDate: 'Oct 28, 2026', day: 'Wed', growth: '+12.0%' },
+      { name: '29', amount: 24000, fullDate: 'Oct 29, 2026', day: 'Thu', growth: '+10.5%' },
+      { name: '30', amount: 21500, fullDate: 'Oct 30, 2026', day: 'Fri', growth: '+9.2%' },
+      { name: '31', amount: 18500, fullDate: 'Oct 31, 2026', day: 'Sat', growth: '+8.0%' },
     ],
-    '5 Years': [
-      { name: '2022', amount: 240000, displayAmt: '₹2.40L', growth: '+15.0%', fullDate: 'Year 2022' },
-      { name: '2023', amount: 380000, displayAmt: '₹3.80L', growth: '+22.5%', fullDate: 'Year 2023' },
-      { name: '2024', amount: 540000, displayAmt: '₹5.40L', growth: '+28.0%', fullDate: 'Year 2024' },
-      { name: '2025', amount: 710000, displayAmt: '₹7.10L', growth: '+33.4%', fullDate: 'Year 2025' },
-      { name: '2026', amount: 842500, displayAmt: '₹8.42L', growth: '+41.0%', fullDate: 'Year 2026' },
+    'This Week': [
+      { name: 'Sun', amount: 45000, fullDate: 'Sunday, Oct 11', growth: '+8.2%' },
+      { name: 'Mon', amount: 62000, fullDate: 'Monday, Oct 12', growth: '+12.4%' },
+      { name: 'Tue', amount: 58000, fullDate: 'Tuesday, Oct 13', growth: '+10.8%' },
+      { name: 'Wed', amount: 89000, fullDate: 'Wednesday, Oct 14', growth: '+24.5%', isPeak: true },
+      { name: 'Thu', amount: 52000, fullDate: 'Thursday, Oct 15', growth: '+9.5%' },
+      { name: 'Fri', amount: 74000, fullDate: 'Friday, Oct 16', growth: '+16.2%' },
+      { name: 'Sat', amount: 38000, fullDate: 'Saturday, Oct 17', growth: '+6.1%' },
     ],
-    '10 Years': [
-      { name: '2017', amount: 80000, displayAmt: '₹80k', growth: '+10.0%', fullDate: 'Year 2017' },
-      { name: '2019', amount: 160000, displayAmt: '₹1.60L', growth: '+16.0%', fullDate: 'Year 2019' },
-      { name: '2021', amount: 320000, displayAmt: '₹3.20L', growth: '+24.0%', fullDate: 'Year 2021' },
-      { name: '2023', amount: 510000, displayAmt: '₹5.10L', growth: '+30.5%', fullDate: 'Year 2023' },
-      { name: '2025', amount: 720000, displayAmt: '₹7.20L', growth: '+36.0%', fullDate: 'Year 2025' },
-      { name: '2026', amount: 842500, displayAmt: '₹8.42L', growth: '+42.0%', fullDate: 'Year 2026' },
+    'Last Month': [
+      { name: '1', amount: 16000, fullDate: 'Sep 01, 2026', growth: '+7.5%' },
+      { name: '5', amount: 22000, fullDate: 'Sep 05, 2026', growth: '+9.8%' },
+      { name: '10', amount: 34000, fullDate: 'Sep 10, 2026', growth: '+14.2%' },
+      { name: '15', amount: 48000, fullDate: 'Sep 15, 2026', growth: '+21.0%' },
+      { name: '20', amount: 39000, fullDate: 'Sep 20, 2026', growth: '+17.4%' },
+      { name: '25', amount: 56000, fullDate: 'Sep 25, 2026', growth: '+26.0%', isPeak: true },
+      { name: '30', amount: 28000, fullDate: 'Sep 30, 2026', growth: '+12.5%' },
     ],
-    '30 Days': [
-      { name: 'Week 1', amount: 145000, displayAmt: '₹1.45L', growth: '+12.0%', fullDate: 'Week 1' },
-      { name: 'Week 2', amount: 210000, displayAmt: '₹2.10L', growth: '+15.4%', fullDate: 'Week 2' },
-      { name: 'Week 3', amount: 198000, displayAmt: '₹1.98L', growth: '+13.8%', fullDate: 'Week 3' },
-      { name: 'Week 4', amount: 289500, displayAmt: '₹2.90L', growth: '+21.5%', fullDate: 'Week 4' },
-    ],
-    '7 Days': [
-      { name: 'Mon', amount: 35000, displayAmt: '₹35k', growth: '+8.2%', fullDate: 'Monday' },
-      { name: 'Tue', amount: 48000, displayAmt: '₹48k', growth: '+12.0%', fullDate: 'Tuesday' },
-      { name: 'Wed', amount: 42000, displayAmt: '₹42k', growth: '+10.5%', fullDate: 'Wednesday' },
-      { name: 'Thu', amount: 65000, displayAmt: '₹65k', growth: '+17.2%', fullDate: 'Thursday' },
-      { name: 'Fri', amount: 98000, displayAmt: '₹98k', growth: '+24.8%', fullDate: 'Friday' },
-      { name: 'Sat', amount: 145000, displayAmt: '₹1.45L', growth: '+32.0%', fullDate: 'Saturday' },
-      { name: 'Sun', amount: 185000, displayAmt: '₹1.85L', growth: '+38.5%', fullDate: 'Sunday' },
+    'This Year': [
+      { name: 'Jan', amount: 145000, fullDate: 'January 2026', growth: '+12.4%' },
+      { name: 'Feb', amount: 180000, fullDate: 'February 2026', growth: '+14.2%' },
+      { name: 'Mar', amount: 210000, fullDate: 'March 2026', growth: '+16.0%' },
+      { name: 'Apr', amount: 245000, fullDate: 'April 2026', growth: '+15.5%' },
+      { name: 'May', amount: 198000, fullDate: 'May 2026', growth: '+11.2%' },
+      { name: 'Jun', amount: 280000, fullDate: 'June 2026', growth: '+18.4%' },
+      { name: 'Jul', amount: 420000, fullDate: 'July 2026', growth: '+25.1%' },
+      { name: 'Aug', amount: 510000, fullDate: 'August 2026', growth: '+28.6%' },
+      { name: 'Sep', amount: 480000, fullDate: 'September 2026', growth: '+20.3%' },
+      { name: 'Oct', amount: 650000, fullDate: 'October 2026', growth: '+31.4%', isPeak: true },
+      { name: 'Nov', amount: 780000, fullDate: 'November 2026', growth: '+36.8%' },
+      { name: 'Dec', amount: 842500, fullDate: 'December 2026', growth: '+42.0%' },
     ],
   }), []);
 
-  const activeCashflowData = cashflowDataMap[cashflowPeriod] || cashflowDataMap['12 Months'];
+  const activeCashflowData = cashflowDataMap[cashflowPeriod] || cashflowDataMap['This Month'];
 
   const getCashflowHeadline = () => {
     return currency(totalCalculatedRevenue);
@@ -604,26 +630,29 @@ const Dashboard = () => {
         </section>
 
         {/* =========================================================================
-            SECTION 2: CASHFLOW / REVENUE ANALYTICS (Exact Replication of Image 2)
-            With single line graph and comprehensive date filters
+            SECTION 2: REVENUE ANALYTICS (Pill Capsule Bar Graph matching reference image)
+            Default filter: 'This Month' with single day showing bars
             ========================================================================= */}
-        <section className="cashflow-analytics-card" aria-label="Cashflow and Revenue Analytics">
+        <section className="cashflow-analytics-card" aria-label="Revenue Analytics">
           <div className="cashflow-card-header">
             <div className="cashflow-title-group">
               <div className="cashflow-icon-box">
                 <Landmark size={18} />
               </div>
-              <span className="cashflow-title-text">Cashflow</span>
+              <span className="cashflow-title-text">Revenue Analytics</span>
             </div>
 
             <div className="cashflow-controls-group">
-              {/* Preset Period Pills from Image 2 */}
+              {/* Preset Period Pills */}
               <div className="cashflow-period-pills">
-                {['12 Months', '5 Years', '10 Years'].map((period) => (
+                {['This Month', 'This Week', 'Last Month', 'This Year'].map((period) => (
                   <button
                     key={period}
                     className={`cashflow-pill-btn ${cashflowPeriod === period ? 'active' : ''}`}
-                    onClick={() => setCashflowPeriod(period)}
+                    onClick={() => {
+                      setCashflowPeriod(period);
+                      setSelectedBarIndex(null);
+                    }}
                   >
                     {period}
                   </button>
@@ -644,12 +673,13 @@ const Dashboard = () => {
                 {showDatePicker && (
                   <div className="cashflow-date-menu">
                     <div className="date-menu-header">Date Filter Range</div>
-                    {['7 Days', '30 Days', '12 Months', '5 Years', '10 Years', 'Custom Range'].map((p) => (
+                    {['This Month', 'This Week', 'Last Month', 'This Year', 'Custom Range'].map((p) => (
                       <button
                         key={p}
                         className={`date-menu-option ${cashflowPeriod === p ? 'selected' : ''}`}
                         onClick={() => {
                           setCashflowPeriod(p);
+                          setSelectedBarIndex(null);
                           if (p !== 'Custom Range') setShowDatePicker(false);
                         }}
                       >
@@ -689,28 +719,23 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Big Headline Metric and Single Line Legend */}
+          {/* Big Headline Metric and Single Bar Legend */}
           <div className="cashflow-subhead-row">
-            <div className="cashflow-big-headline">{getCashflowHeadline(cashflowPeriod)}</div>
+            <div className="cashflow-big-headline">{getCashflowHeadline()}</div>
             <div className="cashflow-single-legend">
-              <span className="legend-ring-dot" />
-              <span>Revenue</span>
+              <span className="legend-ring-dot" style={{ borderColor: '#5457ff', backgroundColor: '#5457ff' }} />
+              <span>{cashflowPeriod === 'This Week' ? 'Weekly Daily Revenue' : 'Daily Revenue (This Month)'}</span>
             </div>
           </div>
 
-          {/* Single Line Graph with smooth curve & soft area fill */}
-          <div className="cashflow-chart-wrapper" style={{ width: '100%', height: 280 }}>
+          {/* Pill Capsule Bar Chart (Matching user reference image) */}
+          <div className="cashflow-chart-wrapper" style={{ width: '100%', height: 260 }}>
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart
+              <BarChart
                 data={activeCashflowData}
                 margin={{ top: 15, right: 15, left: -10, bottom: 0 }}
+                barCategoryGap={cashflowPeriod === 'This Week' ? '25%' : '14%'}
               >
-                <defs>
-                  <linearGradient id="cashflowGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity={0.14} />
-                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.0} />
-                  </linearGradient>
-                </defs>
                 <CartesianGrid
                   strokeDasharray="3 3"
                   vertical={false}
@@ -720,33 +745,8 @@ const Dashboard = () => {
                   dataKey="name"
                   axisLine={false}
                   tickLine={false}
-                  tick={({ x, y, payload }) => {
-                    const isHighlight = payload.value === 'Jun 13';
-                    return (
-                      <g transform={`translate(${x},${y})`}>
-                        {isHighlight && (
-                          <rect
-                            x={-24}
-                            y={6}
-                            width={48}
-                            height={20}
-                            rx={5}
-                            fill="#f1f5f9"
-                          />
-                        )}
-                        <text
-                          x={0}
-                          y={isHighlight ? 20 : 18}
-                          textAnchor="middle"
-                          fill={isHighlight ? '#0f172a' : '#94a3b8'}
-                          fontSize={isHighlight ? 12 : 11}
-                          fontWeight={isHighlight ? 600 : 400}
-                        >
-                          {payload.value}
-                        </text>
-                      </g>
-                    );
-                  }}
+                  tick={{ fontSize: 11.5, fill: '#64748b', fontWeight: 500 }}
+                  interval={0}
                 />
                 <YAxis
                   axisLine={false}
@@ -761,22 +761,32 @@ const Dashboard = () => {
                 />
                 <Tooltip
                   content={<CustomCashflowTooltip />}
-                  cursor={{ stroke: '#cbd5e1', strokeWidth: 1, strokeDasharray: '3 3' }}
+                  cursor={{ fill: 'rgba(241, 243, 253, 0.45)', radius: 10 }}
                 />
-                <Area
-                  type="monotone"
+                <Bar
                   dataKey="amount"
-                  stroke="#3b82f6"
-                  strokeWidth={2.5}
-                  fill="url(#cashflowGrad)"
-                  activeDot={{
-                    r: 6,
-                    fill: '#ffffff',
-                    stroke: '#3b82f6',
-                    strokeWidth: 3,
-                  }}
-                />
-              </AreaChart>
+                  radius={[20, 20, 20, 20]}
+                  barSize={cashflowPeriod === 'This Week' ? 36 : 14}
+                  cursor="pointer"
+                  onClick={(_, index) => setSelectedBarIndex(index)}
+                >
+                  {activeCashflowData.map((entry, index) => {
+                    const isSelected = selectedBarIndex !== null
+                      ? selectedBarIndex === index
+                      : (entry.isPeak || (cashflowPeriod === 'This Week' && entry.name === 'Wed'));
+                    return (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={isSelected ? '#5457ff' : '#edeefc'}
+                        style={{
+                          transition: 'all 0.2s ease',
+                          outline: 'none',
+                        }}
+                      />
+                    );
+                  })}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </section>

@@ -532,9 +532,17 @@
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 2px solid #3b82f6;
-  background-color: #ffffff;
+  border: 2px solid #5457ff;
+  background-color: #5457ff;
   display: inline-block;
+}
+
+.capsule-bar-cell {
+  transition: fill 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.capsule-bar-cell:hover {
+  fill: #5457ff !important;
 }
 
 /* Custom dark hover tooltip from Image 2 */
