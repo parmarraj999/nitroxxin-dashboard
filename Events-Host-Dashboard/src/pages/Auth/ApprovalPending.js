@@ -138,6 +138,12 @@ const ApprovalPending = () => {
 
   return (
     <div className="approval-pending-page">
+      <div style={{ width: '100%', maxWidth: '660px', display: 'flex', justifyContent: 'center', marginBottom: '20px' }}>
+        <Link to="/explore" className="auth-brand-link">
+          <span className="brand-dot" />
+          <span>Nitroxx Events</span>
+        </Link>
+      </div>
       <div className="approval-card-wrapper">
 
         {/* 1. STATUS BADGE ICON */}

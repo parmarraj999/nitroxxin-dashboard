@@ -194,6 +194,80 @@ export const ensureHostProfileFromApplication = async (uid, appData) => {
   }
 };
 
+export const validateHostUniqueness = async ({ email, panNumber, gstNumber, excludeUid = null }) => {
+  const errors = {};
+
+  const cleanEmail = email?.trim().toLowerCase();
+  const cleanPan = panNumber?.trim().toUpperCase();
+  const cleanGst = gstNumber?.trim().toUpperCase();
+
+  // 1. Check Email uniqueness across applications, hosts, and users
+  if (cleanEmail) {
+    try {
+      const [appSnap, hostSnap, userSnap] = await Promise.all([
+        getDocs(query(collection(db, collections.host_applications), where('email', '==', cleanEmail))),
+        getDocs(query(collection(db, collections.event_host), where('email', '==', cleanEmail))),
+        getDocs(query(collection(db, collections.users), where('email', '==', cleanEmail))),
+      ]);
+
+      const isDuplicate = [appSnap, hostSnap, userSnap].some((snap) =>
+        snap.docs.some((d) => d.id !== excludeUid && d.data()?.uid !== excludeUid)
+      );
+
+      if (isDuplicate) {
+        errors.email = `An account or application with email "${cleanEmail}" already exists.`;
+      }
+    } catch (e) {
+      console.warn('Email uniqueness check:', e);
+    }
+  }
+
+  // 2. Check PAN uniqueness across applications and hosts
+  if (cleanPan) {
+    try {
+      const [appSnap, hostSnap] = await Promise.all([
+        getDocs(query(collection(db, collections.host_applications), where('panNumber', '==', cleanPan))),
+        getDocs(query(collection(db, collections.event_host), where('panNumber', '==', cleanPan))),
+      ]);
+
+      const isDuplicate = [appSnap, hostSnap].some((snap) =>
+        snap.docs.some((d) => d.id !== excludeUid && d.data()?.uid !== excludeUid)
+      );
+
+      if (isDuplicate) {
+        errors.panNumber = `PAN number "${cleanPan}" is already registered with another host account.`;
+      }
+    } catch (e) {
+      console.warn('PAN uniqueness check:', e);
+    }
+  }
+
+  // 3. Check GST uniqueness if provided
+  if (cleanGst) {
+    try {
+      const [appSnap, hostSnap] = await Promise.all([
+        getDocs(query(collection(db, collections.host_applications), where('gstNumber', '==', cleanGst))),
+        getDocs(query(collection(db, collections.event_host), where('gstNumber', '==', cleanGst))),
+      ]);
+
+      const isDuplicate = [appSnap, hostSnap].some((snap) =>
+        snap.docs.some((d) => d.id !== excludeUid && d.data()?.uid !== excludeUid)
+      );
+
+      if (isDuplicate) {
+        errors.gstNumber = `GST number "${cleanGst}" is already registered with another host account.`;
+      }
+    } catch (e) {
+      console.warn('GST uniqueness check:', e);
+    }
+  }
+
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors,
+  };
+};
+
 export const signUpWithEmail = async ({
   fullName,
   email,
@@ -207,6 +281,18 @@ export const signUpWithEmail = async ({
   documents = [],
   docFile = null,
 }) => {
+  // Validate email, pan, and gst uniqueness before creating account
+  const uniqueness = await validateHostUniqueness({
+    email,
+    panNumber,
+    gstNumber,
+  });
+
+  if (!uniqueness.isValid) {
+    const firstErrorMessage = Object.values(uniqueness.errors)[0];
+    throw new Error(firstErrorMessage);
+  }
+
   const credential = await createUserWithEmailAndPassword(auth, email, password);
   if (fullName) {
     await updateProfile(credential.user, { displayName: fullName }).catch(() => {});
@@ -484,6 +570,29 @@ export const subscribeToEvent = (eventId, callback, onError) =>
   );
 
 export const createEvent = async (event) => {
+  if (event.hostId) {
+    try {
+      const hostDoc = await getDoc(doc(db, collections.event_host, event.hostId));
+      if (hostDoc.exists()) {
+        const hostData = hostDoc.data();
+        const uniqueness = await validateHostUniqueness({
+          email: hostData.email,
+          panNumber: hostData.panNumber,
+          gstNumber: hostData.gstNumber,
+          excludeUid: event.hostId,
+        });
+        if (!uniqueness.isValid) {
+          const firstErr = Object.values(uniqueness.errors)[0];
+          throw new Error(`Host verification conflict: ${firstErr}`);
+        }
+      }
+    } catch (e) {
+      if (e.message && e.message.includes('Host verification conflict:')) {
+        throw e;
+      }
+    }
+  }
+
   const eventRef = await addDoc(
     collection(db, collections.events),
     timestamped(

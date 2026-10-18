@@ -14,6 +14,7 @@ import {
   Lock 
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { validateHostUniqueness } from '../../services/firebaseService';
 import './Auth.css';
 
 const STEPS = [
@@ -62,7 +63,7 @@ const Signup = () => {
   };
 
   // Step validation before moving to next step
-  const handleNextStep = (e) => {
+  const handleNextStep = async (e) => {
     if (e) e.preventDefault();
     setError('');
 
@@ -101,6 +102,26 @@ const Signup = () => {
         setError('Please enter a valid 10-character PAN number.');
         return;
       }
+
+      setLoading(true);
+      try {
+        const uniqueness = await validateHostUniqueness({
+          panNumber: form.panNumber,
+          gstNumber: form.gstNumber,
+        });
+
+        if (!uniqueness.isValid) {
+          const firstErr = Object.values(uniqueness.errors)[0];
+          setError(firstErr);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.warn('PAN/GST uniqueness check note:', err);
+      } finally {
+        setLoading(false);
+      }
+
       setCurrentStep(4);
       return;
     }
