@@ -16,6 +16,7 @@ import Analytics from './pages/EventPlatform/Analytics';
 import Profile from './pages/EventPlatform/Profile';
 import Unauthorized from './pages/System/Unauthorized';
 import NotFound from './pages/System/NotFound';
+import ApprovalPending from './pages/Auth/ApprovalPending';
 import './App.css';
 
 function App() {
@@ -28,6 +29,7 @@ function App() {
               <Route path="/" element={<Navigate to="/explore" replace />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
+              <Route path="/approval-pending" element={<ApprovalPending />} />
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/unauthorized" element={<Unauthorized />} />
               <Route path="/events-preview" element={<EventList />} />

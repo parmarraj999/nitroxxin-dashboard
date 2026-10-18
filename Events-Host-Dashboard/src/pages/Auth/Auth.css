@@ -1,175 +1,548 @@
-.auth-page {
-  min-height: 100vh;
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  background: #0f172a;
-}
+/* =========================================================================
+   Nitroxx Host Authentication & Step Progress Flow
+   Matches Reference Design with Side Progress Bar & Background Image
+   ========================================================================= */
 
-.auth-visual {
+.auth-split-wrapper {
+  min-height: 100vh;
+  width: 100%;
+  background-color: #f8fafc;
+  background-image: url('../../assets/images/auth-bg.jpg');
+  background-repeat: no-repeat;
+  background-position: center center;
+  background-attachment: fixed;
+  background-size: cover;
   display: flex;
   flex-direction: column;
-  justify-content: flex-end;
-  padding: 56px;
-  color: #fff;
-  background:
-    linear-gradient(rgba(15, 23, 42, 0.4), rgba(15, 23, 42, 0.92)),
-    url('https://images.unsplash.com/photo-1519750157634-b6d493a0f77c?auto=format&fit=crop&w=1400&q=80') center/cover;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 24px;
+  box-sizing: border-box;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  color: #0f172a;
 }
 
-.auth-visual h1 {
-  font-size: 44px;
-  max-width: 620px;
+.auth-split-container {
+  width: 100%;
+  max-width: 980px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
 }
 
-.auth-visual p {
-  margin-top: 14px;
-  max-width: 560px;
-  color: #cbd5e1;
-  line-height: 1.7;
+/* 1. TOP HEADER */
+.auth-split-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.auth-panel {
+.auth-brand-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  color: #0f172a;
+  font-weight: 700;
+  font-size: 18px;
+  letter-spacing: -0.02em;
+}
+
+.brand-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #f97316;
+}
+
+.auth-header-action {
+  font-size: 13.5px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.auth-header-action a {
+  color: #0f172a;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.auth-header-action a:hover {
+  text-decoration: underline;
+}
+
+/* 2. SPLIT BODY: SIDEBAR + MAIN CONTENT */
+.auth-split-body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  gap: 64px;
+  align-items: flex-start;
+  width: 100%;
+}
+
+/* 3. LEFT COLUMN: VERTICAL STEP PROGRESS BAR */
+.auth-sidebar-progress {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.sidebar-progress-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: #64748b;
+  letter-spacing: 0.01em;
+  margin: 0;
+}
+
+.step-progress-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  position: relative;
+}
+
+.step-progress-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  position: relative;
+  padding-bottom: 30px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.step-progress-item:last-child {
+  padding-bottom: 0;
+}
+
+/* Vertical connecting line between indicators */
+.step-connector-line {
+  position: absolute;
+  top: 24px;
+  left: 11px;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+  z-index: 1;
+}
+
+.step-progress-item.completed .step-connector-line {
+  background: #22c55e;
+}
+
+/* Step Indicator Icon Badges */
+.step-indicator {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 32px;
-  background: #f8fafc;
+  flex-shrink: 0;
+  position: relative;
+  z-index: 2;
+  font-size: 11.5px;
+  font-weight: 600;
+  transition: all 0.25s ease;
 }
 
-.auth-card {
-  width: min(460px, 100%);
-  background: #fff;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-md);
-  padding: 28px;
-  box-shadow: var(--shadow-lg);
+/* Completed: Green circle with white check */
+.step-indicator.completed {
+  background: #22c55e;
+  color: #ffffff;
 }
 
-.auth-card h2 {
-  font-size: 28px;
-  color: var(--text-main);
+/* Active: Glowing blue radial spinner / burst icon */
+.step-indicator.active {
+  background: #ffffff;
+  color: #2563eb;
+  border: 2px solid #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
-.auth-card > p {
-  margin-top: 8px;
-  color: var(--text-muted);
+.step-indicator.active .active-spinner-icon {
+  animation: spinStep 4s linear infinite;
 }
 
-.form-grid {
-  display: grid;
-  gap: 14px;
-  margin-top: 22px;
+@keyframes spinStep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }
 
-.form-grid.two {
-  grid-template-columns: 1fr 1fr;
+/* Pending: Gray outlined circle with number */
+.step-indicator.pending {
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  color: #94a3b8;
 }
 
-.form-field {
-  display: grid;
-  gap: 7px;
+/* Step Label Text */
+.step-label-box {
+  display: flex;
+  flex-direction: column;
+  padding-top: 2px;
 }
 
-.form-field label {
-  color: var(--text-main);
-  font-size: 13px;
+.step-label {
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  transition: color 0.2s ease;
+}
+
+.step-progress-item.active .step-label {
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.step-progress-item.completed .step-label {
+  color: #0f172a;
+}
+
+/* 4. RIGHT COLUMN: MAIN PANEL */
+.auth-main-panel {
+  display: flex;
+  flex-direction: column;
+  max-width: 580px;
+}
+
+.panel-header-section {
+  margin-bottom: 28px;
+}
+
+.panel-main-title {
+  font-size: 30px;
   font-weight: 700;
+  letter-spacing: -0.025em;
+  color: #0f172a;
+  line-height: 1.25;
+  margin: 0 0 10px;
 }
 
-.form-field input,
-.form-field textarea,
-.form-field select {
-  width: 100%;
-  border: 1px solid var(--border-color);
-  border-radius: var(--radius-sm);
-  padding: 11px 12px;
-  font: inherit;
-  color: var(--text-main);
-  background: #fff;
+.panel-subtitle-label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #64748b;
+  margin: 0;
 }
 
-.form-field textarea {
-  min-height: 110px;
-  resize: vertical;
+/* Radio Selection Cards (Exact match to reference image) */
+.selection-cards-group {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 28px;
 }
 
-.primary-btn,
-.secondary-btn,
-.danger-btn,
-.ghost-btn {
-  display: inline-flex;
+.selection-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.selection-card:hover {
+  border-color: #cbd5e1;
+  background: #fafafa;
+}
+
+.selection-card.selected {
+  border: 2px solid #2563eb;
+  background: #ffffff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.08);
+}
+
+.selection-radio-circle {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid #cbd5e1;
+  display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  min-height: 40px;
-  border-radius: var(--radius-sm);
-  padding: 10px 14px;
-  font-weight: 700;
+  margin-top: 2px;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.primary-btn {
-  background: var(--primary-orange);
-  color: #fff;
+.selection-card.selected .selection-radio-circle {
+  border-color: #2563eb;
+  background: #2563eb;
 }
 
-.secondary-btn {
-  background: var(--primary-blue);
-  color: #fff;
+.selection-radio-inner-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffffff;
 }
 
-.danger-btn {
-  background: var(--danger);
-  color: #fff;
+.selection-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
 }
 
-.ghost-btn {
-  border: 1px solid var(--border-color);
-  background: #fff;
-  color: var(--text-main);
+.selection-card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #0f172a;
 }
 
-.auth-links {
+.selection-card-desc {
+  font-size: 13px;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+/* Form Fields for Step 2, 3, 4 */
+.auth-step-form {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-bottom: 28px;
+}
+
+.form-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.auth-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: left;
+}
+
+.auth-field-group label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #334155;
+  letter-spacing: 0.01em;
+}
+
+.auth-field-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.auth-field-wrapper .field-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.auth-field-wrapper input {
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 11px 14px 11px 40px;
+  font-size: 14px;
+  color: #0f172a;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+  font-family: inherit;
+}
+
+.auth-field-wrapper.no-icon input {
+  padding-left: 14px;
+}
+
+.auth-field-wrapper input:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+/* File Upload Card in Step 3 */
+.auth-upload-card {
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 16px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.auth-upload-card:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.auth-upload-card input[type="file"] {
+  display: none;
+}
+
+.upload-text-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.upload-text-box strong {
+  color: #0f172a;
+}
+
+/* Step 4 Review Summary Box */
+.review-summary-card {
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  font-size: 13.5px;
+}
+
+.review-summary-row {
   display: flex;
   justify-content: space-between;
-  gap: 10px;
-  margin-top: 16px;
-  color: var(--primary-blue);
-  font-weight: 700;
+  align-items: center;
+  border-bottom: 1px solid #f1f5f9;
+  padding-bottom: 8px;
+}
+
+.review-summary-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.review-key {
+  color: #64748b;
+  font-weight: 500;
+}
+
+.review-val {
+  color: #0f172a;
+  font-weight: 600;
+}
+
+/* Alert Notification */
+.auth-status-alert {
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 13.5px;
+  margin-bottom: 20px;
+  text-align: left;
+}
+
+.auth-status-alert.error {
+  background: #fef2f2;
+  border: 1px solid #fee2e2;
+  color: #b91c1c;
+}
+
+/* 5. ACTION BUTTON ROW (Black pill button matching reference) */
+.auth-action-btn-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.btn-continue-black {
+  background: #09090b;
+  color: #ffffff;
+  border: none;
+  border-radius: 8px;
+  padding: 11px 22px;
   font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
-.alert {
-  border-radius: var(--radius-sm);
-  padding: 11px 12px;
-  margin-top: 16px;
-  line-height: 1.5;
+.btn-continue-black:hover:not(:disabled) {
+  background: #18181b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
 }
 
-.alert.error {
-  background: var(--danger-light);
-  color: #991b1b;
+.btn-continue-black:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
-.alert.success {
-  background: var(--success-light);
-  color: #065f46;
+.btn-back-text {
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s ease;
 }
 
-@media (max-width: 900px) {
-  .auth-page {
+.btn-back-text:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.btn-google-sign {
+  width: 100%;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 11px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  margin-top: 14px;
+}
+
+.btn-google-sign:hover:not(:disabled) {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .auth-split-wrapper {
+    padding: 24px 16px;
+    background-attachment: scroll;
+  }
+  .auth-split-body {
     grid-template-columns: 1fr;
+    gap: 32px;
   }
-
-  .auth-visual {
-    min-height: 260px;
-    padding: 32px;
+  .auth-sidebar-progress {
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 20px;
   }
-
-  .auth-visual h1 {
-    font-size: 32px;
-  }
-
-  .form-grid.two {
+  .form-grid-2 {
     grid-template-columns: 1fr;
   }
 }

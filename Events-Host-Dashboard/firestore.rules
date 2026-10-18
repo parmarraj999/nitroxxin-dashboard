@@ -34,6 +34,22 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /host_applications/{applicationId} {
+      allow read: if signedIn() && (
+        resource.data.uid == request.auth.uid 
+        || request.auth.uid == applicationId
+      );
+      allow create: if signedIn() && (
+        request.resource.data.uid == request.auth.uid 
+        || request.auth.uid == applicationId
+      );
+      allow update: if signedIn() && (
+        resource.data.uid == request.auth.uid 
+        || request.auth.uid == applicationId
+      );
+      allow delete: if false;
+    }
+
     match /events/{eventId} {
       allow read: if resource.data.status == 'Published' || (signedIn() && resource.data.hostId == request.auth.uid);
       allow create: if isHost() && request.resource.data.hostId == request.auth.uid;

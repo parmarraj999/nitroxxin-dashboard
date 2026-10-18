@@ -39,6 +39,7 @@ import { auth, db, googleProvider, storage } from '../firebase/firebase.config';
 export const collections = {
   users: 'users',
   event_host: 'event_host',
+  host_applications: 'host_applications',
   events: 'events',
   registrations: 'eventRegistrations',
   notifications: 'notifications',
@@ -69,6 +70,8 @@ export const buildUserProfile = (firebaseUser, extra = {}) => ({
   state: extra.state || '',
   bio: extra.bio || '',
   organizationName: extra.organizationName || '',
+  gstNumber: extra.gstNumber || '',
+  panNumber: extra.panNumber || '',
   socialLinks: extra.socialLinks || { website: '', instagram: '', linkedin: '' },
   isVerified: firebaseUser.emailVerified || false,
   totalEventsHosted: 0,
@@ -102,19 +105,179 @@ export const subscribeToUser = (uid, callback, onError) => {
   };
 };
 
-export const signUpWithEmail = async ({ fullName, email, password, role = 'Host', phone, city, state }) => {
-  const credential = await createUserWithEmailAndPassword(auth, email, password);
-  await updateProfile(credential.user, { displayName: fullName });
-  const profileData = buildUserProfile(credential.user, { fullName, role: 'Host', phone, city, state });
-  await setDoc(
-    doc(db, collections.event_host, credential.user.uid),
-    profileData
+export const subscribeToHostApplication = (uid, callback, onError) => {
+  if (!uid) return () => {};
+  return onSnapshot(
+    doc(db, collections.host_applications, uid),
+    async (snapshot) => {
+      if (snapshot.exists()) {
+        callback({ id: snapshot.id, ...snapshot.data() });
+      } else {
+        try {
+          const q = query(
+            collection(db, collections.host_applications),
+            where('uid', '==', uid)
+          );
+          const querySnap = await getDocs(q);
+          if (!querySnap.empty) {
+            const firstDoc = querySnap.docs[0];
+            callback({ id: firstDoc.id, ...firstDoc.data() });
+          } else {
+            callback(null);
+          }
+        } catch (err) {
+          if (onError) onError(err);
+        }
+      }
+    },
+    onError
   );
+};
+
+export const getHostApplication = async (uid) => {
+  if (!uid) return null;
+  const snap = await getDoc(doc(db, collections.host_applications, uid));
+  if (snap.exists()) return { id: snap.id, ...snap.data() };
+  const q = query(
+    collection(db, collections.host_applications),
+    where('uid', '==', uid)
+  );
+  const querySnap = await getDocs(q);
+  if (!querySnap.empty) {
+    const firstDoc = querySnap.docs[0];
+    return { id: firstDoc.id, ...firstDoc.data() };
+  }
+  return null;
+};
+
+export const resubmitHostApplication = async (uid, updatedFields) => {
+  if (!uid) throw new Error('Missing user id.');
+  const appRef = doc(db, collections.host_applications, uid);
+  const data = cleanObject({
+    ...updatedFields,
+    status: 'Pending',
+    updatedAt: serverTimestamp(),
+    rejectionReason: '',
+    reviewedBy: null,
+    reviewedAt: null,
+    isActive: false,
+  });
+  await setDoc(appRef, data, { merge: true });
+};
+
+export const ensureHostProfileFromApplication = async (uid, appData) => {
+  if (!uid || !appData) return;
+  const hostRef = doc(db, collections.event_host, uid);
+  const hostSnap = await getDoc(hostRef);
+  if (!hostSnap.exists()) {
+    const profile = buildUserProfile(
+      { uid, displayName: appData.fullName, email: appData.email, emailVerified: true },
+      {
+        fullName: appData.fullName,
+        organizationName: appData.organizationName,
+        phone: appData.phone,
+        city: appData.city,
+        state: appData.state,
+        gstNumber: appData.gstNumber,
+        panNumber: appData.panNumber,
+        documents: appData.documents || [],
+        role: 'Host',
+        isActive: true,
+      }
+    );
+    await setDoc(hostRef, profile);
+    await setDoc(
+      doc(db, collections.users, uid),
+      { role: 'Host', isActive: true, updatedAt: serverTimestamp() },
+      { merge: true }
+    );
+  }
+};
+
+export const signUpWithEmail = async ({
+  fullName,
+  email,
+  password,
+  phone = '',
+  organizationName = '',
+  city = '',
+  state = '',
+  gstNumber = '',
+  panNumber = '',
+  documents = [],
+  docFile = null,
+}) => {
+  const credential = await createUserWithEmailAndPassword(auth, email, password);
+  if (fullName) {
+    await updateProfile(credential.user, { displayName: fullName }).catch(() => {});
+  }
+
+  let finalDocs = Array.isArray(documents) ? [...documents] : documents ? [documents] : [];
+  if (docFile) {
+    try {
+      const url = await uploadFile(docFile, `host_applications/${credential.user.uid}/documents`);
+      finalDocs.push({
+        name: docFile.name,
+        url,
+        type: docFile.type,
+        uploadedAt: new Date().toISOString(),
+      });
+    } catch (e) {
+      console.warn('Doc upload warning:', e);
+    }
+  }
+
+  const applicationId = `APP-${credential.user.uid.slice(0, 8).toUpperCase()}`;
+
+  const applicationData = {
+    applicationId,
+    uid: credential.user.uid,
+    fullName: fullName || '',
+    email: email || credential.user.email || '',
+    phone: phone || '',
+    organizationName: organizationName || '',
+    city: city || '',
+    state: state || '',
+    gstNumber: gstNumber || '',
+    panNumber: panNumber || '',
+    documents: finalDocs,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp(),
+    status: 'Pending',
+    reviewedBy: null,
+    reviewedAt: null,
+    rejectionReason: '',
+    isActive: false,
+  };
+
+  // 1. Save host application in host_applications collection
+  // NOTE: Strictly do NOT create a document inside event_host at registration!
+  await setDoc(
+    doc(db, collections.host_applications, credential.user.uid),
+    applicationData
+  );
+
+  // 2. Save minimal identity in users collection
   await setDoc(
     doc(db, collections.users, credential.user.uid),
-    profileData
+    {
+      uid: credential.user.uid,
+      fullName: fullName || '',
+      email: email || '',
+      role: 'Host',
+      phone: phone || '',
+      organizationName: organizationName || '',
+      city: city || '',
+      state: state || '',
+      hostApplicationStatus: 'Pending',
+      isActive: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    },
+    { merge: true }
   );
-  await sendEmailVerification(credential.user);
+
+  await sendEmailVerification(credential.user).catch(() => {});
   return credential.user;
 };
 
@@ -128,16 +291,23 @@ export const loginWithEmail = async (email, password) => {
     isVerified: credential.user.emailVerified,
     lastLogin: serverTimestamp(),
   });
+
   await setDoc(
     doc(db, collections.users, credential.user.uid),
     updateData,
     { merge: true }
   );
-  await setDoc(
-    doc(db, collections.event_host, credential.user.uid),
-    updateData,
-    { merge: true }
-  );
+
+  // Only update event_host IF it already exists (prevent creating event_host for pending applicants)
+  const hostDoc = await getDoc(doc(db, collections.event_host, credential.user.uid));
+  if (hostDoc.exists()) {
+    await setDoc(
+      doc(db, collections.event_host, credential.user.uid),
+      updateData,
+      { merge: true }
+    );
+  }
+
   return credential.user;
 };
 
@@ -145,13 +315,49 @@ export const loginWithGoogle = async (role = 'Host') => {
   const credential = await signInWithPopup(auth, googleProvider);
   const userRef = doc(db, collections.users, credential.user.uid);
   const hostRef = doc(db, collections.event_host, credential.user.uid);
-  const snapshot = await getDoc(userRef);
-  const hostSnapshot = await getDoc(hostRef);
-  if (!snapshot.exists() && !hostSnapshot.exists()) {
-    const profile = buildUserProfile(credential.user, { role: 'Host' });
-    await setDoc(userRef, profile);
-    await setDoc(hostRef, profile);
-  } else {
+  const appRef = doc(db, collections.host_applications, credential.user.uid);
+
+  const [snapshot, hostSnapshot, appSnapshot] = await Promise.all([
+    getDoc(userRef),
+    getDoc(hostRef),
+    getDoc(appRef),
+  ]);
+
+  if (!snapshot.exists() && !hostSnapshot.exists() && !appSnapshot.exists()) {
+    // New user signing up with Google - create host_applications, NOT event_host!
+    const applicationId = `APP-${credential.user.uid.slice(0, 8).toUpperCase()}`;
+    const applicationData = {
+      applicationId,
+      uid: credential.user.uid,
+      fullName: credential.user.displayName || '',
+      email: credential.user.email || '',
+      phone: credential.user.phoneNumber || '',
+      organizationName: '',
+      city: '',
+      state: '',
+      gstNumber: '',
+      panNumber: '',
+      documents: [],
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+      status: 'Pending',
+      reviewedBy: null,
+      reviewedAt: null,
+      rejectionReason: '',
+      isActive: false,
+    };
+    await setDoc(appRef, applicationData);
+    await setDoc(userRef, {
+      uid: credential.user.uid,
+      fullName: credential.user.displayName || '',
+      email: credential.user.email || '',
+      role: 'Host',
+      hostApplicationStatus: 'Pending',
+      isActive: false,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    });
+  } else if (hostSnapshot.exists()) {
     const updateData = timestamped({
       photoURL: credential.user.photoURL || '',
       fullName: credential.user.displayName || snapshot.data()?.fullName || hostSnapshot.data()?.fullName || '',
@@ -160,7 +366,16 @@ export const loginWithGoogle = async (role = 'Host') => {
     });
     await setDoc(userRef, updateData, { merge: true });
     await setDoc(hostRef, updateData, { merge: true });
+  } else {
+    const updateData = timestamped({
+      photoURL: credential.user.photoURL || '',
+      fullName: credential.user.displayName || snapshot.data()?.fullName || '',
+      isVerified: credential.user.emailVerified,
+      lastLogin: serverTimestamp(),
+    });
+    await setDoc(userRef, updateData, { merge: true });
   }
+
   return credential.user;
 };
 
