@@ -1,6 +1,6 @@
 /* Minimalist Sidebar matching modern macOS / Linear aesthetic */
 .minimal-sidebar {
-  width: 240px;
+  width: 200px;
   background-color: #fbfbfa;
   border-right: 1px solid #ebebea;
   display: flex;
@@ -9,7 +9,7 @@
   position: sticky;
   top: 0;
   user-select: none;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", Helvetica, Arial, sans-serif;
+  font-family:'Poppins', sans-serif;
   color: #18181b;
   z-index: 40;
   transition: width 0.2s ease;
@@ -276,7 +276,7 @@
   gap: 10px;
   height: 32px;
   padding: 0 10px;
-  margin: 1px 8px;
+  margin: 2px 8px;
   border-radius: 6px;
   color: #52525b;
   font-size: 13.5px;
@@ -299,9 +299,11 @@
 }
 
 .sidebar-nav-item .item-icon {
-  color: #71717a;
+  color: #000000;
   flex-shrink: 0;
   transition: color 0.12s ease;
+  width: 18px;
+  height: 18px;
 }
 
 .sidebar-nav-item:hover .item-icon {
@@ -313,6 +315,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: 13px;
+  font-weight: 500;
 }
 
 /* ACTIVE PILL STATE - Exact match to reference screenshot */
@@ -324,6 +328,9 @@
 
 .sidebar-nav-item.active .item-icon {
   color: #18181b;
+}
+.sidebar-nav-item.active .item-label {
+  font-weight: 600;
 }
 
 /* Inbox notification count badge */
@@ -444,6 +451,7 @@
 .sidebar-nav-list {
   display: flex;
   flex-direction: column;
+  margin-top: 1rem;
 }
 
 /* Bottom User Bar */

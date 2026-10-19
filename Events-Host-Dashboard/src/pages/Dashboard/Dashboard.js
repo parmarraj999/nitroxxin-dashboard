@@ -14,35 +14,46 @@ import {
 } from 'recharts';
 import {
   Calendar,
+  CalendarDays,
   Radio,
   Ticket,
   IndianRupee,
   Search,
   Bell,
-  Filter,
   Plus,
   ChevronLeft,
   ChevronRight,
   ChevronDown,
   CheckCircle2,
   Clock,
-  ShieldCheck,
   AlertCircle,
+  AlertTriangle,
+  Info,
   Users,
+  User,
   Star,
   MapPin,
   X,
+  Check,
   CreditCard,
-  Zap,
   Landmark,
+  ArrowUp,
+  ArrowDown,
+  ArrowRight,
   ArrowUpRight,
+  Download,
+  Trash2,
+  Printer,
+  ExternalLink,
 } from 'lucide-react';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { useEvents } from '../../hooks/useEvents';
 import { useRegistrations } from '../../hooks/useRegistrations';
-import { currency } from '../../utils/formatters';
+import { EVENT_PARTICIPANTS_DATA } from '../EventPlatform/participantsData';
+import { currency, downloadCsv, formatDateTime } from '../../utils/formatters';
+import '../EventPlatform/Participants.css';
 import './Dashboard.css';
 
 // Custom dark tooltip for Revenue bar chart matching Image design
@@ -199,68 +210,255 @@ const Dashboard = () => {
     setOpenCardDropdown(null);
   };
 
-  // 4. Recent Participants
-  const recentParticipantsData = [
-    {
-      id: 'LD21301',
-      name: 'John Doe',
-      email: 'john.doe@email.com',
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=80&q=80',
-      status: 'New Leads',
-      statusClass: 'new-lead',
-      source: 'Website',
-      owner: 'Alex Ray',
-      ownerInitials: 'AR',
-      event: 'Nitroxx Supercross',
-      tier: 'VIP Pass',
-    },
-    {
-      id: 'LD21302',
-      name: 'Jane Smith',
-      email: 'jane.smith@email.com',
-      avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=80&q=80',
-      status: 'Contacted',
-      statusClass: 'contacted',
-      source: 'Paid Ads',
-      owner: 'Mina Swan',
-      ownerInitials: 'MS',
-      event: 'Thar Desert Rally',
-      tier: 'Pro Pass',
-    },
-    {
-      id: 'LD21303',
-      name: 'Alex Johnson',
-      email: 'alex.johnson@email.com',
-      avatar: 'https://images.unsplash.com/photo-1570295999919-56ceb5ecca61?auto=format&fit=crop&w=80&q=80',
-      status: 'Qualified',
-      statusClass: 'qualified',
-      source: 'Referral',
-      owner: 'John Kim',
-      ownerInitials: 'JK',
-      event: 'Himalayan Enduro',
-      tier: 'Early Bird',
-    },
-    {
-      id: 'LD21304',
-      name: 'Emily Davis',
-      email: 'emily.davis@email.com',
-      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=80&q=80',
-      status: 'Paid',
-      statusClass: 'paid',
-      source: 'Website',
-      owner: 'Sarah Lee',
-      ownerInitials: 'SL',
-      event: 'Goa Motocross',
-      tier: 'VIP Pass',
-    },
-  ];
+  // 4. Recent Participants Directory (Matching Participants Page Data & UI)
+  const [participants, setParticipants] = useState(() => EVENT_PARTICIPANTS_DATA);
+  const [participantGateFilter, setParticipantGateFilter] = useState('All');
+  const [dashSortField, setDashSortField] = useState('');
+  const [dashSortDirection, setDashSortDirection] = useState('asc');
+  const [selectedRowIds, setSelectedRowIds] = useState(new Set());
+  const [dashPage, setDashPage] = useState(1);
+  const [dashPageSize, setDashPageSize] = useState(8);
+  const [ticketModalParticipant, setTicketModalParticipant] = useState(null);
+  const [toastMessage, setToastMessage] = useState('');
+  const [copiedCode, setCopiedCode] = useState(null);
 
-  const filteredParticipants = recentParticipantsData.filter(
-    (p) =>
-      p.name.toLowerCase().includes(participantSearch.toLowerCase()) ||
-      p.email.toLowerCase().includes(participantSearch.toLowerCase()) ||
-      p.id.toLowerCase().includes(participantSearch.toLowerCase())
-  );
+  // Merge any live Firebase registrations into the list
+  React.useEffect(() => {
+    if (registrations && registrations.length > 0) {
+      const liveItems = registrations.map((r, i) => {
+        const rawTier = r.ticketType || 'Standard';
+        let tierName = 'Standard';
+        let ticketFor = 'Participant';
+
+        if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
+        else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
+        else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
+        else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
+        else if (rawTier.toLowerCase().includes('explorer')) tierName = 'Explorer';
+
+        if (r.participant?.vehicleNumber) ticketFor = 'Rider';
+
+        return {
+          id: r.id || `live-${i}`,
+          name: r.participantName || r.participant?.fullName || 'Registered Participant',
+          email: r.participantEmail || r.participant?.email || 'guest@nitroxx.com',
+          phone: r.participantPhone || r.participant?.phone || '+91 98000 00000',
+          avatar: r.participantPhoto || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80`,
+          avatarInitial: (r.participantName || 'R').charAt(0).toUpperCase(),
+          eventTitle: r.eventTitle || 'Nitroxx MotoFest Pune 2025',
+          tierName,
+          ticketFor,
+          ticketTier: `${tierName} · ${ticketFor}`,
+          ticketNumber: r.ticketNumber || `NX-${Date.now().toString(36).toUpperCase()}`,
+          bibNumber: r.ticketNumber ? `BIB-${r.ticketNumber.slice(-3)}` : `BIB-${300 + i}`,
+          ticketPrice: r.ticketPrice ? `₹${Number(r.ticketPrice).toLocaleString()}` : '₹4,999',
+          priceNumeric: Number(r.ticketPrice || 4999),
+          bookedDate: r.registrationDate ? formatDateTime(r.registrationDate).split(',')[0] : 'Just now',
+          bookedMinutes: 0,
+          paymentStatus: 'Paid',
+          gateStatus: r.attendanceStatus === 'Checked In' ? 'Done' : r.status === 'Confirmed' ? 'On Progress' : 'Pending Gate',
+          vehicle: r.participant?.vehicleNumber || 'Motorcycle',
+          vehiclePlate: r.participant?.vehicleNumber || 'MH12-LIVE',
+          city: r.participant?.city || 'India',
+          bloodGroup: r.participant?.bloodGroup || 'O+',
+          emergencyContact: r.participant?.emergencyContact || 'Listed with Team',
+          wave: 'General Wave (08:00 AM)'
+        };
+      });
+
+      setParticipants(prev => {
+        const existingIds = new Set(prev.map(p => p.id));
+        const newUniques = liveItems.filter(item => !existingIds.has(item.id));
+        return [...newUniques, ...prev];
+      });
+    }
+  }, [registrations]);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  const handleCopyCode = (code, e) => {
+    e?.stopPropagation();
+    navigator.clipboard?.writeText(code);
+    setCopiedCode(code);
+    showToast(`Copied: ${code}`);
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleDashSort = (field) => {
+    if (dashSortField === field) {
+      setDashSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setDashSortField(field);
+      setDashSortDirection('asc');
+    }
+  };
+
+  const filteredParticipants = useMemo(() => {
+    let result = [...participants];
+    if (participantSearch.trim()) {
+      const q = participantSearch.toLowerCase().trim();
+      result = result.filter(p =>
+        (p.name && p.name.toLowerCase().includes(q)) ||
+        (p.email && p.email.toLowerCase().includes(q)) ||
+        (p.eventTitle && p.eventTitle.toLowerCase().includes(q)) ||
+        (p.tierName && p.tierName.toLowerCase().includes(q)) ||
+        (p.ticketNumber && p.ticketNumber.toLowerCase().includes(q)) ||
+        (p.bibNumber && p.bibNumber.toLowerCase().includes(q)) ||
+        (p.city && p.city.toLowerCase().includes(q)) ||
+        (p.vehicle && p.vehicle.toLowerCase().includes(q))
+      );
+    }
+    if (participantGateFilter !== 'All') {
+      result = result.filter(p => p.gateStatus === participantGateFilter);
+    }
+    if (dashSortField) {
+      result.sort((a, b) => {
+        let valA = a[dashSortField];
+        let valB = b[dashSortField];
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return dashSortDirection === 'asc' ? valA - valB : valB - valA;
+        }
+        const strA = String(valA || '').toLowerCase();
+        const strB = String(valB || '').toLowerCase();
+        if (strA < strB) return dashSortDirection === 'asc' ? -1 : 1;
+        if (strA > strB) return dashSortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+    return result;
+  }, [participants, participantSearch, participantGateFilter, dashSortField, dashSortDirection]);
+
+  const totalDashPages = Math.max(1, Math.ceil(filteredParticipants.length / dashPageSize));
+  const dashPaginated = useMemo(() => {
+    const start = (dashPage - 1) * dashPageSize;
+    return filteredParticipants.slice(start, start + dashPageSize);
+  }, [filteredParticipants, dashPage, dashPageSize]);
+
+  const isAllSelected = dashPaginated.length > 0 && dashPaginated.every(p => selectedRowIds.has(p.id));
+
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      setSelectedRowIds(new Set(dashPaginated.map(p => p.id)));
+    } else {
+      setSelectedRowIds(new Set());
+    }
+  };
+
+  const handleSelectRow = (id, e) => {
+    e.stopPropagation();
+    setSelectedRowIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
+
+  const handleToggleCheckIn = (id, e) => {
+    e?.stopPropagation();
+    setParticipants(prev => prev.map(p => {
+      if (p.id === id) {
+        const nextStatus = p.gateStatus === 'Done' ? 'On Progress' : 'Done';
+        showToast(nextStatus === 'Done' ? `Checked In: ${p.name}` : `Attendance Reset: ${p.name}`);
+        return { ...p, gateStatus: nextStatus };
+      }
+      return p;
+    }));
+  };
+
+  const handleBulkCheckIn = () => {
+    setParticipants(prev => prev.map(p => selectedRowIds.has(p.id) ? { ...p, gateStatus: 'Done' } : p));
+    showToast(`Checked in ${selectedRowIds.size} participants.`);
+    setSelectedRowIds(new Set());
+  };
+
+  const handleBulkDelete = () => {
+    if (window.confirm(`Cancel bookings for ${selectedRowIds.size} selected participants?`)) {
+      setParticipants(prev => prev.filter(p => !selectedRowIds.has(p.id)));
+      showToast(`Removed ${selectedRowIds.size} bookings.`);
+      setSelectedRowIds(new Set());
+    }
+  };
+
+  const handleExportCSV = () => {
+    const listToExport = selectedRowIds.size > 0
+      ? participants.filter(p => selectedRowIds.has(p.id))
+      : filteredParticipants;
+
+    downloadCsv('recent_participants_directory.csv', listToExport.map(p => ({
+      ParticipantName: p.name,
+      Email: p.email,
+      Phone: p.phone,
+      Tier: p.tierName,
+      TicketFor: p.ticketFor,
+      TicketNumber: p.ticketNumber,
+      BibNumber: p.bibNumber,
+      EventTitle: p.eventTitle,
+      BookedDate: p.bookedDate,
+      TicketPrice: p.ticketPrice,
+      PaymentStatus: p.paymentStatus,
+      GateStatus: p.gateStatus,
+      Vehicle: p.vehicle,
+      VehiclePlate: p.vehiclePlate,
+      City: p.city
+    })));
+    showToast(`Exported ${listToExport.length} participants to CSV.`);
+  };
+
+  const totalCheckedIn = participants.filter(p => p.gateStatus === 'Done').length;
+  const totalOnTrack = participants.filter(p => p.gateStatus === 'On Progress').length;
+  const totalPending = participants.filter(p => p.gateStatus === 'Pending Gate' || p.gateStatus === 'Waiting for Review').length;
+
+  const renderGateBadge = (status) => {
+    switch (status) {
+      case 'Done':
+        return (
+          <span className="gate-status-pill done" title="Checked in & approved at gate">
+            <CheckCircle2 size={12} strokeWidth={2.4} />
+            Done
+          </span>
+        );
+      case 'On Progress':
+        return (
+          <span className="gate-status-pill on-progress" title="Participant is on track / racing">
+            <Info size={12} strokeWidth={2.4} />
+            On Progress
+          </span>
+        );
+      case 'Waiting for Review':
+        return (
+          <span className="gate-status-pill waiting" title="Scrutineering or review pending">
+            <Info size={12} strokeWidth={2.4} />
+            Waiting for Review
+          </span>
+        );
+      case 'Pending Gate':
+      case 'Pending':
+        return (
+          <span className="gate-status-pill pending" title="Gate check or clearance pending">
+            <AlertTriangle size={12} strokeWidth={2.4} />
+            Pending
+          </span>
+        );
+      case 'Inactive':
+        return (
+          <span className="gate-status-pill inactive" title="Booking cancelled or refunded">
+            <AlertCircle size={12} strokeWidth={2.4} />
+            Inactive
+          </span>
+        );
+      default:
+        return (
+          <span className="gate-status-pill waiting">
+            <Info size={12} strokeWidth={2.4} />
+            {status}
+          </span>
+        );
+    }
+  };
 
   // =========================================================================
   // UPCOMING EVENTS & INTERACTIVE CALENDAR LOGIC (Image Replication)
@@ -532,36 +730,90 @@ const Dashboard = () => {
     }
   };
 
-  // 8. Top Performing Events
-  const topPerformingEvents = [
-    {
-      id: 1,
-      rank: 1,
-      title: 'Nitroxx Supercross Championship 2026',
-      badge: 'Highest Revenue',
-      revenue: '₹3,42,000',
-      tickets: '490 / 500 sold',
-      rating: '4.95 ★',
-    },
-    {
-      id: 2,
-      rank: 2,
-      title: 'Thar Desert 4x4 Dune Rally',
-      badge: 'Most Tickets Sold',
-      revenue: '₹2,88,000',
-      tickets: '500 / 500 sold',
-      rating: '4.88 ★',
-    },
-    {
-      id: 3,
-      rank: 3,
-      title: 'Himalayan Enduro Mountain Expedition',
-      badge: 'Best Rated Event',
-      revenue: '₹1,45,000',
-      tickets: '128 / 150 sold',
-      rating: '4.98 ★',
-    },
-  ];
+  // 8. Top Performing Events (Matching Reference UI with dynamic timeframes)
+  const [topEventsTimeframe, setTopEventsTimeframe] = useState('This Month');
+  const [topEventsFilterOpen, setTopEventsFilterOpen] = useState(false);
+  const topEventsFilterRef = React.useRef(null);
+
+  // Close filter dropdown on outside click
+  React.useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (topEventsFilterRef.current && !topEventsFilterRef.current.contains(e.target)) {
+        setTopEventsFilterOpen(false);
+      }
+    };
+    if (topEventsFilterOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [topEventsFilterOpen]);
+
+  const topPerformingEventsDataMap = useMemo(() => {
+    const getListFor = (multiplier) => {
+      const defaults = [
+        {
+          id: 'tpe-1',
+          title: 'Nitroxx Supercross Championship 2026',
+          revenue: multiplier === 1 ? '₹3,42,000' : multiplier === 0.15 ? '₹48,500' : multiplier === 0.5 ? '₹1,85,000' : '₹12,40,000',
+          tickets: multiplier === 1 ? '490 / 500 tickets sold' : multiplier === 0.15 ? '68 tickets today' : multiplier === 0.5 ? '260 tickets sold' : '1,840 tickets sold',
+          banner: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=150&q=80',
+          ringColor: '#3b82f6',
+        },
+        {
+          id: 'tpe-2',
+          title: 'Thar Desert 4x4 Dune Rally',
+          revenue: multiplier === 1 ? '₹2,88,000' : multiplier === 0.15 ? '₹36,200' : multiplier === 0.5 ? '₹1,42,000' : '₹9,80,000',
+          tickets: multiplier === 1 ? '500 / 500 tickets sold' : multiplier === 0.15 ? '42 tickets today' : multiplier === 0.5 ? '210 tickets sold' : '1,450 tickets sold',
+          banner: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=150&q=80',
+          ringColor: '#f59e0b',
+        },
+        {
+          id: 'tpe-3',
+          title: 'Himalayan Enduro Mountain Expedition',
+          revenue: multiplier === 1 ? '₹1,45,000' : multiplier === 0.15 ? '₹24,000' : multiplier === 0.5 ? '₹88,000' : '₹6,20,000',
+          tickets: multiplier === 1 ? '128 / 150 tickets sold' : multiplier === 0.15 ? '18 tickets today' : multiplier === 0.5 ? '78 tickets sold' : '520 tickets sold',
+          banner: 'https://images.unsplash.com/photo-1519751138087-5bf79df62d5b?auto=format&fit=crop&w=150&q=80',
+          ringColor: '#10b981',
+        },
+        {
+          id: 'tpe-4',
+          title: 'Goa Beach Motocross & Night Festival',
+          revenue: multiplier === 1 ? '₹1,18,500' : multiplier === 0.15 ? '₹15,800' : multiplier === 0.5 ? '₹64,500' : '₹4,60,000',
+          tickets: multiplier === 1 ? '320 / 350 tickets sold' : multiplier === 0.15 ? '22 tickets today' : multiplier === 0.5 ? '140 tickets sold' : '890 tickets sold',
+          banner: 'https://images.unsplash.com/photo-1508974239320-0a029497e820?auto=format&fit=crop&w=150&q=80',
+          ringColor: '#8b5cf6',
+        },
+      ];
+
+      if (events && events.length > 0) {
+        return events.slice(0, 4).map((evt, idx) => {
+          const rev = evt.revenue || evt.gross || (defaults[idx] ? defaults[idx].revenue : '₹95,000');
+          const formattedRev = typeof rev === 'number' ? `₹${rev.toLocaleString('en-IN')}` : rev;
+          return {
+            id: evt.id || defaults[idx]?.id || `evt-${idx}`,
+            title: evt.title || defaults[idx]?.title || 'Motorsport Event',
+            revenue: formattedRev,
+            tickets: `${evt.registeredCount ? `${evt.registeredCount} tickets sold` : (defaults[idx] ? defaults[idx].tickets : '100 tickets')}`,
+            banner: evt.bannerImage || (defaults[idx] ? defaults[idx].banner : 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=150&q=80'),
+            ringColor: defaults[idx]?.ringColor || '#3b82f6',
+          };
+        });
+      }
+
+      return defaults;
+    };
+
+    return {
+      'Today': getListFor(0.15),
+      '7 Days': getListFor(0.5),
+      'This Month': getListFor(1),
+      'All Time': getListFor(3.5),
+    };
+  }, [events]);
+
+  const activeTopEvents = topPerformingEventsDataMap[topEventsTimeframe] || topPerformingEventsDataMap['This Month'];
 
   return (
     <AppLayout showHeader={false} searchPlaceholder="Search events, participants, ticket IDs...">
@@ -1276,287 +1528,93 @@ const Dashboard = () => {
             ROW 2B: TOP PERFORMING EVENTS & HIGHLIGHTS
             ========================================================================= */}
         <div className="dash-grid-2col" style={{ marginBottom: '24px' }}>
-          {/* SECTION 8: TOP PERFORMING EVENTS */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <div className="dash-card-title-group">
-                <div className="dash-card-icon-box">
-                  <Star size={16} color="#f59e0b" />
-                </div>
-                <h3 className="dash-card-title">Top Performing Events</h3>
+          {/* SECTION 8: TOP PERFORMING EVENTS (IMAGE REPLICATION UI) */}
+          <div className="top-events-card-modern">
+            {/* Top Bar matching Image */}
+            <div className="top-events-header-bar">
+              {/* Left Filter Pill (In place of Members) */}
+              <div className="top-events-filter-wrap" ref={topEventsFilterRef}>
+                <button
+                  type="button"
+                  className="top-events-filter-pill"
+                  onClick={() => setTopEventsFilterOpen(!topEventsFilterOpen)}
+                  title="Change timeframe filter"
+                >
+                  <span className="tpe-filter-text">{topEventsTimeframe}</span>
+                  <span className="tpe-filter-count">{activeTopEvents.length}</span>
+                  <ChevronDown
+                    size={14}
+                    className={`tpe-filter-chevron ${topEventsFilterOpen ? 'open' : ''}`}
+                  />
+                </button>
+
+                {topEventsFilterOpen && (
+                  <div className="top-events-filter-dropdown">
+                    {['Today', '7 Days', 'This Month', 'All Time'].map((tf) => (
+                      <button
+                        key={tf}
+                        type="button"
+                        className={`tpe-dropdown-item ${topEventsTimeframe === tf ? 'active' : ''}`}
+                        onClick={() => {
+                          setTopEventsTimeframe(tf);
+                          setTopEventsFilterOpen(false);
+                        }}
+                      >
+                        {tf}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-              <span style={{ fontSize: '12px', color: '#6b7280' }}>Ranked by Performance</span>
+
+              {/* Right View More Pill (In place of Search Bar) */}
+              <Link to="/events" className="top-events-view-more-pill" title="View all events">
+                <span>View More</span>
+                <ArrowRight size={14} />
+              </Link>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {topPerformingEvents.map((evt) => (
-                <div key={evt.id} className="top-event-row">
-                  <div className="top-event-info">
-                    <span className="top-rank-circle">{evt.rank}</span>
-                    <div>
-                      <div className="top-event-title">{evt.title}</div>
-                      <div className="top-event-meta">
-                        <span style={{ background: '#fff7ed', color: '#ea580c', padding: '1px 6px', borderRadius: '4px', fontWeight: 600, fontSize: '10.5px' }}>
-                          {evt.badge}
-                        </span>
-                        <span>{evt.tickets}</span>
-                        <span>•</span>
-                        <span style={{ color: '#f59e0b', fontWeight: 600 }}>{evt.rating}</span>
-                      </div>
+            {/* Event Rows matching Image */}
+            <div className="top-events-list">
+              {activeTopEvents.map((evt) => (
+                <div key={evt.id} className="top-event-item-modern">
+                  <div className="top-event-left-group">
+                    {/* Event Banner Circular Avatar */}
+                    <div
+                      className="top-event-avatar-ring"
+                      style={{ borderColor: evt.ringColor || '#3b82f6' }}
+                    >
+                      <img
+                        src={evt.banner}
+                        alt={evt.title}
+                        className="top-event-avatar-img"
+                        onError={(e) => {
+                          e.target.src = 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=150&q=80';
+                        }}
+                      />
+                    </div>
+
+                    {/* Event Name */}
+                    <div className="top-event-title-wrap">
+                      <span className="top-event-name-text" title={evt.title}>
+                        {evt.title}
+                      </span>
+                      <span className="top-event-location-text" title={evt.title}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin preview-icon"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg> Buddh International Circuit
+                      </span>
                     </div>
                   </div>
-                  <div className="top-event-revenue">{evt.revenue}</div>
+
+                  {/* Right Side: Simple Amount Text */}
+                  <div className="top-event-amount-val">
+                    {evt.revenue}
+                  </div>
                 </div>
               ))}
-            </div>
-
-            {/* Quick Summary Pill Row */}
-            <div style={{ marginTop: 'auto', paddingTop: '14px', borderTop: '1px solid #f0f2f5', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', textAlign: 'center' }}>
-              <div style={{ padding: '6px', background: '#f9fafb', borderRadius: '8px' }}>
-                <span style={{ fontSize: '10.5px', color: '#6b7280' }}>Highest Revenue</span>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>₹3.42L</div>
-              </div>
-              <div style={{ padding: '6px', background: '#f9fafb', borderRadius: '8px' }}>
-                <span style={{ fontSize: '10.5px', color: '#6b7280' }}>Most Tickets</span>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>500 Sold</div>
-              </div>
-              <div style={{ padding: '6px', background: '#f9fafb', borderRadius: '8px' }}>
-                <span style={{ fontSize: '10.5px', color: '#6b7280' }}>Top Rating</span>
-                <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>4.98 ★</div>
-              </div>
             </div>
           </div>
 
           {/* Event Turnout & Operation Highlights */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <div className="dash-card-title-group">
-                <div className="dash-card-icon-box">
-                  <Zap size={16} color="#10b981" />
-                </div>
-                <h3 className="dash-card-title">Event Operations & Turnout</h3>
-              </div>
-              <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>Active Season</span>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
-                    <Calendar size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>Next Upcoming Event</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>Dec 20 • Global Summit 2025</div>
-                  </div>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', background: '#eff6ff', color: '#2563eb', borderRadius: '6px' }}>
-                  Confirmed
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
-                    <Radio size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>Live Ongoing Event</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>Nitroxx Pro Supercross Championship</div>
-                  </div>
-                </div>
-                <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', background: '#ecfdf5', color: '#059669', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} /> Ongoing
-                </span>
-              </div>
-
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
-                    <Ticket size={18} />
-                  </div>
-                  <div>
-                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>Avg. Attendance Rate</div>
-                    <div style={{ fontSize: '12px', color: '#64748b' }}>94.2% verified venue check-ins</div>
-                  </div>
-                </div>
-                <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
-                  94.2%
-                </span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* =========================================================================
-            SECTION 4: RECENT PARTICIPANTS TABLE (Exact Replication of Image 2)
-            ========================================================================= */}
-        <section className="participants-table-card" aria-label="Recent Participants List">
-          <div className="table-top-bar">
-            <div className="table-header-left">
-              <div className="table-icon-square">
-                <Users size={16} />
-              </div>
-              <h2 className="table-heading-title">Recent Participants</h2>
-            </div>
-
-            <div className="table-controls-right">
-              <div className="table-search-input-wrap">
-                <Search size={14} />
-                <input
-                  type="text"
-                  placeholder="Search here..."
-                  className="table-search-input"
-                  value={participantSearch}
-                  onChange={(e) => setParticipantSearch(e.target.value)}
-                />
-              </div>
-              <button className="table-filter-btn">
-                <Filter size={13} />
-                <span>Filter</span>
-              </button>
-            </div>
-          </div>
-
-          <div className="table-wrapper-responsive">
-            <table className="participants-styled-table">
-              <thead>
-                <tr>
-                  <th style={{ width: '40px' }}>
-                    <input type="checkbox" style={{ accentColor: '#ff6a00', cursor: 'pointer' }} />
-                  </th>
-                  <th>Leads ID</th>
-                  <th>Lead Name</th>
-                  <th>Email</th>
-                  <th>Status</th>
-                  <th>Source</th>
-                  <th>Owner</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredParticipants.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <input type="checkbox" style={{ accentColor: '#ff6a00', cursor: 'pointer' }} />
-                    </td>
-                    <td style={{ fontWeight: 600, color: '#111827' }}>{row.id}</td>
-                    <td>
-                      <div className="participant-cell">
-                        <img src={row.avatar} alt={row.name} className="participant-avatar-round" />
-                        <span className="participant-name-text">{row.name}</span>
-                      </div>
-                    </td>
-                    <td style={{ color: '#4b5563' }}>{row.email}</td>
-                    <td>
-                      <span className={`status-badge-pill ${row.statusClass}`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td>
-                      <span className="source-tag">{row.source}</span>
-                    </td>
-                    <td>
-                      <div className="owner-chip">
-                        <span className="owner-initials-circle">{row.ownerInitials}</span>
-                        <span>{row.owner}</span>
-                      </div>
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <Link to="/participants" className="row-action-btn">
-                        Manage
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* =========================================================================
-            ROW 3: PAYOUTS (Image 3), AUDIENCE INSIGHTS & NOTIFICATIONS & ACTIVITY
-            ========================================================================= */}
-        <div className="dash-grid-3col" id="payouts-section">
-          {/* SECTION 6: PAYOUTS (Image 3 Saved Actions Card Style) */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <div className="dash-card-title-group">
-                <Zap size={18} color="#111827" />
-                <h3 className="dash-card-title">Payouts & Finance</h3>
-              </div>
-              <Link to="/transactions" className="dash-card-pill-btn" style={{ textDecoration: 'none' }}>
-                See All
-              </Link>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {/* Row 1: Completed Payments (Mint Icon from Image 3) */}
-              <div className="saved-action-row">
-                <div className="pastel-circle-icon mint">
-                  <CheckCircle2 size={18} />
-                </div>
-                <div className="action-row-meta">
-                  <div className="action-row-title">Completed Payments</div>
-                  <div className="action-row-sub">Disbursed to HDFC Bank</div>
-                </div>
-                <span className="action-amount-pill">
-                  ₹6,92,400 <ChevronRight size={13} color="#9ca3af" />
-                </span>
-              </div>
-
-              {/* Row 2: Available Payout (Lavender Icon from Image 3) */}
-              <div className="saved-action-row">
-                <div className="pastel-circle-icon lavender">
-                  <CreditCard size={18} />
-                </div>
-                <div className="action-row-meta">
-                  <div className="action-row-title">Available for Payout</div>
-                  <div className="action-row-sub">Ready to withdraw</div>
-                </div>
-                <span className="action-amount-pill">
-                  ₹1,48,200 <ChevronRight size={13} color="#9ca3af" />
-                </span>
-              </div>
-
-              {/* Row 3: Failed / Review Payments (Pink Icon from Image 3) */}
-              <div className="saved-action-row">
-                <div className="pastel-circle-icon pink">
-                  <AlertCircle size={18} />
-                </div>
-                <div className="action-row-meta">
-                  <div className="action-row-title">Failed Payments</div>
-                  <div className="action-row-sub">1 gateway refund request</div>
-                </div>
-                <span className="action-amount-pill">
-                  ₹4,500 <ChevronRight size={13} color="#9ca3af" />
-                </span>
-              </div>
-
-              {/* Row 4: Processing Payments (Sky Icon from Image 3) */}
-              <div className="saved-action-row">
-                <div className="pastel-circle-icon sky">
-                  <Clock size={18} />
-                </div>
-                <div className="action-row-meta">
-                  <div className="action-row-title">Scheduled Payout</div>
-                  <div className="action-row-sub">Crediting on Monday</div>
-                </div>
-                <span className="action-amount-pill">
-                  ₹1,24,000 <ChevronRight size={13} color="#9ca3af" />
-                </span>
-              </div>
-            </div>
-
-            <button
-              className="btn-card-bottom-outlined"
-              onClick={() => alert('Withdrawal request initiated for available balance ₹1,48,200')}
-            >
-              <Plus size={14} /> Request New Payout
-            </button>
-          </div>
-
-          {/* SECTION 7: AUDIENCE INSIGHTS (Age Groups & Top Cities - NO PIE CHART) */}
           <div className="dash-card">
             <div className="dash-card-header">
               <div className="dash-card-title-group">
@@ -1612,77 +1670,535 @@ const Dashboard = () => {
               ))}
             </div>
           </div>
+        </div>
 
-          {/* SECTION 9: NOTIFICATIONS & ACTIVITY (Image 3 Style Pastel Icons) */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <div className="dash-card-title-group">
-                <Bell size={18} color="#111827" />
-                <h3 className="dash-card-title">Notifications & Activity</h3>
+        {/* =========================================================================
+            SECTION 4: RECENT PARTICIPANTS DIRECTORY TABLE (Participants UI Match)
+            ========================================================================= */}
+        <section className="dashboard-participants-section" aria-label="Recent Participants List">
+          {/* Section Header */}
+          <div className="dash-ptable-header">
+            <div className="dash-ptable-title-wrap">
+              <div className="ptable-badge-icon">
+                <Users size={18} strokeWidth={2} />
               </div>
-              <button className="dash-card-pill-btn" onClick={() => alert('All activities marked as read.')}>
-                Mark Read
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <h2 className="dash-ptable-title">Recent Participants</h2>
+                  <span className="dash-ptable-count-badge">{participants.length} Total Bookings</span>
+                </div>
+                <p className="dash-ptable-sub">
+                  Directory of attendee bookings, event packages & ticket tiers, gate clearance, and operational status.
+                </p>
+              </div>
+            </div>
+
+
+          </div>
+
+          {/* Metric Quick-Strip */}
+          {/* <div className="ptable-metric-strip" style={{ marginBottom: '14px' }}>
+            <div className="metric-pill-item">
+              <span className="metric-pill-label">Total Bookings:</span>
+              <span className="metric-pill-val">{participants.length} Registered</span>
+            </div>
+            <div className="metric-pill-item">
+              <span className="metric-pill-label">Checked In:</span>
+              <span className="metric-pill-val text-green">{totalCheckedIn} Attendees ({Math.round((totalCheckedIn / (participants.length || 1)) * 100)}%)</span>
+            </div>
+            <div className="metric-pill-item">
+              <span className="metric-pill-label">On Track / Active:</span>
+              <span className="metric-pill-val text-blue">{totalOnTrack} Riders</span>
+            </div>
+            <div className="metric-pill-item">
+              <span className="metric-pill-label">Pending Gate:</span>
+              <span className="metric-pill-val text-amber">{totalPending} Pending</span>
+            </div>
+          </div> */}
+
+          {/* Main Table Card */}
+          <div className="ptable-card-container">
+            <div className="ptable-scroll-frame">
+              <table className="ptable-custom-table">
+                <thead>
+                  <tr>
+                    {/* Checkbox Column */}
+                    {/* <th className="ptable-th th-checkbox">
+                      <input
+                        type="checkbox"
+                        className="ptable-checkbox-input"
+                        checked={isAllSelected}
+                        onChange={handleSelectAll}
+                        title="Select all on this page"
+                      />
+                    </th> */}
+
+                    {/* 1. Participant Name Column */}
+                    <th
+                      className="ptable-th th-sortable th-name"
+                      onClick={() => handleDashSort('name')}
+                      title="Sort by Participant Name"
+                    >
+                      <div className="th-content-flex">
+                        <User size={13.5} className="th-header-icon" />
+                        <span>Participant Name</span>
+                        {dashSortField === 'name' && (
+                          dashSortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* 2. Ticket & Tier Column */}
+                    <th
+                      className="ptable-th th-sortable th-ticket"
+                      onClick={() => handleDashSort('tierName')}
+                      title="Sort by Ticket Tier"
+                    >
+                      <div className="th-content-flex">
+                        <Ticket size={13.5} className="th-header-icon" />
+                        <span>Ticket & Tier</span>
+                        {dashSortField === 'tierName' && (
+                          dashSortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* 3. Event Joined Column */}
+                    <th
+                      className="ptable-th th-sortable th-event"
+                      onClick={() => handleDashSort('eventTitle')}
+                      title="Sort by Event Title"
+                    >
+                      <div className="th-content-flex">
+                        <CalendarDays size={13.5} className="th-header-icon" />
+                        <span>Event Joined</span>
+                        {dashSortField === 'eventTitle' && (
+                          dashSortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* 4. Booking Date Column */}
+                    <th
+                      className="ptable-th th-sortable th-date"
+                      onClick={() => handleDashSort('bookedMinutes')}
+                      title="Sort by Booking Date"
+                    >
+                      <div className="th-content-flex">
+                        <Clock size={13.5} className="th-header-icon" />
+                        <span>Booking date</span>
+                        {dashSortField === 'bookedMinutes' && (
+                          dashSortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* 5. Ticket Price & Payment Column */}
+                    <th
+                      className="ptable-th th-sortable th-price"
+                      onClick={() => handleDashSort('priceNumeric')}
+                      title="Sort by Ticket Price"
+                    >
+                      <div className="th-content-flex">
+                        <CreditCard size={13.5} className="th-header-icon" />
+                        <span>Price </span>
+                        {dashSortField === 'priceNumeric' && (
+                          dashSortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* 6. Gate Status Column */}
+                    <th
+                      className="ptable-th th-sortable th-gate"
+                      onClick={() => handleDashSort('gateStatus')}
+                      title="Sort by Gate Status"
+                    >
+                      <div className="th-content-flex">
+                        <CheckCircle2 size={13.5} className="th-header-icon" />
+                        <span>Payment Status</span>
+                        {dashSortField === 'gateStatus' && (
+                          dashSortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                        )}
+                      </div>
+                    </th>
+
+                    {/* 7. Vehicle & City Column */}
+                    {/* <th
+                          className="ptable-th th-sortable th-vehicle"
+                          onClick={() => handleDashSort('city')}
+                          title="Sort by City"
+                        >
+                          <div className="th-content-flex">
+                            <MapPin size={13.5} className="th-header-icon" />
+                            <span>Vehicle & City</span>
+                            {dashSortField === 'city' && (
+                              dashSortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                            )}
+                          </div>
+                        </th> */}
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {dashPaginated.length === 0 ? (
+                    <tr>
+                      <td colSpan="8" className="ptable-empty-cell">
+                        <div className="empty-state-box">
+                          <Users size={32} className="empty-state-icon" />
+                          <h3>No participant bookings found</h3>
+                          <p>Try clearing your search query or gate status filter.</p>
+                          <button
+                            className="ptable-btn-secondary"
+                            onClick={() => {
+                              setParticipantSearch('');
+                              setParticipantGateFilter('All');
+                            }}
+                          >
+                            Reset Filters
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
+                    dashPaginated.map((item) => {
+                      const isSelected = selectedRowIds.has(item.id);
+
+                      return (
+                        <tr
+                          key={item.id}
+                          className={`ptable-row ${isSelected ? 'row-selected' : ''}`}
+                          onClick={() => setTicketModalParticipant(item)}
+                        >
+                          {/* Checkbox Column */}
+                          {/* <td className="ptable-td td-checkbox" onClick={(e) => e.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              className="ptable-checkbox-input"
+                              checked={isSelected}
+                              onChange={(e) => handleSelectRow(item.id, e)}
+                            />
+                          </td> */}
+
+                          {/* 1. Participant Name & Avatar / Email */}
+                          <td className="ptable-td td-name">
+                            <div className="company-name-cell">
+                              {item.avatar ? (
+                                <img
+                                  src={item.avatar}
+                                  alt={item.name}
+                                  className="member-avatar-mini"
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                />
+                              ) : (
+                                <span className="monogram-avatar-circle">
+                                  {item.avatarInitial || item.name.charAt(0)}
+                                </span>
+                              )}
+                              <div className="participant-text-block">
+                                <span className="company-title-text">{item.name}</span>
+                                <span className="participant-sub-email">{item.email}</span>
+                              </div>
+                            </div>
+                          </td>
+
+                          {/* 2. Ticket & Tier */}
+                          <td className="ptable-td td-ticket">
+                            <div className="ticket-tier-cell-block">
+                              <div className="tier-badge-row">
+                                <span className={`event-tier-badge tier-${(item.tierName || 'standard').toLowerCase().replace(/\s+/g, '-')}`}>
+                                  {item.tierName || 'Standard'}
+                                </span>
+                                {/* {item.ticketFor && (
+                                  <span className="ticket-for-subpill">{item.ticketFor}</span>
+                                )} */}
+                              </div>
+                              {/* <span
+                                className="domain-pill-badge"
+                                onClick={(e) => handleCopyCode(item.ticketNumber, e)}
+                                title="Click to copy Ticket ID"
+                              >
+                                <span className="bib-accent-tag">{item.bibNumber}</span>
+                                {item.ticketNumber}
+                                {copiedCode === item.ticketNumber ? (
+                                  <Check size={11} className="pill-copy-icon success" />
+                                ) : null}
+                              </span> */}
+                            </div>
+                          </td>
+
+                          {/* 3. Event Joined */}
+                          <td className="ptable-td td-event">
+                            <div className="avatar-name-cell">
+                              <span className="monogram-avatar-circle event-circle">
+                                {item.eventTitle ? item.eventTitle.charAt(0) : 'E'}
+                              </span>
+                              <span className="cell-person-name bold">{item.eventTitle}</span>
+                            </div>
+                          </td>
+
+                          {/* 4. Booking Date */}
+                          <td className="ptable-td td-date">
+                            <span className="creation-date-text">{item.bookedDate}</span>
+                          </td>
+
+                          {/* 5. Ticket Price & Payment */}
+                          <td className="ptable-td td-price">
+                            <div className="price-cell-stack">
+                              <span className="employee-count-num bold">{item.ticketPrice}</span>
+                              {/* <span className={`payment-pill-tag ${item.paymentStatus?.toLowerCase()}`}>
+                                {item.paymentStatus}
+                              </span> */}
+                            </div>
+                          </td>
+
+                          {/* 6. Gate Status */}
+                          <td
+                            className="ptable-td td-gate"
+                            onClick={(e) => handleToggleCheckIn(item.id, e)}
+                            title="Click to toggle Check-In"
+                          >
+                            {renderGateBadge(item.gateStatus)}
+                          </td>
+
+                          {/* 7. Vehicle & City */}
+                          {/* <td className="ptable-td td-vehicle">
+                            <span
+                              className="address-truncated-text"
+                              title={`${item.vehicle} (${item.vehiclePlate}) · ${item.city}`}
+                            >
+                              {item.vehicle} <span className="city-accent">· {item.city}</span>
+                            </span>
+                          </td> */}
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
+
+            {/* Pagination Footer */}
+            <div className="ptable-footer-pagination">
+              <div className="pagination-count-label">
+                Showing {filteredParticipants.length === 0 ? 0 : (dashPage - 1) * dashPageSize + 1} to{' '}
+                {Math.min(dashPage * dashPageSize, filteredParticipants.length)} of {filteredParticipants.length} recent participants
+              </div>
+
+              <div className="pagination-controls-center">
+                <button
+                  className="pagination-nav-btn"
+                  disabled={dashPage === 1}
+                  onClick={() => setDashPage((p) => Math.max(1, p - 1))}
+                  title="Previous Page"
+                >
+                  <ChevronLeft size={15} />
+                </button>
+
+                {Array.from({ length: totalDashPages }, (_, i) => i + 1).map((p) => (
+                  <button
+                    key={p}
+                    className={`pagination-page-number ${dashPage === p ? 'active' : ''}`}
+                    onClick={() => setDashPage(p)}
+                  >
+                    {p}
+                  </button>
+                ))}
+
+                <button
+                  className="pagination-nav-btn"
+                  disabled={dashPage === totalDashPages || totalDashPages === 0}
+                  onClick={() => setDashPage((p) => Math.min(totalDashPages, p + 1))}
+                  title="Next Page"
+                >
+                  <ChevronRight size={15} />
+                </button>
+              </div>
+
+              <div className="pagination-page-size-wrap">
+                <span className="size-label">Rows per page:</span>
+                <div className="size-select-box">
+                  <select
+                    value={dashPageSize}
+                    onChange={(e) => {
+                      setDashPageSize(Number(e.target.value));
+                      setDashPage(1);
+                    }}
+                    className="page-size-dropdown"
+                  >
+                    <option value={5}>5 / page</option>
+                    <option value={8}>8 / page</option>
+                    <option value={12}>12 / page</option>
+                  </select>
+                  <ChevronDown size={13} className="size-chevron" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Floating Bulk Action Bar */}
+          {selectedRowIds.size > 0 && (
+            <div className="ptable-bulk-floating-bar">
+              <span className="bulk-badge-count">{selectedRowIds.size} selected</span>
+
+              <button className="bulk-bar-btn" onClick={handleBulkCheckIn}>
+                <CheckCircle2 size={14} />
+                <span>Gate Check-In (Done)</span>
+              </button>
+
+              <button
+                className="bulk-bar-btn"
+                onClick={() => {
+                  setParticipants((prev) =>
+                    prev.map((p) => (selectedRowIds.has(p.id) ? { ...p, gateStatus: 'On Progress' } : p))
+                  );
+                  showToast(`Marked ${selectedRowIds.size} participants On Track.`);
+                  setSelectedRowIds(new Set());
+                }}
+              >
+                <Info size={14} />
+                <span>Mark On Track</span>
+              </button>
+
+              <button className="bulk-bar-btn" onClick={handleExportCSV}>
+                <Download size={14} />
+                <span>Export CSV</span>
+              </button>
+
+              <button className="bulk-bar-btn danger" onClick={handleBulkDelete}>
+                <Trash2 size={14} />
+                <span>Cancel Bookings</span>
+              </button>
+
+              <button
+                className="bulk-close-btn"
+                onClick={() => setSelectedRowIds(new Set())}
+                title="Deselect all"
+              >
+                <X size={15} />
               </button>
             </div>
+          )}
 
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {/* Recent ticket sales (Mint icon) */}
-              <div className="saved-action-row">
-                <div className="pastel-circle-icon mint">
-                  <Ticket size={18} />
+          {/* Digital Boarding Pass Ticket Modal */}
+          {ticketModalParticipant && (
+            <div className="ptable-modal-backdrop" onClick={() => setTicketModalParticipant(null)}>
+              <div className="digital-ticket-modal-card" onClick={(e) => e.stopPropagation()}>
+                <div className="ticket-hero-banner">
+                  <div className="ticket-header-top">
+                    <span className="ticket-brand-badge">⚡ Nitroxx Verified Booking Pass</span>
+                    <button className="modal-close-icon white" onClick={() => setTicketModalParticipant(null)}>
+                      <X size={18} />
+                    </button>
+                  </div>
+                  <h2 className="ticket-event-name">{ticketModalParticipant.eventTitle}</h2>
+                  <div style={{ marginTop: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span className={`event-tier-badge tier-${(ticketModalParticipant.tierName || 'standard').toLowerCase().replace(/\s+/g, '-')}`}>
+                      {ticketModalParticipant.tierName || 'Standard'} Tier
+                    </span>
+                    {ticketModalParticipant.ticketFor && (
+                      <span className="ticket-for-subpill" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
+                        {ticketModalParticipant.ticketFor}
+                      </span>
+                    )}
+                  </div>
                 </div>
-                <div className="action-row-meta">
-                  <div className="action-row-title">Recent Ticket Sale</div>
-                  <div className="action-row-sub">John Doe bought 2x VIP Pass</div>
-                </div>
-                <span style={{ fontSize: '11px', color: '#9ca3af' }}>4m ago</span>
-              </div>
 
-              {/* Refunds (Pink icon) */}
-              <div className="saved-action-row">
-                <div className="pastel-circle-icon pink">
-                  <AlertCircle size={18} />
+                {/* Perforation line */}
+                <div className="ticket-perforation-row">
+                  <div className="ticket-notch-left" />
+                  <div className="ticket-dashed-line" />
+                  <div className="ticket-notch-right" />
                 </div>
-                <div className="action-row-meta">
-                  <div className="action-row-title">Refund Request</div>
-                  <div className="action-row-sub">Karan Mehra (Medical reason)</div>
-                </div>
-                <span style={{ fontSize: '11px', color: '#9ca3af' }}>28m ago</span>
-              </div>
 
-              {/* Event updates (Sky blue icon) */}
-              <div className="saved-action-row">
-                <div className="pastel-circle-icon sky">
-                  <Radio size={18} />
-                </div>
-                <div className="action-row-meta">
-                  <div className="action-row-title">Event Gate Update</div>
-                  <div className="action-row-sub">Gate B opened for public entry</div>
-                </div>
-                <span style={{ fontSize: '11px', color: '#9ca3af' }}>1h ago</span>
-              </div>
+                <div className="ticket-body-content">
+                  <div className="ticket-rider-row">
+                    <img
+                      src={ticketModalParticipant.avatar}
+                      alt={ticketModalParticipant.name}
+                      className="ticket-rider-avatar"
+                    />
+                    <div className="ticket-rider-meta">
+                      <h3>{ticketModalParticipant.name}</h3>
+                      <p>{ticketModalParticipant.email} · {ticketModalParticipant.phone}</p>
+                      <div style={{ marginTop: '6px' }}>
+                        {renderGateBadge(ticketModalParticipant.gateStatus)}
+                      </div>
+                    </div>
+                  </div>
 
-              {/* Important alerts (Lavender icon) */}
-              <div className="saved-action-row">
-                <div className="pastel-circle-icon lavender">
-                  <ShieldCheck size={18} />
+                  <div className="ticket-grid-details">
+                    <div className="ticket-info-item">
+                      <span>Bib Number</span>
+                      <strong>{ticketModalParticipant.bibNumber}</strong>
+                    </div>
+                    <div className="ticket-info-item">
+                      <span>Package Tier</span>
+                      <strong>{ticketModalParticipant.tierName} ({ticketModalParticipant.ticketFor})</strong>
+                    </div>
+                    <div className="ticket-info-item">
+                      <span>Vehicle & Plate</span>
+                      <strong>{ticketModalParticipant.vehicle} ({ticketModalParticipant.vehiclePlate})</strong>
+                    </div>
+                    <div className="ticket-info-item">
+                      <span>Gate Wave / Time</span>
+                      <strong>{ticketModalParticipant.wave || 'General Wave (08:00 AM)'}</strong>
+                    </div>
+                    <div className="ticket-info-item">
+                      <span>Blood Group</span>
+                      <strong>{ticketModalParticipant.bloodGroup || 'O+'}</strong>
+                    </div>
+                    <div className="ticket-info-item">
+                      <span>Price & Status</span>
+                      <strong>{ticketModalParticipant.ticketPrice} · {ticketModalParticipant.paymentStatus}</strong>
+                    </div>
+                  </div>
+
+                  <div className="ticket-barcode-box">
+                    <div className="barcode-svg-line" />
+                    <span className="barcode-num-text">*{ticketModalParticipant.ticketNumber}*</span>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
+                    <button
+                      className="ptable-btn-primary"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                      onClick={() => {
+                        const next = ticketModalParticipant.gateStatus === 'Done' ? 'On Progress' : 'Done';
+                        setParticipants((prev) =>
+                          prev.map((p) => (p.id === ticketModalParticipant.id ? { ...p, gateStatus: next } : p))
+                        );
+                        setTicketModalParticipant((prev) => ({ ...prev, gateStatus: next }));
+                        showToast(next === 'Done' ? 'Gate Verified: Checked In!' : 'Gate Status Reset.');
+                      }}
+                    >
+                      <CheckCircle2 size={16} />
+                      <span>{ticketModalParticipant.gateStatus === 'Done' ? 'Reset Attendance' : 'Confirm Gate Check-In (Done)'}</span>
+                    </button>
+
+                    <button
+                      className="ptable-btn-secondary"
+                      onClick={() => window.print()}
+                      title="Print Gate Pass"
+                    >
+                      <Printer size={16} />
+                    </button>
+                  </div>
                 </div>
-                <div className="action-row-meta">
-                  <div className="action-row-title">Important System Alert</div>
-                  <div className="action-row-sub">RFID sensors calibrated at 100%</div>
-                </div>
-                <span style={{ fontSize: '11px', color: '#9ca3af' }}>2h ago</span>
               </div>
             </div>
+          )}
 
-            <button
-              className="btn-card-bottom-outlined"
-              onClick={() => alert('Viewing full operations activity log')}
-            >
-              + View All Activity Logs
-            </button>
-          </div>
-        </div>
+          {/* Floating Toast Notification */}
+          {toastMessage && (
+            <div className="ptable-floating-toast">
+              <CheckCircle2 size={16} className="toast-icon" />
+              <span>{toastMessage}</span>
+            </div>
+          )}
+        </section>
+
+
       </div>
     </AppLayout>
   );

@@ -35,6 +35,43 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
 }
 
+.kpi-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2px;
+}
+
+.kpi-icon-pill {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.kpi-icon-pill.blue {
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.kpi-icon-pill.purple {
+  background: #f5f3ff;
+  color: #7c3aed;
+}
+
+.kpi-icon-pill.emerald {
+  background: #ecfdf5;
+  color: #059669;
+}
+
+.kpi-icon-pill.amber {
+  background: #fffbeb;
+  color: #d97706;
+}
+
 .kpi-title {
   color: #64748b;
   font-size: 13px;

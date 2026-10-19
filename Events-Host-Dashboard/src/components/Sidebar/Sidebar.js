@@ -137,121 +137,12 @@ const Sidebar = () => {
             <span className="workspace-name">{profile?.organization || 'Nitroxx Inc'}</span>
             {/* <ChevronDown size={14} className="workspace-chevron" /> */}
           </button>
-
-          {/* <button 
-            className={`sidebar-search-toggle ${searchOpen ? 'open' : ''}`}
-            onClick={() => setSearchOpen(!searchOpen)}
-            title="Search sidebar and events"
-          >
-            <Search size={16} strokeWidth={1.8} />
-          </button> */}
-
-          {/* Workspace Switcher Popover */}
-          {workspaceMenuOpen && (
-            <div className="workspace-dropdown">
-              <div className="workspace-dropdown-header">
-                <p className="dropdown-label">Active Workspace</p>
-                <p className="dropdown-title">{profile?.organization || 'Nitroxx Inc'}</p>
-                <span className="plan-badge">Pro Plan</span>
-              </div>
-              <div className="workspace-dropdown-divider" />
-              <div className="workspace-dropdown-item active">
-                <div className="workspace-dot" />
-                <div className="workspace-item-info">
-                  <span className="workspace-item-title">{profile?.organization || 'Nitroxx Inc'}</span>
-                  <span className="workspace-item-sub">Default Production</span>
-                </div>
-                <Check size={14} className="check-icon" />
-              </div>
-              <div className="workspace-dropdown-divider" />
-              <button 
-                className="workspace-dropdown-action" 
-                onClick={() => { setWorkspaceMenuOpen(false); navigate('/profile'); }}
-              >
-                Workspace Settings
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Quick Search Bar (Toggles when search icon is clicked) */}
-        {searchOpen && (
-          <form className="sidebar-quick-search" onSubmit={handleSearchSubmit}>
-            <Search size={14} className="search-field-icon" />
-            <input 
-              ref={searchInputRef}
-              type="text" 
-              placeholder="Search or jump to..." 
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="search-field-input"
-            />
-            <button 
-              type="button" 
-              className="search-clear-btn" 
-              onClick={() => { setSearchQuery(''); setSearchOpen(false); }}
-            >
-              <X size={13} />
-            </button>
-          </form>
-        )}
-
-        {/* Top items: AI Assistant & Inbox */}
-        <div className="sidebar-utility-group" ref={inboxRef}>
-          {/* <button 
-            className={`sidebar-nav-item utility-item ${aiModalOpen ? 'active' : ''}`}
-            onClick={() => setAiModalOpen(true)}
-          >
-            <Sparkles className="item-icon" size={16} strokeWidth={1.75} />
-            <span className="item-label">AI Assistant</span>
-          </button>
-
-          <button 
-            className={`sidebar-nav-item utility-item ${inboxOpen ? 'active' : ''}`}
-            onClick={() => setInboxOpen(!inboxOpen)}
-          >
-            <Inbox className="item-icon" size={16} strokeWidth={1.75} />
-            <span className="item-label">Inbox</span>
-            {unreadCount > 0 && (
-              <span className="inbox-badge">{unreadCount}</span>
-            )}
-          </button> */}
-
-          {/* Inbox Notifications Flyout */}
-          {inboxOpen && (
-            <div className="sidebar-inbox-popover">
-              <div className="inbox-popover-header">
-                <span className="inbox-title">Notifications</span>
-                {unreadCount > 0 && (
-                  <span className="inbox-count-tag">{unreadCount} new</span>
-                )}
-              </div>
-              <div className="inbox-list">
-                {(!notifications || notifications.length === 0) ? (
-                  <div className="inbox-empty">
-                    <CheckCircle2 size={24} className="empty-check" />
-                    <p>All caught up!</p>
-                    <span>No unread notifications right now</span>
-                  </div>
-                ) : (
-                  notifications.slice(0, 5).map((n, idx) => (
-                    <div key={idx} className="inbox-card">
-                      <div className="inbox-card-dot" />
-                      <div className="inbox-card-body">
-                        <p className="inbox-card-title">{n.title || 'Event Notification'}</p>
-                        <p className="inbox-card-msg">{n.message || 'New update available on your events.'}</p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Workspaces Section */}
         <div className="sidebar-section-container">
-          <div className="sidebar-section-header">Workspaces</div>
+          <div style={{width:'100%',height:'2px',backgroundColor:'#ebebea',margin:'0 0px'}}></div>
+          {/* <div className="sidebar-section-header">Workspaces</div> */}
           <nav className="sidebar-nav-list">
             {filteredItems.map((item, index) => {
               const Icon = item.icon;

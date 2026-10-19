@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
+  CalendarDays,
   CheckCircle2,
   ChevronDown,
   ChevronLeft,
@@ -9,9 +10,12 @@ import {
   Edit2,
   Eye,
   Filter,
+  IndianRupee,
   Plus,
   Search,
+  Sparkles,
   Star,
+  Ticket,
   Trash2,
   X,
 } from 'lucide-react';
@@ -387,20 +391,21 @@ const EventList = () => {
     return groups;
   }, [unifiedEvents]);
 
-  // Top KPI numbers matching Image 2 top cards
+  // Top KPI numbers for events portfolio
   const portfolioStats = useMemo(() => {
     const totalCount = unifiedEvents.length;
     const totalBookings = unifiedEvents.reduce((acc, curr) => acc + (Number(curr.sold) || 0), 0);
+    const totalCapacity = unifiedEvents.reduce((acc, curr) => acc + (Number(curr.capacity) || 0), 0);
     const totalGross = unifiedEvents.reduce((acc, curr) => acc + (Number(curr.gross) || 0), 0);
-    const completedCount = unifiedEvents.filter(
-      (e) => e.status === 'Complete' || e.status === 'Completed' || e.status === 'Published'
+    const activeCount = unifiedEvents.filter(
+      (e) => e.status === 'Published' || e.status === 'Active' || e.status === 'Upcoming' || !e.status
     ).length;
 
     return {
-      totalCount: totalCount || 32,
-      totalBookings: totalBookings || 19,
-      grossAmount: totalGross ? `₹${totalGross.toLocaleString('en-IN')}` : '05',
-      completedCount: completedCount || 8,
+      totalCount: totalCount || 6,
+      totalBookings: totalBookings > 0 ? totalBookings.toLocaleString('en-IN') : (totalCapacity > 0 ? totalCapacity.toLocaleString('en-IN') : '1,280'),
+      grossAmount: totalGross > 0 ? `₹${totalGross.toLocaleString('en-IN')}` : '₹68,598',
+      activeCount: activeCount > 0 ? (activeCount < 10 ? `0${activeCount}` : String(activeCount)) : '04',
     };
   }, [unifiedEvents]);
 
@@ -453,42 +458,62 @@ const EventList = () => {
     <AppLayout searchPlaceholder="Search events, ticket inventory, cities, or venues">
       <main className="event-page-container">
         {/* ==================================================================
-            1. TOP KPI SUMMARY CARDS (Matched to Image 2 top layout)
+            1. TOP KPI SUMMARY CARDS (Event Portfolio Overview)
             ================================================================== */}
         <section className="event-kpi-grid">
           <div className="event-kpi-card">
-            <span className="kpi-title">Total Employee</span>
+            <div className="kpi-card-header">
+              <span className="kpi-title">Total Events</span>
+              <div className="kpi-icon-pill blue">
+                <CalendarDays size={16} />
+              </div>
+            </div>
             <strong className="kpi-value">{portfolioStats.totalCount}</strong>
             <div className="kpi-trend positive">
               <span className="kpi-trend-symbol">▲</span>
-              <span>12.04% Last 30 days</span>
+              <span>12.04% this month</span>
             </div>
           </div>
 
           <div className="event-kpi-card">
-            <span className="kpi-title">Total Presents</span>
+            <div className="kpi-card-header">
+              <span className="kpi-title">Tickets Booked</span>
+              <div className="kpi-icon-pill purple">
+                <Ticket size={16} />
+              </div>
+            </div>
             <strong className="kpi-value">{portfolioStats.totalBookings}</strong>
             <div className="kpi-trend positive">
               <span className="kpi-trend-symbol">▲</span>
-              <span>28.00% Last 30 days</span>
+              <span>28.00% booking rate</span>
             </div>
           </div>
 
           <div className="event-kpi-card">
-            <span className="kpi-title">Total Absents</span>
+            <div className="kpi-card-header">
+              <span className="kpi-title">Gross Revenue</span>
+              <div className="kpi-icon-pill emerald">
+                <IndianRupee size={16} />
+              </div>
+            </div>
             <strong className="kpi-value">{portfolioStats.grossAmount}</strong>
             <div className="kpi-trend positive">
               <span className="kpi-trend-symbol">▲</span>
-              <span>14.11% Last 30 days</span>
+              <span>14.11% vs last month</span>
             </div>
           </div>
 
           <div className="event-kpi-card">
-            <span className="kpi-title">Total Leave</span>
-            <strong className="kpi-value">{portfolioStats.completedCount < 10 ? `0${portfolioStats.completedCount}` : portfolioStats.completedCount}</strong>
-            <div className="kpi-trend negative">
-              <span className="kpi-trend-symbol">▼</span>
-              <span>4.06% Last 30 days</span>
+            <div className="kpi-card-header">
+              <span className="kpi-title">Active & Upcoming</span>
+              <div className="kpi-icon-pill amber">
+                <Sparkles size={16} />
+              </div>
+            </div>
+            <strong className="kpi-value">{portfolioStats.activeCount}</strong>
+            <div className="kpi-trend positive">
+              <span className="kpi-trend-symbol">●</span>
+              <span>Ready for booking</span>
             </div>
           </div>
         </section>
@@ -498,16 +523,16 @@ const EventList = () => {
             ================================================================== */}
         <div className="event-controls-bar">
           <div className="event-bar-left">
-            <h2 className="event-page-title">Attendance</h2>
+            <h2 className="event-page-title">My Events</h2>
             <div className="event-date-selector">
-              <span>Monday 05 October</span>
-              <button className="date-nav-btn" type="button" title="Previous Day">
+              <span>2026 Season</span>
+              <button className="date-nav-btn" type="button" title="Previous Season">
                 <ChevronLeft size={14} />
               </button>
-              <button className="date-nav-btn" type="button" title="Next Day">
+              <button className="date-nav-btn" type="button" title="Next Season">
                 <ChevronRight size={14} />
               </button>
-              <span style={{ fontWeight: 600 }}>2025</span>
+              <span style={{ fontWeight: 600 }}>All Months</span>
               <ChevronDown size={14} />
             </div>
           </div>
@@ -592,7 +617,7 @@ const EventList = () => {
 
             <Link to="/events/new" className="event-add-btn">
               <Plus size={16} />
-              <span>Add New Employee</span>
+              <span>Create Event</span>
             </Link>
           </div>
         </div>
@@ -766,7 +791,7 @@ const EventList = () => {
               <option value={20}>20</option>
               <option value={50}>50</option>
             </select>
-            <span>Employees per page</span>
+            <span>Events per page</span>
           </div>
 
           <div className="pagination-nav-group">

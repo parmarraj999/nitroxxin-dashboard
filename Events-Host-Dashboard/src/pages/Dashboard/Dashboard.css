@@ -777,265 +777,64 @@
   border-color: #111827;
 }
 
-/* 8. TOP PERFORMING EVENTS */
-.top-event-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-  border-bottom: 1px solid #f9fafb;
-}
-
-.top-event-row:last-child {
-  border-bottom: none;
-}
-
-.top-event-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.top-rank-circle {
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: #f3f4f6;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
-  color: #4b5563;
-}
-
-.top-event-title {
-  font-size: 13px;
-  font-weight: 600;
-  color: #111827;
-}
-
-.top-event-meta {
-  font-size: 11.5px;
-  color: #6b7280;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.top-event-revenue {
-  font-size: 13.5px;
-  font-weight: 700;
-  color: #111827;
-  text-align: right;
-}
-
 /* ==========================================================================
-   4. RECENT PARTICIPANTS TABLE (Exact Replication of Image 2)
+   8. TOP PERFORMING EVENTS (IMAGE REPLICATION)
    ========================================================================== */
-.participants-table-card {
+.top-events-card-modern {
   background: #ffffff;
   border: 1px solid #eef0f3;
-  border-radius: 16px;
-  padding: 20px 24px;
-  margin-bottom: 24px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  border-radius: 28px;
+  padding: 22px 24px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.02);
+  display: flex;
+  flex-direction: column;
 }
 
-.table-top-bar {
+.top-events-header-bar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
   gap: 12px;
-}
-
-.table-header-left {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.table-icon-square {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #4b5563;
-}
-
-.table-heading-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: #111827;
-  margin: 0;
-}
-
-.table-controls-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.table-search-input-wrap {
+  margin-bottom: 8px;
   position: relative;
-  display: flex;
-  align-items: center;
 }
 
-.table-search-input-wrap svg {
-  position: absolute;
-  left: 10px;
-  color: #9ca3af;
+/* Left Filter Pill (In place of Members) */
+.top-events-filter-wrap {
+  position: relative;
 }
 
-.table-search-input {
-  height: 34px;
-  padding: 0 12px 0 32px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
+.top-events-filter-pill {
   background: #ffffff;
-  font-size: 12.5px;
-  color: #111827;
-  font-family: inherit;
-  width: 190px;
-  transition: all 0.15s ease;
-}
-
-.table-search-input:focus {
-  outline: none;
-  border-color: #111827;
-  width: 220px;
-}
-
-.table-filter-btn {
-  height: 34px;
-  padding: 0 12px;
-  border-radius: 8px;
-  border: 1px solid #e5e7eb;
-  background: #ffffff;
-  color: #374151;
-  font-size: 12.5px;
-  font-weight: 500;
+  border: 1.5px solid #eaebed;
+  border-radius: 999px;
+  padding: 8px 16px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   cursor: pointer;
-  transition: all 0.12s ease;
+  transition: all 0.15s ease;
+  user-select: none;
 }
 
-.table-filter-btn:hover {
-  background-color: #f9fafb;
+.top-events-filter-pill:hover {
+  background: #f9fafb;
   border-color: #d1d5db;
 }
 
-.table-wrapper-responsive {
-  overflow-x: auto;
-  width: 100%;
-}
-
-.participants-styled-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 12.5px;
-}
-
-.participants-styled-table th {
-  padding: 10px 14px;
-  color: #6b7280;
-  font-weight: 500;
-  text-align: left;
-  border-bottom: 1px solid #f0f2f5;
-  background: #fafbfc;
-  font-size: 12px;
-  white-space: nowrap;
-}
-
-.participants-styled-table th:first-child {
-  border-top-left-radius: 8px;
-  border-bottom-left-radius: 8px;
-}
-
-.participants-styled-table th:last-child {
-  border-top-right-radius: 8px;
-  border-bottom-right-radius: 8px;
-  text-align: right;
-}
-
-.participants-styled-table td {
-  padding: 12px 14px;
-  color: #374151;
-  border-bottom: 1px solid #f9fafb;
-  vertical-align: middle;
-  white-space: nowrap;
-}
-
-.participants-styled-table td:last-child {
-  text-align: right;
-}
-
-.participant-cell {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.participant-avatar-round {
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  object-fit: cover;
-  flex-shrink: 0;
-}
-
-.participant-name-text {
+.tpe-filter-text {
+  font-size: 14.5px;
   font-weight: 600;
   color: #111827;
 }
 
-.status-badge-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 5px;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 1.2;
-}
-
-.status-badge-pill.new-lead { background: #e0f2fe; color: #0369a1; }
-.status-badge-pill.contacted { background: #ede9fe; color: #6d28d9; }
-.status-badge-pill.qualified { background: #dcfce7; color: #15803d; }
-.status-badge-pill.paid { background: #dcfce7; color: #15803d; }
-.status-badge-pill.pending { background: #fef3c7; color: #b45309; }
-
-.source-tag {
-  background: #f3f4f6;
-  color: #4b5563;
-  padding: 2px 7px;
-  border-radius: 4px;
-  font-size: 11px;
-}
-
-.owner-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  color: #374151;
-}
-
-.owner-initials-circle {
+.tpe-filter-count {
   width: 22px;
   height: 22px;
   border-radius: 50%;
-  background: #e5e7eb;
-  font-size: 9.5px;
+  border: 1.5px solid #e5e7eb;
+  background: #ffffff;
+  font-size: 11px;
   font-weight: 700;
   color: #4b5563;
   display: flex;
@@ -1043,22 +842,238 @@
   justify-content: center;
 }
 
-.row-action-btn {
-  padding: 4px 10px;
-  border-radius: 6px;
-  border: 1px solid #e5e7eb;
+.tpe-filter-chevron {
+  color: #6b7280;
+  transition: transform 0.15s ease;
+}
+
+.tpe-filter-chevron.open {
+  transform: rotate(180deg);
+}
+
+.top-events-filter-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
   background: #ffffff;
-  color: #374151;
-  font-size: 11.5px;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+  padding: 6px;
+  min-width: 140px;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tpe-dropdown-item {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  font-size: 13px;
   font-weight: 500;
+  color: #374151;
   cursor: pointer;
   transition: all 0.12s ease;
 }
 
-.row-action-btn:hover {
-  background: #111827;
-  color: #ffffff;
-  border-color: #111827;
+.tpe-dropdown-item:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.tpe-dropdown-item.active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+/* Right View More Pill (In place of Search Bar) */
+.top-events-view-more-pill {
+  background: #f8fafc;
+  border: 1.5px solid #eaebed;
+  border-radius: 999px;
+  padding: 8px 18px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #4b5563;
+  transition: all 0.15s ease;
+}
+
+.top-events-view-more-pill:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #111827;
+  transform: translateX(1px);
+}
+
+.top-events-view-more-pill svg {
+  color: #6b7280;
+  transition: transform 0.15s ease;
+}
+
+.top-events-view-more-pill:hover svg {
+  transform: translateX(2px);
+  color: #111827;
+}
+
+/* Event List */
+.top-events-list {
+  display: flex;
+  flex-direction: column;
+  margin-top: 4px;
+}
+
+.top-event-item-modern {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 4px;
+  border-bottom: 1px solid #f1f3f5;
+  transition: background-color 0.12s ease;
+}
+
+.top-event-item-modern:last-child {
+  border-bottom: none;
+}
+
+.top-event-left-group {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 0;
+  flex: 1;
+  padding-right: 12px;
+}
+
+/* Circular Event Banner with Ring */
+.top-event-avatar-ring {
+  width: 50px;
+  height: 50px;
+  /* border: 2px solid #3b82f6; */
+  padding: 2.5px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.top-event-avatar-img {
+  width: 100%;
+  height: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+}
+
+.top-event-title-wrap {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.top-event-name-text {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+.top-event-location-text {
+  font-size: 12px;
+  font-weight: 500;
+  color: #787878;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+  display: flex;
+  align-content: center;
+  gap: 4px;
+}
+
+/* Right Simple Amount Text */
+.top-event-amount-val {
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  text-align: right;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ==========================================================================
+   4. RECENT PARTICIPANTS DIRECTORY TABLE (Participants UI Match)
+   ========================================================================== */
+.dashboard-participants-section {
+  background: #ffffff;
+  border: 1px solid #eef0f3;
+  border-radius: 16px;
+  padding: 22px 24px 20px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  position: relative;
+}
+
+.dash-ptable-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+
+.dash-ptable-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.dash-ptable-title {
+  font-size: 17px;
+  font-weight: 700;
+  color: #09090b;
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+.dash-ptable-count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f4f4f5;
+  color: #52525b;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.dash-ptable-sub {
+  font-size: 12.5px;
+  color: #71717a;
+  margin: 3px 0 0 0;
+}
+
+.dash-ptable-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 /* ==========================================================================
@@ -2501,7 +2516,7 @@
 
 .event-card-day-num {
   font-size: 20px;
-  font-weight: 700;
+  font-weight: 600;
   color: #111827;
   line-height: 1.05;
   letter-spacing: -0.02em;
