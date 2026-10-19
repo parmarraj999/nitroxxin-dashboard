@@ -61,6 +61,7 @@ function App() {
               <Route path="/participants-preview" element={<Participants />} />
               <Route path="/dashboard-preview" element={<Dashboard />} />
               <Route path="/transactions-preview" element={<Transactions />} />
+              <Route path="/profile-preview" element={<Profile />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />

@@ -1541,45 +1541,45 @@ const EventForm = () => {
             <EventPreview form={form} files={files} progress={progress} />
           )}
 
-          {/* ADVANCED STICKY STEP ACTIONS BAR AT BOTTOM (ALWAYS FIXED & ACCESSIBLE) */}
-          <div className="builder-sticky-bottom-bar">
+          {/* FIXED FLOATING POPUP BAR AT BOTTOM (PREVIOUS & NEXT ACTIONS) */}
+          <div className="builder-floating-dock-bar">
             <button
               type="button"
-              className="builder-action-btn prev"
+              className="dock-action-btn prev"
               disabled={currentStep === 0 || saving}
               onClick={handlePrevStep}
               title={currentStep === 0 ? "You are on the first step" : "Return to previous step"}
             >
               <ChevronLeft size={16} />
-              <span>Previous Step</span>
+              <span>Previous</span>
             </button>
 
-            <div className="builder-bottom-center-info">
-              <span className="bottom-step-pill">
+            <div className="dock-step-tracker">
+              <span className="dock-step-counter-pill">
                 Step {currentStep + 1} of {steps.length}
               </span>
-              <span className="bottom-step-name">
+              <span className="dock-step-title-text">
                 {steps[currentStep]}
               </span>
             </div>
 
-            <div className="builder-action-right">
+            <div className="dock-action-right">
               {currentStep < steps.length - 1 ? (
                 <button
                   type="button"
-                  className="builder-action-btn next"
+                  className="dock-action-btn next"
                   onClick={handleNextStep}
                   title="Proceed to next step"
                 >
-                  <span>{currentStep === steps.length - 2 ? "Review & Preview Event" : "Next Step"}</span>
+                  <span>{currentStep === steps.length - 2 ? "Preview Event" : "Next"}</span>
                   {currentStep === steps.length - 2 ? <Eye size={16} /> : <ChevronRight size={16} />}
                 </button>
               ) : (
-                <button type="submit" className="builder-action-btn submit" disabled={saving}>
+                <button type="submit" className="dock-action-btn submit" disabled={saving}>
                   {saving ? (
                     <>
-                      <span className="btn-spinner-icon" />
-                      <span>Saving draft...</span>
+                      <span className="dock-spinner-icon" />
+                      <span>Saving...</span>
                     </>
                   ) : (
                     <>
