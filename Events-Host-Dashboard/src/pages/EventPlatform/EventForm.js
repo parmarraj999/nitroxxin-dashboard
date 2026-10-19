@@ -137,17 +137,6 @@ const steps = [
   "Preview",
 ];
 
-const stepIcons = {
-  "Details": FileText,
-  "Schedule": CalendarDays,
-  "Media": Image,
-  "Itinerary": Layers,
-  "Pricing": Ticket,
-  "Coupons": Percent,
-  "Add-ons": Gift,
-  "Terms & Conditions": ShieldCheck,
-  "Preview": Eye,
-};
 
 const MB = 1024 * 1024;
 
