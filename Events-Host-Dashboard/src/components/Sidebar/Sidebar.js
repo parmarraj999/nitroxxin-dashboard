@@ -14,7 +14,8 @@ import {
   Send,
   Bot,
   Check,
-  CheckCircle2
+  CheckCircle2,
+  ReceiptText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useNotifications } from '../../hooks/useNotifications';
@@ -99,6 +100,7 @@ const Sidebar = () => {
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
     { icon: CalendarDays, label: 'My Events', path: '/events' },
     { icon: Users, label: 'Participants', path: '/participants' },
+    { icon: ReceiptText, label: 'Transactions', path: '/transactions' },
     // { icon: Globe2, label: 'Public Events', path: '/explore' },
     { icon: Plus, label: 'Add Event', path: '/events/new' },
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },

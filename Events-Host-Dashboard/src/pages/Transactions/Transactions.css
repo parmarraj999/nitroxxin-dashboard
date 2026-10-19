@@ -1,0 +1,896 @@
+/* =========================================================================
+   TRANSACTIONS HISTORY & SIDE POPUP DETAILS STYLING
+   Precision replication of user reference images 1 and 2
+   ========================================================================= */
+
+.transactions-page-container {
+  padding: 24px 32px 60px;
+  background-color: #f8fafc;
+  min-height: calc(100vh - 65px);
+  position: relative;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.transactions-main-wrapper {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* =========================================================================
+   TOP HEADER BAR (Image 2)
+   ========================================================================= */
+.tx-header-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.tx-title-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tx-title-icon-box {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.tx-page-title {
+  font-size: 20px;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.tx-header-controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Search Box Pill */
+.tx-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.tx-search-icon {
+  position: absolute;
+  left: 14px;
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.tx-search-input {
+  width: 210px;
+  padding: 8px 16px 8px 38px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  font-size: 13px;
+  color: #1e293b;
+  outline: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+}
+
+.tx-search-input:focus {
+  border-color: #ff6a00;
+  box-shadow: 0 0 0 3px rgba(255, 106, 0, 0.12);
+  width: 260px;
+}
+
+.tx-search-input::placeholder {
+  color: #94a3b8;
+}
+
+/* Timeframe Group Pills: 1D, 7D, 1M, 1Y */
+.tx-timeframe-group {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 999px;
+  padding: 3px;
+  border: 1px solid #e2e8f0;
+}
+
+.tx-timeframe-btn {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tx-timeframe-btn:hover {
+  color: #1e293b;
+}
+
+.tx-timeframe-btn.active {
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* Secondary Filter Bar */
+.tx-secondary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tx-filter-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tx-filter-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+  margin-right: 2px;
+}
+
+.tx-filter-chip {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  padding: 4px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tx-filter-chip:hover {
+  background: #f8fafc;
+  color: #111827;
+}
+
+.tx-filter-chip.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+.tx-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tx-selected-count-chip {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #ff6a00;
+  background: #fff7ed;
+  border: 1px solid #ffedd5;
+  padding: 4px 10px;
+  border-radius: 999px;
+}
+
+.tx-export-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 6px 13px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.tx-export-btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+  color: #0f172a;
+}
+
+/* =========================================================================
+   TRANSACTIONS TABLE CARD (Image 2)
+   ========================================================================= */
+.tx-table-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+}
+
+.tx-table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.tx-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+
+.tx-table thead th {
+  padding: 14px 18px;
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #64748b;
+  background: #ffffff;
+  border-bottom: 1px solid #f1f5f9;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+.tx-table tbody td {
+  padding: 14px 18px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+  font-size: 13.5px;
+}
+
+.tx-table-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.tx-table-row:hover {
+  background-color: #f8fafc;
+}
+
+.tx-table-row.row-selected {
+  background-color: #fffaf0;
+}
+
+/* Custom Checkbox */
+.tx-custom-checkbox {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  cursor: pointer;
+  accent-color: #ff6a00;
+}
+
+.th-checkbox, .td-checkbox {
+  width: 44px;
+  text-align: center;
+}
+
+/* Description Column */
+.tx-desc-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.tx-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e2e8f0;
+}
+
+.tx-desc-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tx-user-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+}
+
+.tx-user-sub {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+/* Category Column */
+.tx-category-text {
+  font-size: 13px;
+  color: #4b5563;
+  font-weight: 500;
+}
+
+/* Date & Time Columns */
+.tx-date-text {
+  font-size: 13px;
+  color: #4b5563;
+  white-space: nowrap;
+}
+
+.tx-time-text {
+  font-size: 12.5px;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+/* Email Column */
+.tx-email-text {
+  font-size: 13px;
+  color: #4b5563;
+}
+
+/* Status Column Pills */
+.tx-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.tx-status-pill.success {
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid #a7f3d0;
+}
+
+.tx-status-pill.in-progress {
+  background: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+.tx-status-pill.failed {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.tx-status-pill.pending {
+  background: #fffbeb;
+  color: #d97706;
+  border: 1px solid #fde68a;
+}
+
+.tx-status-icon.spin {
+  animation: tx-spin 1.4s linear infinite;
+}
+
+@keyframes tx-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Amount Column */
+.tx-amount-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+}
+
+/* Action Button */
+.tx-row-action-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.tx-row-action-btn:hover {
+  background: #f1f5f9;
+  color: #1e293b;
+}
+
+/* Empty State */
+.tx-empty-state-cell {
+  text-align: center;
+  padding: 60px 20px !important;
+}
+
+.tx-empty-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  color: #64748b;
+}
+
+.tx-empty-box p {
+  margin: 0;
+  font-size: 14px;
+}
+
+.tx-reset-filter-btn {
+  background: #111827;
+  color: #ffffff;
+  border: none;
+  padding: 6px 16px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* =========================================================================
+   PAGINATION FOOTER (Image 2)
+   ========================================================================= */
+.tx-pagination-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: #ffffff;
+  border-top: 1px solid #f1f5f9;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.tx-pagination-info {
+  font-size: 12.5px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.tx-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.tx-page-arrow-btn {
+  background: transparent;
+  border: none;
+  color: #4b5563;
+  font-size: 12.5px;
+  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.tx-page-arrow-btn:hover:not(:disabled) {
+  background: #f1f5f9;
+  color: #111827;
+}
+
+.tx-page-arrow-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tx-page-num-btn {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: #4b5563;
+  font-size: 12.5px;
+  font-weight: 500;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.tx-page-num-btn:hover {
+  background: #f1f5f9;
+  color: #111827;
+}
+
+/* Active Orange Pill Page Button matching Image 2 */
+.tx-page-num-btn.active {
+  background: #ff6a00;
+  color: #ffffff;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(255, 106, 0, 0.35);
+}
+
+.tx-page-ellipsis {
+  padding: 0 4px;
+  color: #94a3b8;
+  font-size: 12px;
+}
+
+/* =========================================================================
+   SIDE POPUP / DRAWER (Image 1: Transaction Details)
+   ========================================================================= */
+.tx-drawer-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(15, 23, 42, 0.35);
+  backdrop-filter: blur(3px);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  animation: tx-fade-in 0.2s ease-out;
+  padding: 16px;
+}
+
+@keyframes tx-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.tx-drawer-card {
+  width: 100%;
+  max-width: 440px;
+  height: calc(100vh - 32px);
+  background: #ffffff;
+  border-radius: 20px;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.12), 0 20px 40px rgba(0, 0, 0, 0.18);
+  border: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: tx-slide-in 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes tx-slide-in {
+  from {
+    transform: translateX(40px) scale(0.98);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0) scale(1);
+    opacity: 1;
+  }
+}
+
+/* Drawer Header */
+.tx-drawer-header {
+  padding: 22px 24px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.tx-drawer-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.tx-drawer-close-btn {
+  background: transparent;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tx-drawer-close-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+/* Dual-color Accent Track Line (Image 1) */
+.tx-drawer-accent-track {
+  width: 100%;
+  height: 3px;
+  display: flex;
+  padding: 0 24px;
+  margin-bottom: 4px;
+}
+
+.tx-drawer-accent-fill {
+  width: 50%;
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 2px;
+}
+
+.tx-drawer-accent-empty {
+  width: 50%;
+  height: 100%;
+  background: #e2e8f0;
+}
+
+/* Scrollable Body */
+.tx-drawer-body {
+  padding: 20px 24px 28px;
+  overflow-y: auto;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+/* Amount Section */
+.tx-drawer-amount-section {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.tx-amount-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #64748b;
+}
+
+.tx-amount-value {
+  font-size: 32px;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+
+/* Key-Value Details Rows (Image 1) */
+.tx-details-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 6px;
+}
+
+.tx-detail-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 13px;
+}
+
+.tx-detail-row.sub {
+  font-size: 12px;
+  padding: 3px 0;
+}
+
+.tx-detail-key {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.tx-detail-val {
+  color: #111827;
+  font-weight: 500;
+  text-align: right;
+}
+
+.tx-detail-val.status-text.success,
+.tx-detail-val.status-text.approved {
+  color: #10b981;
+  font-weight: 600;
+}
+
+.tx-detail-val.highlight {
+  color: #ff6a00;
+  font-weight: 600;
+}
+
+.account-data-val {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Mastercard Mini Logo */
+.mastercard-mini-logo {
+  display: inline-flex;
+  align-items: center;
+  position: relative;
+  width: 18px;
+  height: 12px;
+}
+
+.mc-circle {
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  position: absolute;
+}
+
+.mc-circle.red {
+  background: #ea001b;
+  left: 0;
+}
+
+.mc-circle.orange {
+  background: #f79e1b;
+  left: 7px;
+  mix-blend-mode: hard-light;
+}
+
+.visa-mini-text {
+  font-size: 10.5px;
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  color: #1a1f71;
+  font-style: italic;
+}
+
+/* More Details Link */
+.tx-more-details-row {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 2px;
+}
+
+.tx-more-details-link {
+  background: transparent;
+  border: none;
+  color: #3b82f6;
+  font-size: 12.5px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+}
+
+.tx-more-details-link:hover {
+  text-decoration: underline;
+}
+
+.tx-expanded-specs {
+  background: #f8fafc;
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-top: 6px;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Information Cards: Billing & Shipping (Image 1) */
+.tx-info-card {
+  background: #f8fafc;
+  border-radius: 14px;
+  border: 1px solid #f1f5f9;
+  padding: 16px 18px;
+}
+
+.tx-info-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 12px 0;
+}
+
+.tx-info-card-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tx-card-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12.5px;
+}
+
+.tx-card-key {
+  color: #64748b;
+  font-weight: 400;
+}
+
+.tx-card-val {
+  color: #111827;
+  font-weight: 500;
+  text-align: right;
+}
+
+/* Footer Action Buttons */
+.tx-drawer-footer-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.tx-drawer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tx-drawer-btn.secondary {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
+}
+
+.tx-drawer-btn.secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+}
+
+.tx-drawer-btn.primary {
+  background: #111827;
+  border: 1px solid #111827;
+  color: #ffffff;
+}
+
+.tx-drawer-btn.primary:hover {
+  background: #ff6a00;
+  border-color: #ff6a00;
+}
+
+/* Responsive Breakpoints */
+@media (max-width: 1024px) {
+  .transactions-page-container {
+    padding: 18px 20px 40px;
+  }
+}
+
+@media (max-width: 768px) {
+  .tx-header-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .tx-header-controls {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .tx-search-box {
+    width: 100%;
+  }
+  .tx-search-input {
+    width: 100%;
+  }
+  .tx-drawer-card {
+    max-width: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+  .tx-drawer-overlay {
+    padding: 0;
+  }
+}

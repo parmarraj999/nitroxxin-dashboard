@@ -7,8 +7,6 @@ import {
   BarChart,
   Bar,
   Cell,
-  PieChart,
-  Pie,
   XAxis,
   YAxis,
   Tooltip,
@@ -23,6 +21,7 @@ import {
   Bell,
   Filter,
   Plus,
+  ChevronLeft,
   ChevronRight,
   ChevronDown,
   CheckCircle2,
@@ -37,7 +36,6 @@ import {
   Zap,
   Landmark,
   ArrowUpRight,
-  Timer,
 } from 'lucide-react';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
@@ -69,33 +67,6 @@ const CustomCashflowTooltip = ({ active, payload }) => {
   return null;
 };
 
-// Custom tooltip for Live Ticket Sales Donut Pie Chart
-const CustomPieTooltip = ({ active, payload }) => {
-  if (active && payload && payload.length) {
-    const data = payload[0].payload;
-    return (
-      <div className="live-pie-tooltip">
-        <div className="pie-tooltip-title" style={{ color: data.color }}>
-          {data.name}
-        </div>
-        <div className="pie-tooltip-row">
-          <span>Tickets:</span>
-          <strong>{data.value} / {data.total} ({data.pct})</strong>
-        </div>
-        <div className="pie-tooltip-row">
-          <span>Price:</span>
-          <strong>{currency(data.price)} each</strong>
-        </div>
-        <div className="pie-tooltip-row">
-          <span>Revenue:</span>
-          <strong style={{ color: '#10b981' }}>{currency(data.value * data.price)}</strong>
-        </div>
-      </div>
-    );
-  }
-  return null;
-};
-
 const Dashboard = () => {
   const { user, profile } = useAuth();
   const { events = [] } = useEvents(profile?.role === 'Host' ? { hostId: user?.uid } : {});
@@ -108,7 +79,6 @@ const Dashboard = () => {
   const [dateFilter, setDateFilter] = useState('This Month');
   const [participantSearch, setParticipantSearch] = useState('');
   const [showNotificationsModal, setShowNotificationsModal] = useState(false);
-  const [liveEventStatus, setLiveEventStatus] = useState('Live');
 
   // Stat Card timeframe states (Image 1 style)
   const [cardTimeframes, setCardTimeframes] = useState({
@@ -229,88 +199,6 @@ const Dashboard = () => {
     setOpenCardDropdown(null);
   };
 
-  // 3. Live Event Data & Telemetry (🟢 Event Status, 🎟️ Live Ticket Sales, 👥 Check-ins, 💰 Live Revenue)
-  const ticketPackagesData = useMemo(() => [
-    { name: 'VIP Paddock Pass', value: 220, total: 220, price: 4500, color: '#ff6a00', pct: '100%', soldOut: true },
-    { name: 'Pro Rider Pit Access', value: 380, total: 400, price: 2500, color: '#5457ff', pct: '95.0%', soldOut: false },
-    { name: 'Grandstand Entry', value: 540, total: 600, price: 1400, color: '#10b981', pct: '90.0%', soldOut: false },
-    { name: 'Early Bird Fan Zone', value: 280, total: 280, price: 950, color: '#f59e0b', pct: '100%', soldOut: true },
-  ], []);
-
-  const liveStatusConfig = {
-    'Live': {
-      statusLabel: 'Live Now',
-      statusClass: 'status-live',
-      badgeColor: '#10b981',
-      timeStarted: '02:30 PM (2h 45m ago)',
-      timeRemaining: '01h 15m Remaining',
-      progressPct: 68,
-      progressLabel: '68% Event Elapsed (Main Heat 2 in Progress)',
-      totalCheckedIn: 1385,
-      totalCapacity: 1420,
-      checkInPct: '97.5%',
-      insideArena: '1,340 Inside (45 momentary exit)',
-      gateA: { name: 'Gate A (VIP & Pitlane)', checked: 215, total: 220, pct: '97.7%' },
-      gateB: { name: 'Gate B (Grandstand East)', checked: 590, total: 620, pct: '95.2%' },
-      gateC: { name: 'Gate C (General Paddock)', checked: 580, total: 580, pct: '100%' },
-      scanVelocity: '⚡ 18 scans/min • 1.9s avg scan time',
-      liveRevenue: 3140000,
-      revenueVelocity: '+₹42,500 in last hour',
-      avgTicketValue: 2211,
-      boxOfficeAddons: 118000,
-    },
-    'Upcoming': {
-      statusLabel: 'Starting Soon',
-      statusClass: 'status-upcoming',
-      badgeColor: '#f59e0b',
-      timeStarted: 'Gates Open: 01:30 PM (Starts in 45m)',
-      timeRemaining: 'Starts at 02:30 PM (04h 00m Duration)',
-      progressPct: 15,
-      progressLabel: '15% Pre-Event Warmup (Gates Actively Admitting)',
-      totalCheckedIn: 420,
-      totalCapacity: 1420,
-      checkInPct: '29.6%',
-      insideArena: '420 Early Arrivals Inside',
-      gateA: { name: 'Gate A (VIP & Pitlane)', checked: 110, total: 220, pct: '50.0%' },
-      gateB: { name: 'Gate B (Grandstand East)', checked: 180, total: 620, pct: '29.0%' },
-      gateC: { name: 'Gate C (General Paddock)', checked: 130, total: 580, pct: '22.4%' },
-      scanVelocity: '⚡ 34 scans/min • High influx rate',
-      liveRevenue: 2860000,
-      revenueVelocity: '+₹18,000 in last hour',
-      avgTicketValue: 2014,
-      boxOfficeAddons: 42000,
-    },
-    'Ending Soon': {
-      statusLabel: 'Ending Soon',
-      statusClass: 'status-ending',
-      badgeColor: '#ef4444',
-      timeStarted: '02:30 PM (3h 48m ago)',
-      timeRemaining: '12m Remaining (Final Lap & Podium)',
-      progressPct: 95,
-      progressLabel: '95% Event Elapsed (Final Lap & Awards Stage)',
-      totalCheckedIn: 1418,
-      totalCapacity: 1420,
-      checkInPct: '99.8%',
-      insideArena: '1,280 Inside (Podium gathering)',
-      gateA: { name: 'Gate A (VIP & Pitlane)', checked: 220, total: 220, pct: '100%' },
-      gateB: { name: 'Gate B (Grandstand East)', checked: 618, total: 620, pct: '99.6%' },
-      gateC: { name: 'Gate C (General Paddock)', checked: 580, total: 580, pct: '100%' },
-      scanVelocity: '🏁 Egress flow active • Turnstiles open for exit',
-      liveRevenue: 3480000,
-      revenueVelocity: '+₹78,000 on-ground upgrades total',
-      avgTicketValue: 2450,
-      boxOfficeAddons: 195000,
-    },
-  };
-
-  const activeLive = liveStatusConfig[liveEventStatus] || liveStatusConfig['Live'];
-
-  const nextUpcomingEvents = [
-    { id: 'up-1', month: 'OCT', day: '24', title: 'Himalayan Enduro High Altitude Raid', venue: 'Manali Pass, HP', booked: '142 / 160 Slots', pct: 88 },
-    { id: 'up-2', month: 'NOV', day: '02', title: 'Goa Coastal Motocross Beach Sprint', venue: 'Vagator Arena, Goa', booked: '310 / 400 Slots', pct: 77 },
-    { id: 'up-3', month: 'NOV', day: '15', title: 'Aravalli Dirt Sprint Series Round 4', venue: 'Leopard Trail, Gurugram', booked: '95 / 120 Slots', pct: 79 },
-  ];
-
   // 4. Recent Participants
   const recentParticipantsData = [
     {
@@ -374,6 +262,276 @@ const Dashboard = () => {
       p.id.toLowerCase().includes(participantSearch.toLowerCase())
   );
 
+  // =========================================================================
+  // UPCOMING EVENTS & INTERACTIVE CALENDAR LOGIC (Image Replication)
+  // =========================================================================
+  const [calendarDate, setCalendarDate] = useState(() => new Date(2025, 11, 1)); // December 2025 as in reference image
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(20); // 20 selected by default matching image
+  const [eventsFilter, setEventsFilter] = useState('All'); // 'All' | 'Ongoing' | 'Upcoming' | 'Completed' | 'Pending' | 'Cancelled'
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [viewDropdownOpen, setViewDropdownOpen] = useState(false);
+  const [calendarViewMode, setCalendarViewMode] = useState('Month');
+
+  const allCalendarEvents = useMemo(() => {
+    const liveItems = (events || []).map((e, idx) => {
+      const sDate = e.startDate ? new Date(e.startDate) : new Date(2025, 11, 14);
+      const eDate = e.endDate ? new Date(e.endDate) : (e.startDate ? new Date(e.startDate) : new Date(2025, 11, 18));
+      const startDay = sDate.getDate();
+      const endDay = eDate.getDate();
+      const isMultiDay = endDay > startDay || (eDate.getTime() - sDate.getTime()) > 86400000;
+
+      const dayNum = String(startDay).padStart(2, '0');
+      const endDayNum = String(endDay).padStart(2, '0');
+      const dayName = isMultiDay
+        ? `${sDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}-${eDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase()}`
+        : sDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
+      const dateStr = isMultiDay
+        ? `${sDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${eDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${e.startTime || '10:00 am'}`
+        : `${sDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} at ${e.startTime || '10:00 am'}`;
+
+      let statusLabel = 'Upcoming';
+      if (e.status === 'Live' || e.status === 'Ongoing') statusLabel = 'Ongoing';
+      else if (e.status === 'Cancelled') statusLabel = 'Cancelled';
+      else if (e.status === 'Draft' || e.status === 'Pending') statusLabel = 'Pending';
+      else if (e.status === 'Completed') statusLabel = 'Completed';
+
+      return {
+        id: e.id || `live-${idx}`,
+        day: dayNum,
+        endDay: endDayNum,
+        startDayNum: startDay,
+        endDayNum: endDay,
+        isMultiDay,
+        displayDayRange: isMultiDay ? `${dayNum}-${endDayNum}` : dayNum,
+        dayName,
+        dateStr,
+        fullDate: e.startDate || '2025-12-20',
+        title: e.title || 'Live Host Event',
+        status: statusLabel,
+        location: e.venue ? `${e.venue}, ${e.city || ''}` : 'Nitroxx Track Arena',
+        category: e.category || 'Race',
+      };
+    });
+
+    const referenceItems = [
+      {
+        id: 'evt-1',
+        day: '20',
+        startDayNum: 20,
+        endDayNum: 20,
+        isMultiDay: false,
+        displayDayRange: '20',
+        dayName: 'FRI',
+        dateStr: 'Dec 20 at 08:05 am',
+        fullDate: '2025-12-20',
+        title: 'Global Summit 2025',
+        status: 'Upcoming',
+        location: '3890 Poplar Dr.',
+        category: 'Summit',
+      },
+      {
+        id: 'evt-2',
+        day: '22',
+        startDayNum: 22,
+        endDayNum: 22,
+        isMultiDay: false,
+        displayDayRange: '22',
+        dayName: 'SUN',
+        dateStr: 'Dec 22 at 01:49 pm',
+        fullDate: '2025-12-22',
+        title: 'Elite Athlete Invitational',
+        status: 'Cancelled',
+        location: '8558 Green Rd.',
+        category: 'Motorsports',
+      },
+      {
+        id: 'evt-3',
+        day: '25',
+        startDayNum: 25,
+        endDayNum: 25,
+        isMultiDay: false,
+        displayDayRange: '25',
+        dayName: 'WED',
+        dateStr: 'Dec 25 at 12:10 am',
+        fullDate: '2025-12-25',
+        title: 'World Design Challenge',
+        status: 'Pending',
+        location: '775 Rolling Green Rd.',
+        category: 'Design & Tech',
+      },
+      {
+        id: 'evt-4',
+        day: '03',
+        startDayNum: 3,
+        endDayNum: 3,
+        isMultiDay: false,
+        displayDayRange: '03',
+        dayName: 'MON',
+        dateStr: 'Dec 03 at 08:05 am',
+        fullDate: '2025-12-03',
+        title: 'Ultimate Development Showdown',
+        status: 'Completed',
+        location: '8080 Railroad St.',
+        category: 'Hackathon',
+      },
+      {
+        id: 'evt-5',
+        day: '14',
+        endDay: '18',
+        startDayNum: 14,
+        endDayNum: 18,
+        isMultiDay: true,
+        displayDayRange: '14-18',
+        dayName: 'SUN-THU',
+        dateStr: 'Dec 14 - 18 at 02:30 pm',
+        fullDate: '2025-12-14',
+        title: 'Nitroxx Pro Supercross Championship',
+        status: 'Ongoing',
+        location: 'Manali High Arena, HP',
+        category: 'Racing',
+      },
+      {
+        id: 'evt-6',
+        day: '17',
+        startDayNum: 17,
+        endDayNum: 17,
+        isMultiDay: false,
+        displayDayRange: '17',
+        dayName: 'WED',
+        dateStr: 'Dec 17 at 11:00 am',
+        fullDate: '2025-12-17',
+        title: 'Aravalli Dirt Sprint Series Round 4',
+        status: 'Upcoming',
+        location: 'Leopard Trail, Gurugram',
+        category: 'Rally',
+      },
+      {
+        id: 'evt-7',
+        day: '07',
+        endDay: '10',
+        startDayNum: 7,
+        endDayNum: 10,
+        isMultiDay: true,
+        displayDayRange: '07-10',
+        dayName: 'SUN-WED',
+        dateStr: 'Dec 07 - 10 at 04:00 pm',
+        fullDate: '2025-12-07',
+        title: 'Goa Coastal Beach Sprint & Pitlane',
+        status: 'Ongoing',
+        location: 'Vagator Arena, Goa',
+        category: 'Festival',
+      },
+    ];
+
+    return liveItems.length > 0 ? [...liveItems, ...referenceItems] : referenceItems;
+  }, [events]);
+
+  const calendarYear = calendarDate.getFullYear();
+  const calendarMonth = calendarDate.getMonth();
+  const calendarMonthName = calendarDate.toLocaleDateString('en-US', { month: 'long' });
+
+  const daysInCurrentMonth = new Date(calendarYear, calendarMonth + 1, 0).getDate();
+  const firstDayOfWeek = new Date(calendarYear, calendarMonth, 1).getDay();
+  const daysInPrevMonth = new Date(calendarYear, calendarMonth, 0).getDate();
+
+  const calendarCells = useMemo(() => {
+    // Determine which days have events and which days are ongoing multi-day events
+    const ongoingDaysMap = new Map();
+    const eventDaysMap = new Map();
+
+    allCalendarEvents.forEach((evt) => {
+      const s = evt.startDayNum !== undefined ? evt.startDayNum : parseInt(evt.day, 10);
+      const e = evt.endDayNum !== undefined ? evt.endDayNum : s;
+      const isOngoing = evt.status === 'Ongoing';
+
+      if (!isNaN(s)) {
+        for (let day = s; day <= e; day++) {
+          if (!eventDaysMap.has(day)) eventDaysMap.set(day, []);
+          eventDaysMap.get(day).push(evt);
+
+          if (isOngoing) {
+            if (!ongoingDaysMap.has(day)) ongoingDaysMap.set(day, []);
+            ongoingDaysMap.get(day).push(evt);
+          }
+        }
+      }
+    });
+
+    // Default decorative dots from reference if no direct event mapped
+    [2, 3, 6, 8, 11, 14, 17, 20, 22, 25].forEach((d) => {
+      if (!eventDaysMap.has(d)) eventDaysMap.set(d, []);
+    });
+
+    const cells = [];
+    for (let i = firstDayOfWeek - 1; i >= 0; i--) {
+      cells.push({
+        day: daysInPrevMonth - i,
+        isCurrentMonth: false,
+        hasEvent: false,
+        isOngoing: false,
+      });
+    }
+    for (let d = 1; d <= daysInCurrentMonth; d++) {
+      const isOngoing = ongoingDaysMap.has(d);
+      const hasEvent = eventDaysMap.has(d);
+      cells.push({
+        day: d,
+        isCurrentMonth: true,
+        hasEvent,
+        isOngoing,
+        eventsOnDay: eventDaysMap.get(d) || [],
+      });
+    }
+    const remaining = (7 - (cells.length % 7)) % 7;
+    for (let n = 1; n <= remaining; n++) {
+      cells.push({
+        day: n,
+        isCurrentMonth: false,
+        hasEvent: false,
+        isOngoing: false,
+      });
+    }
+    return cells;
+  }, [daysInCurrentMonth, firstDayOfWeek, daysInPrevMonth, allCalendarEvents]);
+
+  const filteredCalendarEvents = useMemo(() => {
+    return allCalendarEvents.filter((item) => {
+      if (eventsFilter !== 'All') {
+        if (item.status.toLowerCase() !== eventsFilter.toLowerCase()) {
+          return false;
+        }
+      }
+      if (selectedCalendarDay !== null) {
+        const s = item.startDayNum !== undefined ? item.startDayNum : parseInt(item.day, 10);
+        const e = item.endDayNum !== undefined ? item.endDayNum : s;
+        // Check if selectedCalendarDay is within the event range [s, e]
+        if (selectedCalendarDay < s || selectedCalendarDay > e) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }, [allCalendarEvents, eventsFilter, selectedCalendarDay]);
+
+  const handlePrevMonth = () => {
+    setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() - 1, 1));
+    setSelectedCalendarDay(null);
+  };
+
+  const handleNextMonth = () => {
+    setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
+    setSelectedCalendarDay(null);
+  };
+
+  const handleDayClick = (cell) => {
+    if (!cell.isCurrentMonth) return;
+    if (selectedCalendarDay === cell.day) {
+      setSelectedCalendarDay(null);
+    } else {
+      setSelectedCalendarDay(cell.day);
+    }
+  };
+
   // 8. Top Performing Events
   const topPerformingEvents = [
     {
@@ -413,19 +571,14 @@ const Dashboard = () => {
             ========================================================================= */}
         <header className="dash-header-row">
           <div className="dash-user-welcome">
-            <img
-              src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80"
-              alt="Host Avatar"
-              className="dash-user-avatar"
-            />
             <div>
-              <h1>Welcome back, {profile?.displayName || user?.displayName || 'Host'} 👋</h1>
-              <p>Nitroxx Event Organizer & Operations Control Center</p>
+              <h1 style={{ fontSize: '16px', fontWeight: '500', color: 'grey' }}>Welcome back,</h1>
+              <h1 style={{ fontSize: '28px', fontWeight: '700' }}>{profile?.displayName || user?.displayName || 'Host'}</h1>
             </div>
           </div>
 
           <div className="dash-top-actions">
-            <button 
+            <button
               className="dash-select-pill"
               onClick={() => setDateFilter((prev) => (prev === 'This Month' ? 'This Year' : 'This Month'))}
             >
@@ -888,360 +1041,241 @@ const Dashboard = () => {
           </div>
         </section>
 
+
+
         {/* =========================================================================
-            LIVE EVENT OPERATIONS CENTER (Real-time telemetry, Pie Chart, Check-ins, Revenue)
-            🟢 Event Status (Live / Upcoming / Ending Soon, Time Started, Time Remaining, Progress Bar)
-            🎟️ Live Ticket Sales (Donut Pie Chart + Package Breakdown)
-            👥 Current Check-ins (Gate Progress & Telemetry)
-            💰 Live Revenue (Real-time Velocity & Streams)
+            SECTION 3: UPCOMING EVENTS & INTERACTIVE CALENDAR
+            Exact replication of Image design with Calendar & Your events (Ongoing filter, No Add New)
             ========================================================================= */}
-        <section className="live-event-command-center" aria-label="Live Event Operations Console">
-          {/* Top Bar with Event Info and Interactive Status Switcher */}
-          <div className="live-command-header">
-            <div className="live-event-title-group">
-              <div className="live-pulsing-icon-box">
-                <Radio size={20} className="live-broadcast-icon" />
-              </div>
-              <div>
-                <div className="live-event-meta-tag">
-                  <span className="live-meta-dot" /> Live Event Operations Center
+        <section className="dash-upcoming-calendar-section" aria-label="Upcoming Events & Calendar">
+          <div className="events-calendar-split-container">
+
+            {/* LEFT COLUMN: INTERACTIVE CALENDAR */}
+            <div className="calendar-panel-left">
+              <div className="calendar-top-header">
+                <div className="calendar-title-group">
+                  <span className="cal-month-name">{calendarMonthName}</span>
+                  <span className="cal-year-name">{calendarYear}</span>
                 </div>
-                <h2 className="live-event-headline">Nitroxx Supercross Championship 2026</h2>
-                <div className="live-event-location">
-                  <MapPin size={12} />
-                  <span>Buddh International Circuit, Greater Noida • Track B (Main Arena)</span>
-                </div>
-              </div>
-            </div>
 
-            {/* 🟢 Event Status Switcher (Live / Upcoming / Ending Soon) */}
-            <div className="live-status-selector-wrap">
-              <span className="live-selector-label">Event Status:</span>
-              <div className="live-status-buttons-pill">
-                <button
-                  type="button"
-                  className={`live-status-choice-btn ${liveEventStatus === 'Live' ? 'active live' : ''}`}
-                  onClick={() => setLiveEventStatus('Live')}
-                >
-                  <span className="live-choice-dot dot-live" />
-                  <span>Live</span>
-                </button>
-                <button
-                  type="button"
-                  className={`live-status-choice-btn ${liveEventStatus === 'Upcoming' ? 'active upcoming' : ''}`}
-                  onClick={() => setLiveEventStatus('Upcoming')}
-                >
-                  <span className="live-choice-dot dot-upcoming" />
-                  <span>Upcoming</span>
-                </button>
-                <button
-                  type="button"
-                  className={`live-status-choice-btn ${liveEventStatus === 'Ending Soon' ? 'active ending' : ''}`}
-                  onClick={() => setLiveEventStatus('Ending Soon')}
-                >
-                  <span className="live-choice-dot dot-ending" />
-                  <span>Ending Soon</span>
-                </button>
-              </div>
-            </div>
-          </div>
+                <div className="calendar-nav-controls">
+                  <button className="cal-nav-btn" onClick={handlePrevMonth} title="Previous Month">
+                    <ChevronLeft size={15} />
+                  </button>
+                  <button className="cal-nav-btn" onClick={handleNextMonth} title="Next Month">
+                    <ChevronRight size={15} />
+                  </button>
 
-          {/* Timing Strip & Event Progress Bar */}
-          <div className="live-timing-strip">
-            <div className="live-timing-metrics-grid">
-              <div className="timing-metric-card">
-                <div className="timing-metric-label">
-                  <Clock size={13} />
-                  <span>Time Started</span>
-                </div>
-                <div className="timing-metric-val">{activeLive.timeStarted}</div>
-              </div>
-
-              <div className="timing-metric-card">
-                <div className="timing-metric-label">
-                  <Timer size={13} />
-                  <span>Time Remaining</span>
-                </div>
-                <div className="timing-metric-val highlight">{activeLive.timeRemaining}</div>
-              </div>
-
-              <div className="timing-metric-card">
-                <div className="timing-metric-label">
-                  <ShieldCheck size={13} />
-                  <span>Event Progress</span>
-                </div>
-                <div className="timing-metric-val">{activeLive.progressPct}% Elapsed</div>
-              </div>
-            </div>
-
-            {/* Event Progress Bar with milestones */}
-            <div className="live-progress-container">
-              <div className="live-progress-header-row">
-                <span className="live-progress-text">{activeLive.progressLabel}</span>
-                <span className="live-progress-pct-badge">{activeLive.progressPct}%</span>
-              </div>
-              <div className="live-progress-track">
-                <div
-                  className="live-progress-bar-fill"
-                  style={{ width: `${activeLive.progressPct}%` }}
-                />
-              </div>
-              <div className="live-progress-milestones">
-                <span>Gates Open (0%)</span>
-                <span>Qualifiers (30%)</span>
-                <span>Main Heat (60%)</span>
-                <span>Final Lap (90%)</span>
-                <span>Podium (100%)</span>
-              </div>
-            </div>
-          </div>
-
-          {/* 3-Column Core Telemetry: Ticket Sales (Pie Chart), Check-ins, Live Revenue */}
-          <div className="live-core-telemetry-grid">
-            {/* 🎟️ COLUMN 1: LIVE TICKET SALES (PIE CHART + BREAKDOWN) */}
-            <div className="live-telemetry-card">
-              <div className="telemetry-card-header">
-                <div className="telemetry-title-group">
-                  <div className="telemetry-icon-box orange">
-                    <Ticket size={16} />
-                  </div>
-                  <div>
-                    <h3 className="telemetry-title">Live Ticket Sales</h3>
-                    <p className="telemetry-sub">Package Breakdown & Capacity</p>
-                  </div>
-                </div>
-                <span className="telemetry-badge-count">
-                  1,420 / 1,500 Sold
-                </span>
-              </div>
-
-              {/* Pie / Donut Chart with Center Metric */}
-              <div className="pie-chart-section">
-                <div className="donut-chart-box">
-                  <ResponsiveContainer width={170} height={170}>
-                    <PieChart>
-                      <Tooltip content={<CustomPieTooltip />} />
-                      <Pie
-                        data={ticketPackagesData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={50}
-                        outerRadius={72}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {ticketPackagesData.map((entry, index) => (
-                          <Cell key={`slice-${index}`} fill={entry.color} />
+                  <div className="cal-view-selector-wrap">
+                    <button
+                      className="cal-view-pill-btn"
+                      onClick={() => setViewDropdownOpen(!viewDropdownOpen)}
+                    >
+                      <span>{calendarViewMode}</span>
+                      <ChevronDown size={13} />
+                    </button>
+                    {viewDropdownOpen && (
+                      <div className="cal-dropdown-popover">
+                        {['Month', 'Week', 'Today'].map((mode) => (
+                          <button
+                            key={mode}
+                            className={`cal-dropdown-item ${calendarViewMode === mode ? 'active' : ''}`}
+                            onClick={() => {
+                              setCalendarViewMode(mode);
+                              if (mode === 'Today') {
+                                setCalendarDate(new Date());
+                                setSelectedCalendarDay(new Date().getDate());
+                              }
+                              setViewDropdownOpen(false);
+                            }}
+                          >
+                            {mode}
+                          </button>
                         ))}
-                      </Pie>
-                    </PieChart>
-                  </ResponsiveContainer>
-                  <div className="donut-center-overlay">
-                    <span className="donut-center-big">1,420</span>
-                    <span className="donut-center-txt">Tickets</span>
-                    <span className="donut-center-pill">94.7%</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+              </div>
 
-                {/* Ticket Package Breakdown List */}
-                <div className="ticket-package-breakdown">
-                  {ticketPackagesData.map((pkg, idx) => (
-                    <div key={idx} className="ticket-package-item">
-                      <div className="pkg-left-info">
-                        <span className="pkg-color-dot" style={{ backgroundColor: pkg.color }} />
-                        <div>
-                          <div className="pkg-name">{pkg.name}</div>
-                          <div className="pkg-price-unit">{currency(pkg.price)} / ticket</div>
-                        </div>
-                      </div>
-                      <div className="pkg-right-info">
-                        <div className="pkg-sold-ratio">
-                          <strong>{pkg.value}</strong>/{pkg.total}
-                        </div>
-                        <span className={`pkg-status-badge ${pkg.soldOut ? 'sold-out' : ''}`}>
-                          {pkg.soldOut ? 'Sold Out' : pkg.pct}
+              {/* Weekdays Row SUN - SAT */}
+              <div className="cal-weekdays-row">
+                {['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'].map((w, idx) => (
+                  <div
+                    key={w}
+                    className={`cal-weekday-pill ${idx === 5 ? 'highlight' : ''}`}
+                  >
+                    {w}
+                  </div>
+                ))}
+              </div>
+
+              {/* Days Grid */}
+              <div className="cal-grid-days">
+                {calendarCells.map((cell, idx) => {
+                  const isSelected = cell.isCurrentMonth && selectedCalendarDay === cell.day;
+                  const isOngoing = cell.isCurrentMonth && cell.isOngoing;
+                  return (
+                    <div
+                      key={idx}
+                      className={`cal-day-cell ${!cell.isCurrentMonth ? 'other-month' : ''} ${isSelected ? 'selected-day' : ''} ${isOngoing ? 'ongoing-day' : ''} ${!cell.hasEvent ? 'has-no-dot' : ''}`}
+                      onClick={() => handleDayClick(cell)}
+                      title={
+                        cell.isCurrentMonth
+                          ? `${calendarMonthName} ${cell.day}, ${calendarYear}${isOngoing ? ' • Ongoing Event Active' : ''}`
+                          : ''
+                      }
+                    >
+                      <span className={`cal-event-dot ${isOngoing ? 'ongoing' : ''}`} />
+                      <span className="cal-day-number">{cell.day}</span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Ongoing Multi-Day Legend Strip */}
+              <div className="cal-ongoing-legend-strip">
+                <div className="cal-legend-item">
+                  <span className="cal-legend-dot ongoing" />
+                  <span>Ongoing Event (Active Days)</span>
+                </div>
+                <div className="cal-legend-item">
+                  <span className="cal-legend-dot upcoming" />
+                  <span>Scheduled / Single-day</span>
+                </div>
+              </div>
+            </div>
+
+            {/* RIGHT COLUMN: YOUR EVENTS (With Ongoing filter, No Add New button) */}
+            <div className="events-panel-right">
+              <div className="events-panel-header">
+                <h2 className="events-panel-title">Your events</h2>
+
+                <div className="events-filter-dropdown-wrap">
+                  <button
+                    className="events-filter-pill-trigger"
+                    onClick={() => setFilterDropdownOpen(!filterDropdownOpen)}
+                  >
+                    <span>{eventsFilter}</span>
+                    <ChevronDown size={13} />
+                  </button>
+
+                  {filterDropdownOpen && (
+                    <div className="events-filter-menu">
+                      {[
+                        { label: 'All', color: null },
+                        { label: 'Ongoing', color: '#10b981' },
+                        { label: 'Upcoming', color: '#3b82f6' },
+                        { label: 'Completed', color: '#16a34a' },
+                        { label: 'Pending', color: '#f59e0b' },
+                        { label: 'Cancelled', color: '#ef4444' },
+                      ].map((opt) => (
+                        <button
+                          key={opt.label}
+                          className={`events-filter-item ${eventsFilter === opt.label ? 'active' : ''}`}
+                          onClick={() => {
+                            setEventsFilter(opt.label);
+                            setFilterDropdownOpen(false);
+                          }}
+                        >
+                          <span>{opt.label}</span>
+                          {opt.color && (
+                            <span style={{ width: '7px', height: '7px', borderRadius: '50%', backgroundColor: opt.color }} />
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Active Date / Filter indication banner */}
+              {selectedCalendarDay !== null && (
+                <div className="events-active-filter-strip">
+                  <span className="active-filter-chip">
+                    <span>Filtered: {calendarMonthName.slice(0, 3)} {selectedCalendarDay}</span>
+                    <button onClick={() => setSelectedCalendarDay(null)} title="Clear Date Filter">
+                      <X size={12} />
+                    </button>
+                  </span>
+                  {eventsFilter !== 'All' && (
+                    <span className="active-filter-chip">
+                      <span>Status: {eventsFilter}</span>
+                      <button onClick={() => setEventsFilter('All')} title="Clear Status Filter">
+                        <X size={12} />
+                      </button>
+                    </span>
+                  )}
+                </div>
+              )}
+
+              {/* Event Cards List */}
+              <div className="events-cards-scroll-container">
+                {filteredCalendarEvents.length > 0 ? (
+                  filteredCalendarEvents.map((evt) => (
+                    <div key={evt.id} className="event-card-item">
+                      {/* Left Date Column */}
+                      <div className="event-card-date-box">
+                        <span className={`event-card-day-num ${evt.isMultiDay ? 'multi-day' : ''}`}>
+                          {evt.displayDayRange || evt.day}
                         </span>
+                        <span className="event-card-day-name">{evt.dayName}</span>
+                        {evt.isMultiDay && <span className="multi-day-tag">Ongoing Multi-day</span>}
+                      </div>
+
+                      <div className="event-card-v-divider" />
+
+                      {/* Right Event Details */}
+                      <div className="event-card-content">
+                        <h3 className="event-card-title">{evt.title}</h3>
+
+                        <div className="event-card-meta-row">
+                          {/* Status Pill */}
+                          <span className={`event-status-pill ${evt.status.toLowerCase()}`}>
+                            {evt.status === 'Ongoing' && <span className="event-live-dot" />}
+                            {evt.status}
+                          </span>
+
+                          {/* Date & Time */}
+                          <span className="event-meta-icon-text">
+                            <Calendar size={13} color="#94a3b8" />
+                            <span>{evt.dateStr}</span>
+                          </span>
+
+                          {/* Location */}
+                          <span className="event-meta-icon-text">
+                            <MapPin size={13} color="#94a3b8" />
+                            <span>{evt.location}</span>
+                          </span>
+                        </div>
                       </div>
                     </div>
-                  ))}
-                </div>
+                  ))
+                ) : (
+                  <div className="events-empty-state-box">
+                    <Calendar size={28} color="#94a3b8" />
+                    <p>No {eventsFilter !== 'All' ? `${eventsFilter.toLowerCase()} ` : ''}events found{selectedCalendarDay ? ` for ${calendarMonthName.slice(0, 3)} ${selectedCalendarDay}` : ''}.</p>
+                    <button
+                      className="events-empty-reset-btn"
+                      onClick={() => {
+                        setSelectedCalendarDay(null);
+                        setEventsFilter('All');
+                      }}
+                    >
+                      Show All Events
+                    </button>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* 👥 COLUMN 2: CURRENT CHECK-INS */}
-            <div className="live-telemetry-card">
-              <div className="telemetry-card-header">
-                <div className="telemetry-title-group">
-                  <div className="telemetry-icon-box blue">
-                    <Users size={16} />
-                  </div>
-                  <div>
-                    <h3 className="telemetry-title">Current Check-ins</h3>
-                    <p className="telemetry-sub">Live Arena Turnstiles & Gates</p>
-                  </div>
-                </div>
-                <span className="telemetry-badge-count green">
-                  {activeLive.checkInPct} Inside
-                </span>
-              </div>
-
-              {/* Big Check-in Numbers */}
-              <div className="checkin-headline-box">
-                <div className="checkin-big-numbers">
-                  <span className="checkin-primary">{activeLive.totalCheckedIn.toLocaleString('en-IN')}</span>
-                  <span className="checkin-slash">/</span>
-                  <span className="checkin-total">{activeLive.totalCapacity.toLocaleString('en-IN')}</span>
-                </div>
-                <div className="checkin-status-subtitle">
-                  <CheckCircle2 size={13} color="#10b981" />
-                  <span>{activeLive.insideArena}</span>
-                </div>
-              </div>
-
-              {/* Gate Breakdown with Progress Bars */}
-              <div className="gates-breakdown-list">
-                <div className="gate-row">
-                  <div className="gate-header-line">
-                    <span className="gate-name">{activeLive.gateA.name}</span>
-                    <span className="gate-ratio">{activeLive.gateA.checked}/{activeLive.gateA.total} ({activeLive.gateA.pct})</span>
-                  </div>
-                  <div className="gate-progress-track">
-                    <div className="gate-progress-fill" style={{ width: activeLive.gateA.pct, backgroundColor: '#ff6a00' }} />
-                  </div>
-                </div>
-
-                <div className="gate-row">
-                  <div className="gate-header-line">
-                    <span className="gate-name">{activeLive.gateB.name}</span>
-                    <span className="gate-ratio">{activeLive.gateB.checked}/{activeLive.gateB.total} ({activeLive.gateB.pct})</span>
-                  </div>
-                  <div className="gate-progress-track">
-                    <div className="gate-progress-fill" style={{ width: activeLive.gateB.pct, backgroundColor: '#5457ff' }} />
-                  </div>
-                </div>
-
-                <div className="gate-row">
-                  <div className="gate-header-line">
-                    <span className="gate-name">{activeLive.gateC.name}</span>
-                    <span className="gate-ratio">{activeLive.gateC.checked}/{activeLive.gateC.total} ({activeLive.gateC.pct})</span>
-                  </div>
-                  <div className="gate-progress-track">
-                    <div className="gate-progress-fill" style={{ width: activeLive.gateC.pct, backgroundColor: '#10b981' }} />
-                  </div>
-                </div>
-              </div>
-
-              {/* Gate Scanner Velocity & Quick Actions */}
-              <div className="gate-velocity-footer">
-                <div className="velocity-tag">
-                  {activeLive.scanVelocity}
-                </div>
-                <Link to="/participants" className="gate-manage-link">
-                  Scan Desk →
-                </Link>
-              </div>
-            </div>
-
-            {/* 💰 COLUMN 3: LIVE REVENUE */}
-            <div className="live-telemetry-card">
-              <div className="telemetry-card-header">
-                <div className="telemetry-title-group">
-                  <div className="telemetry-icon-box green">
-                    <IndianRupee size={16} />
-                  </div>
-                  <div>
-                    <h3 className="telemetry-title">Live Revenue</h3>
-                    <p className="telemetry-sub">Real-Time Event Inflow</p>
-                  </div>
-                </div>
-                <div className="revenue-pulse-indicator">
-                  <span className="pulse-ping" />
-                  <span>Real-time</span>
-                </div>
-              </div>
-
-              {/* Big Revenue Headline */}
-              <div className="revenue-headline-box">
-                <div className="revenue-big-value">
-                  {currency(activeLive.liveRevenue)}
-                </div>
-                <div className="revenue-velocity-pill">
-                  <ArrowUpRight size={13} />
-                  <span>{activeLive.revenueVelocity}</span>
-                </div>
-              </div>
-
-              {/* Revenue Streams Breakdown */}
-              <div className="revenue-streams-box">
-                <div className="stream-item">
-                  <span className="stream-label">Online Ticket Sales</span>
-                  <span className="stream-value">₹29,62,000</span>
-                </div>
-                <div className="stream-item">
-                  <span className="stream-label">Box Office & Upgrades</span>
-                  <span className="stream-value">{currency(activeLive.boxOfficeAddons)}</span>
-                </div>
-                <div className="stream-item">
-                  <span className="stream-label">Avg. Revenue / Attendee</span>
-                  <span className="stream-value">{currency(activeLive.avgTicketValue)}</span>
-                </div>
-              </div>
-
-              {/* Payout Status Banner */}
-              <div className="live-payout-banner">
-                <div className="payout-banner-content">
-                  <ShieldCheck size={14} color="#10b981" />
-                  <span>Host Payout Gateway Active & Verified</span>
-                </div>
-                <Link to="/settings" className="payout-view-link">
-                  Settings
-                </Link>
-              </div>
-            </div>
           </div>
         </section>
 
         {/* =========================================================================
-            ROW 2: UPCOMING EVENTS & TOP PERFORMING EVENTS
+            ROW 2B: TOP PERFORMING EVENTS & HIGHLIGHTS
             ========================================================================= */}
-        <div className="dash-grid-2col">
-          {/* SECTION 3: UPCOMING EVENTS */}
-          <div className="dash-card">
-            <div className="dash-card-header">
-              <div className="dash-card-title-group">
-                <div className="dash-card-icon-box">
-                  <Calendar size={16} color="#ff6a00" />
-                </div>
-                <h3 className="dash-card-title">Upcoming Events</h3>
-              </div>
-              <Link to="/events" className="dash-card-pill-btn">View All</Link>
-            </div>
-
-            {/* Upcoming events list */}
-            <div className="upcoming-events-list">
-              {nextUpcomingEvents.map((evt) => (
-                <div key={evt.id} className="upcoming-event-item">
-                  <div style={{ display: 'flex', alignItems: 'center' }}>
-                    <div className="upcoming-date-badge-box">
-                      <span className="badge-month">{evt.month}</span>
-                      <span className="badge-day">{evt.day}</span>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '13px', fontWeight: 600, color: '#111827' }}>{evt.title}</div>
-                      <div style={{ fontSize: '11px', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <MapPin size={11} /> {evt.venue}
-                      </div>
-                    </div>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '11.5px', fontWeight: 600, color: '#111827' }}>{evt.booked}</div>
-                    <Link to="/events" style={{ fontSize: '11px', color: '#ff6a00', fontWeight: 600, textDecoration: 'none' }}>Manage</Link>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
+        <div className="dash-grid-2col" style={{ marginBottom: '24px' }}>
           {/* SECTION 8: TOP PERFORMING EVENTS */}
           <div className="dash-card">
             <div className="dash-card-header">
@@ -1289,6 +1323,66 @@ const Dashboard = () => {
               <div style={{ padding: '6px', background: '#f9fafb', borderRadius: '8px' }}>
                 <span style={{ fontSize: '10.5px', color: '#6b7280' }}>Top Rating</span>
                 <div style={{ fontSize: '13px', fontWeight: 700, color: '#111827' }}>4.98 ★</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Event Turnout & Operation Highlights */}
+          <div className="dash-card">
+            <div className="dash-card-header">
+              <div className="dash-card-title-group">
+                <div className="dash-card-icon-box">
+                  <Zap size={16} color="#10b981" />
+                </div>
+                <h3 className="dash-card-title">Event Operations & Turnout</h3>
+              </div>
+              <span style={{ fontSize: '12px', color: '#10b981', fontWeight: 600 }}>Active Season</span>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#eff6ff', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+                    <Calendar size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>Next Upcoming Event</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>Dec 20 • Global Summit 2025</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', background: '#eff6ff', color: '#2563eb', borderRadius: '6px' }}>
+                  Confirmed
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669' }}>
+                    <Radio size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>Live Ongoing Event</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>Nitroxx Pro Supercross Championship</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '11px', fontWeight: 600, padding: '3px 8px', background: '#ecfdf5', color: '#059669', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                  <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: '#10b981' }} /> Ongoing
+                </span>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 14px', background: '#f8fafc', borderRadius: '12px', border: '1px solid #f1f5f9' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#fffbeb', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#d97706' }}>
+                    <Ticket size={18} />
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '13.5px', fontWeight: 600, color: '#0f172a' }}>Avg. Attendance Rate</div>
+                    <div style={{ fontSize: '12px', color: '#64748b' }}>94.2% verified venue check-ins</div>
+                  </div>
+                </div>
+                <span style={{ fontSize: '13px', fontWeight: 700, color: '#0f172a' }}>
+                  94.2%
+                </span>
               </div>
             </div>
           </div>
@@ -1391,7 +1485,9 @@ const Dashboard = () => {
                 <Zap size={18} color="#111827" />
                 <h3 className="dash-card-title">Payouts & Finance</h3>
               </div>
-              <button className="dash-card-pill-btn">See All</button>
+              <Link to="/transactions" className="dash-card-pill-btn" style={{ textDecoration: 'none' }}>
+                See All
+              </Link>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column' }}>

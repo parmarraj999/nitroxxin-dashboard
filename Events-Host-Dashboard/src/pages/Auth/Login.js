@@ -1,19 +1,33 @@
 import React, { useState } from 'react';
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom';
-import { ArrowRight, Mail, Lock } from 'lucide-react';
+import { ArrowRight, Mail, Lock, ShieldCheck } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { getHostApplication } from '../../services/firebaseService';
+import { getSavedEmail, isRememberMeEnabled } from '../../utils/sessionMemory';
+import LoadingState from '../../components/States/LoadingState';
 import './Auth.css';
 
 const Login = () => {
-  const { login, loginWithGoogle, isAuthenticated, hostStatus } = useAuth();
+  const { login, loginWithGoogle, isAuthenticated, hostStatus, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
-  const [form, setForm] = useState({ email: '', password: '' });
+
+  const [form, setForm] = useState({
+    email: getSavedEmail() || '',
+    password: '',
+  });
+  const [rememberMe, setRememberMe] = useState(() => isRememberMeEnabled());
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
   const from = location.state?.from?.pathname || '/dashboard';
 
+  // 1. If checking memory or auth session on first open, show clean loading state
+  if (authLoading) {
+    return <LoadingState label="Checking your saved session..." fullPage />;
+  }
+
+  // 2. If already authenticated via memory login, redirect to target or dashboard
   if (isAuthenticated) {
     if (hostStatus === 'Pending' || hostStatus === 'Rejected') {
       return <Navigate to="/approval-pending" replace />;
@@ -26,7 +40,7 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      const user = await login(form.email, form.password);
+      const user = await login(form.email, form.password, rememberMe);
       const app = await getHostApplication(user.uid);
       if (app && (app.status === 'Pending' || app.status === 'Rejected')) {
         navigate('/approval-pending', { replace: true });
@@ -44,7 +58,7 @@ const Login = () => {
     setLoading(true);
     setError('');
     try {
-      const user = await loginWithGoogle('Host');
+      const user = await loginWithGoogle('Host', rememberMe);
       const app = await getHostApplication(user.uid);
       if (app && (app.status === 'Pending' || app.status === 'Rejected')) {
         navigate('/approval-pending', { replace: true });
@@ -74,7 +88,7 @@ const Login = () => {
           </div>
         </header>
 
-        {/* 2. MAIN LOGIN PANEL (Centered, no side progress bar) */}
+        {/* 2. MAIN LOGIN PANEL */}
         <main className="auth-main-panel" style={{ maxWidth: '100%' }}>
           <div className="panel-header-section">
             <h1 className="panel-main-title">
@@ -98,7 +112,7 @@ const Login = () => {
                   placeholder="host@club.com"
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  autoFocus
+                  autoFocus={!form.email}
                 />
               </div>
             </div>
@@ -118,8 +132,25 @@ const Login = () => {
                   placeholder="••••••••••••"
                   value={form.password}
                   onChange={(e) => setForm({ ...form, password: e.target.value })}
+                  autoFocus={Boolean(form.email)}
                 />
               </div>
+            </div>
+
+            {/* Memory Login / Remember Me Option */}
+            <div className="auth-remember-row" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '4px 0 10px' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#475569', userSelect: 'none' }}>
+                <input 
+                  type="checkbox" 
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  style={{ width: '15px', height: '15px', cursor: 'pointer', accentColor: '#0f172a' }}
+                />
+                <span>Keep me signed in on this device</span>
+              </label>
+              <span style={{ fontSize: '11px', color: '#10b981', display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 500 }}>
+                <ShieldCheck size={13} /> Auto-login
+              </span>
             </div>
 
             <div className="auth-action-btn-row" style={{ marginTop: '6px' }}>

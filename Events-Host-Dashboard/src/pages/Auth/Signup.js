@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { validateHostUniqueness } from '../../services/firebaseService';
+import LoadingState from '../../components/States/LoadingState';
 import './Auth.css';
 
 const STEPS = [
@@ -25,7 +26,7 @@ const STEPS = [
 ];
 
 const Signup = () => {
-  const { signUp, isAuthenticated, hostStatus } = useAuth();
+  const { signUp, isAuthenticated, hostStatus, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
   // Current active step (1 to 4)
@@ -49,6 +50,11 @@ const Signup = () => {
   const [docFile, setDocFile] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // If verifying session from memory on startup
+  if (authLoading) {
+    return <LoadingState label="Checking your session..." fullPage />;
+  }
 
   if (isAuthenticated) {
     if (hostStatus === 'Pending' || hostStatus === 'Rejected') {

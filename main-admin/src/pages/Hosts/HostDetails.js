@@ -10,13 +10,25 @@ import {
   Clock, 
   MapPin,
   ExternalLink,
-  ChevronRight
+  ChevronRight,
+  CalendarClock,
+  Trash2,
+  ShieldAlert
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { doc, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/firebase.config';
 import { useDataContext } from '../../context/DataContext';
 import { toDate } from '../../services/firebaseUtils';
+import AccountSuspensionModal from '../../components/Common/AccountSuspensionModal';
+import AccountDeletionModal from '../../components/Common/AccountDeletionModal';
+import {
+  checkAccountSuspension,
+  suspendAccount,
+  reactivateAccount,
+  deleteAccount
+} from '../../services/accountActionService';
+import '../../components/Common/AccountModals.css';
 import './HostDetails.css';
 
 const formatValue = (value) => {
@@ -35,6 +47,8 @@ export default function HostDetails() {
   const [activeTab, setActiveTab] = useState('events'); // events | bookings | participants
   const [hostDoc, setHostDoc] = useState(null);
   const [loadingHostDoc, setLoadingHostDoc] = useState(true);
+  const [showSuspendModal, setShowSuspendModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   // Subscribe to the specific event_host document
   useEffect(() => {
@@ -131,7 +145,11 @@ export default function HostDetails() {
       bookings: hostBookings,
       participants: hostParticipants,
       revenue,
-      ticketsBooked
+      ticketsBooked,
+      status: hostDoc?.status,
+      suspensionStartDate: hostDoc?.suspensionStartDate,
+      suspensionEndDate: hostDoc?.suspensionEndDate,
+      suspensionReason: hostDoc?.suspensionReason
     };
   }, [hostId, hostDoc, rawEvents, rawBookings, rawParticipants]);
 
@@ -157,6 +175,8 @@ export default function HostDetails() {
     );
   }
 
+  const suspInfo = checkAccountSuspension(hostDoc);
+
   return (
     <div className="host-details-page">
       <div className="host-details-header">
@@ -168,8 +188,40 @@ export default function HostDetails() {
             Events / Hosts / <strong>{host.name}</strong>
           </div>
         </div>
-        <span className="host-id-badge">ID: {host.id}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            className={`btn-secondary ${suspInfo.isSuspended ? 'active-suspended' : ''}`}
+            onClick={() => setShowSuspendModal(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.84rem' }}
+          >
+            <CalendarClock size={15} color={suspInfo.isSuspended ? '#ea580c' : 'currentColor'} />
+            {suspInfo.isSuspended ? 'Manage Suspension' : 'Suspend Account'}
+          </button>
+          <button
+            className="icon-btn text-danger"
+            onClick={() => setShowDeleteModal(true)}
+            title="Delete Host Account"
+            style={{ border: '1px solid #fee2e2', background: '#fff' }}
+          >
+            <Trash2 size={16} />
+          </button>
+          <span className="host-id-badge">ID: {host.id}</span>
+        </div>
       </div>
+
+      {/* Active Suspension Alert Banner */}
+      {suspInfo.isSuspended && (
+        <div className="account-active-suspension-alert" style={{ marginBottom: 16 }}>
+          <div className="account-active-suspension-title">
+            <ShieldAlert size={18} />
+            <span>This Host Account is Currently Suspended</span>
+          </div>
+          <div className="account-active-suspension-desc">
+            Suspension period: <strong>{suspInfo.startDate || 'N/A'}</strong> until <strong>{suspInfo.endDate || 'N/A'}</strong>.
+            {suspInfo.reason && <span> Reason: "{suspInfo.reason}"</span>}
+          </div>
+        </div>
+      )}
 
       {/* Host Hero Profile Section */}
       <section className="host-hero-card card">
@@ -373,6 +425,44 @@ export default function HostDetails() {
           )}
         </div>
       </div>
+
+      {/* Suspension Modal */}
+      <AccountSuspensionModal
+        isOpen={showSuspendModal}
+        onClose={() => setShowSuspendModal(false)}
+        accountType="host"
+        account={{ id: hostId, ...hostDoc, name: host.name }}
+        onConfirmSuspend={async ({ startDate, endDate, reason }) => {
+          await suspendAccount({
+            accountType: 'host',
+            accountId: hostId,
+            startDate,
+            endDate,
+            reason
+          });
+        }}
+        onConfirmReactivate={async () => {
+          await reactivateAccount({
+            accountType: 'host',
+            accountId: hostId
+          });
+        }}
+      />
+
+      {/* Deletion Modal */}
+      <AccountDeletionModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        accountType="host"
+        account={{ id: hostId, ...hostDoc, name: host.name }}
+        onConfirmDelete={async () => {
+          await deleteAccount({
+            accountType: 'host',
+            accountId: hostId
+          });
+          navigate('/events/hosts');
+        }}
+      />
     </div>
   );
 }

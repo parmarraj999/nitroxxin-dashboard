@@ -41,8 +41,7 @@ service cloud.firestore {
     }
 
     match /vendors/{vendorId} {
-      allow read, create, update: if ownsVendorDoc(vendorId);
-      allow delete: if false;
+      allow read, create, update, delete: if ownsVendorDoc(vendorId) || signedIn();
     }
 
     match /users/{userId} {

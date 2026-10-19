@@ -1,7 +1,8 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import ErrorBoundary from './components/States/ErrorBoundary';
+import LoadingState from './components/States/LoadingState';
 import ProtectedRoute from './components/RouteGuards/ProtectedRoute';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Login from './pages/Auth/Login';
@@ -17,7 +18,31 @@ import Profile from './pages/EventPlatform/Profile';
 import Unauthorized from './pages/System/Unauthorized';
 import NotFound from './pages/System/NotFound';
 import ApprovalPending from './pages/Auth/ApprovalPending';
+import Transactions from './pages/Transactions/Transactions';
 import './App.css';
+
+/**
+ * Root route handler:
+ * - Checks memory login session immediately.
+ * - If user logged in previously, automatically navigates to /dashboard or /approval-pending.
+ * - If no session in memory, navigates to /login.
+ */
+const RootRedirect = () => {
+  const { isAuthenticated, loading, hostStatus } = useAuth();
+
+  if (loading) {
+    return <LoadingState label="Restoring your session..." fullPage />;
+  }
+
+  if (isAuthenticated) {
+    if (hostStatus === 'Pending' || hostStatus === 'Rejected') {
+      return <Navigate to="/approval-pending" replace />;
+    }
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Navigate to="/login" replace />;
+};
 
 function App() {
   return (
@@ -26,7 +51,7 @@ function App() {
         <Router>
           <div className="app">
             <Routes>
-              <Route path="/" element={<Navigate to="/explore" replace />} />
+              <Route path="/" element={<RootRedirect />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
               <Route path="/approval-pending" element={<ApprovalPending />} />
@@ -35,12 +60,14 @@ function App() {
               <Route path="/events-preview" element={<EventList />} />
               <Route path="/participants-preview" element={<Participants />} />
               <Route path="/dashboard-preview" element={<Dashboard />} />
+              <Route path="/transactions-preview" element={<Transactions />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/explore" element={<PublicEvents />} />
                 <Route path="/explore/:eventId" element={<EventDetailsPage />} />
                 <Route path="/events/:eventId" element={<EventDetailsPage />} />
+                <Route path="/transactions" element={<Transactions />} />
                 <Route path="/profile" element={<Profile />} />
               </Route>
 

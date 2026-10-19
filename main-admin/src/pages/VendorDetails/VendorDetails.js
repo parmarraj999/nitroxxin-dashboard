@@ -1,10 +1,19 @@
 import React from 'react';
-import { ArrowLeft, CalendarDays, CircleDollarSign, Mail, MapPin, Package, Phone, ShoppingCart, Store, UserRound } from 'lucide-react';
+import { ArrowLeft, CalendarDays, CircleDollarSign, Mail, MapPin, Package, Phone, ShoppingCart, Store, UserRound, CalendarClock, Trash2, ShieldAlert } from 'lucide-react';
 import { collection, doc, getDoc, getDocs, query, where } from 'firebase/firestore';
 import { useNavigate, useParams } from 'react-router-dom';
 import { db } from '../../firebase/firebase.config';
 import { COLLECTIONS } from '../../schemas/firestoreSchema';
 import { toDate } from '../../services/firebaseUtils';
+import AccountSuspensionModal from '../../components/Common/AccountSuspensionModal';
+import AccountDeletionModal from '../../components/Common/AccountDeletionModal';
+import {
+  checkAccountSuspension,
+  suspendAccount,
+  reactivateAccount,
+  deleteAccount
+} from '../../services/accountActionService';
+import '../../components/Common/AccountModals.css';
 import './VendorDetails.css';
 
 const label = (key) => key.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').replace(/^./, (letter) => letter.toUpperCase());
@@ -22,6 +31,8 @@ const VendorDetails = () => {
   const [vendor, setVendor] = React.useState(null);
   const [vendorData, setVendorData] = React.useState({ products: [], events: [], orders: [], payouts: [] });
   const [loading, setLoading] = React.useState(true);
+  const [showSuspendModal, setShowSuspendModal] = React.useState(false);
+  const [showDeleteModal, setShowDeleteModal] = React.useState(false);
 
   React.useEffect(() => {
     const loadVendor = async () => {
@@ -73,6 +84,8 @@ const VendorDetails = () => {
     ['Return Address', vendor.returnAddress]
   ].filter(([, details]) => details && Object.keys(details).length);
 
+  const suspInfo = checkAccountSuspension(vendor);
+
   return (
     <div className="vendor-details-page">
       <div className="page-header">
@@ -81,8 +94,42 @@ const VendorDetails = () => {
           <h1 className="page-title">{vendorName}</h1>
           <p className="page-subtitle">Vendor profile and management shortcuts for each service.</p>
         </div>
-        <span className={`module-badge ${String(vendor.verificationStatus || 'pending').toLowerCase()}`}>{vendor.verificationStatus || 'pending'}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <button
+            className="btn-secondary"
+            onClick={() => setShowSuspendModal(true)}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: '0.84rem' }}
+          >
+            <CalendarClock size={15} color={suspInfo.isSuspended ? '#ea580c' : 'currentColor'} />
+            {suspInfo.isSuspended ? 'Manage Suspension' : 'Suspend Vendor'}
+          </button>
+          <button
+            className="icon-btn text-danger"
+            onClick={() => setShowDeleteModal(true)}
+            title="Delete Vendor Account"
+            style={{ border: '1px solid #fee2e2', background: '#fff' }}
+          >
+            <Trash2 size={16} />
+          </button>
+          <span className={`module-badge ${suspInfo.isSuspended ? 'suspended' : String(vendor.verificationStatus || 'pending').toLowerCase()}`}>
+            {suspInfo.isSuspended ? 'Suspended' : vendor.verificationStatus || 'pending'}
+          </span>
+        </div>
       </div>
+
+      {/* Active Suspension Alert Banner */}
+      {suspInfo.isSuspended && (
+        <div className="account-active-suspension-alert" style={{ marginBottom: 16 }}>
+          <div className="account-active-suspension-title">
+            <ShieldAlert size={18} />
+            <span>This Vendor Account is Currently Suspended</span>
+          </div>
+          <div className="account-active-suspension-desc">
+            Suspension period: <strong>{suspInfo.startDate || 'N/A'}</strong> until <strong>{suspInfo.endDate || 'N/A'}</strong>.
+            {suspInfo.reason && <span> Reason: "{suspInfo.reason}"</span>}
+          </div>
+        </div>
+      )}
 
       <div className="vendor-details-grid">
         <section className="vendor-profile-card card">
@@ -122,6 +169,59 @@ const VendorDetails = () => {
         <section className="vendor-activity-card card"><h3 className="section-title">Vendor Activity</h3>{activity.length === 0 ? <div className="soft-empty">No vendor activity yet.</div> : <div className="activity-list">{activity.slice(0, 15).map((item) => { const Icon = item.icon; return <div className="activity-item" key={`${item.type}-${item.id}`}><div className="activity-icon"><Icon size={17} /></div><div><strong>{item.title}</strong><span>{item.type}</span></div><small>{toDate(item.date)?.toLocaleDateString() || '-'}</small></div>; })}</div>}</section>
       </div>
 
+      {/* Account Suspension Modal */}
+      <AccountSuspensionModal
+        isOpen={showSuspendModal}
+        onClose={() => setShowSuspendModal(false)}
+        accountType="vendor"
+        account={vendor}
+        onConfirmSuspend={async ({ startDate, endDate, reason }) => {
+          await suspendAccount({
+            accountType: 'vendor',
+            accountId: vendorId,
+            startDate,
+            endDate,
+            reason
+          });
+          setVendor((prev) => ({
+            ...prev,
+            status: 'suspended',
+            verificationStatus: 'suspended',
+            suspensionStartDate: startDate,
+            suspensionEndDate: endDate,
+            suspensionReason: reason
+          }));
+        }}
+        onConfirmReactivate={async () => {
+          await reactivateAccount({
+            accountType: 'vendor',
+            accountId: vendorId
+          });
+          setVendor((prev) => ({
+            ...prev,
+            status: 'active',
+            verificationStatus: 'verified',
+            suspensionStartDate: null,
+            suspensionEndDate: null,
+            suspensionReason: null
+          }));
+        }}
+      />
+
+      {/* Account Deletion Modal */}
+      <AccountDeletionModal
+        isOpen={showDeleteModal}
+        onClose={() => setShowDeleteModal(false)}
+        accountType="vendor"
+        account={vendor}
+        onConfirmDelete={async () => {
+          await deleteAccount({
+            accountType: 'vendor',
+            accountId: vendorId
+          });
+          navigate('/vendors');
+        }}
+      />
     </div>
   );
 };
