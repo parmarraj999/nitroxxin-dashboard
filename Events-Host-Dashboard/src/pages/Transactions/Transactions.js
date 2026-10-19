@@ -1,15 +1,29 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { 
+  ReceiptText,
+  User,
+  Tag,
+  CalendarDays,
+  Clock,
+  Mail,
+  CreditCard,
   Search, 
+  ChevronDown,
   ChevronLeft, 
   ChevronRight, 
+  ChevronsLeft,
+  ChevronsRight,
   MoreHorizontal, 
   CheckCircle2, 
   Loader2, 
   XCircle, 
   AlertTriangle, 
   Download, 
-  FileText
+  ArrowUp,
+  ArrowDown,
+  X,
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { INITIAL_TRANSACTIONS } from './transactionsData';
@@ -17,93 +31,199 @@ import TransactionDetailDrawer from './TransactionDetailDrawer';
 import './Transactions.css';
 
 const Transactions = () => {
-  const [transactions] = useState(INITIAL_TRANSACTIONS);
+  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedTimeframe, setSelectedTimeframe] = useState('1Y'); // '1D' | '7D' | '1M' | '1Y'
+  const [selectedTimeframe, setSelectedTimeframe] = useState('All'); // 'All' | '1D' | '7D' | '1M' | '1Y'
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Success' | 'In progress' | 'Failed' | 'Pending'
-  const [categoryFilter, setCategoryFilter] = useState('All');
+  const [categoryFilter, setCategoryFilter] = useState('All'); // 'All' | 'Send Money' | 'Request Money'
+  
+  // Sorting State
+  const [sortField, setSortField] = useState('');
+  const [sortDirection, setSortDirection] = useState('asc');
+
+  // Selection State
   const [selectedTxIds, setSelectedTxIds] = useState(new Set());
+
+  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize] = useState(9); // 9 items per page matching Image 2
+  const [pageSize, setPageSize] = useState(9); // 9 items per page matching user layout
+
+  // Side Drawer State
   const [selectedTransaction, setSelectedTransaction] = useState(null);
 
-  // Timeframe pills matching Image 2
-  const timeframeOptions = ['1D', '7D', '1M', '1Y'];
+  // Floating Toast Notification
+  const [toastMessage, setToastMessage] = useState('');
 
-  // Categories list
+  const searchInputRef = useRef(null);
+
+  // Keyboard shortcut (⌘K or Ctrl+K) to focus search
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        searchInputRef.current?.focus();
+      }
+      if (e.key === 'Escape') {
+        setSelectedTransaction(null);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const showToast = (msg) => {
+    setToastMessage(msg);
+    setTimeout(() => setToastMessage(''), 3000);
+  };
+
+  // Distinct Filter Options
+  const timeframeOptions = ['All', '1D', '7D', '1M', '1Y'];
   const categoryOptions = ['All', 'Send Money', 'Request Money'];
-
-  // Status list
   const statusOptions = ['All', 'Success', 'In progress', 'Failed', 'Pending'];
 
-  // Filtered transactions
+  // Sorting toggle
+  const handleSort = (field) => {
+    if (sortField === field) {
+      setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  // Filtered & Sorted Transactions
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((tx) => {
-      // Search filter
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchesName = tx.name.toLowerCase().includes(q);
-        const matchesDesc = tx.description.toLowerCase().includes(q);
-        const matchesEmail = tx.email.toLowerCase().includes(q);
-        const matchesAmount = tx.amount.toLowerCase().includes(q);
-        const matchesInvoice = tx.invoice && tx.invoice.toLowerCase().includes(q);
-        const matchesCust = tx.customerId && tx.customerId.toLowerCase().includes(q);
-        if (!matchesName && !matchesDesc && !matchesEmail && !matchesAmount && !matchesInvoice && !matchesCust) {
-          return false;
-        }
+    let result = [...transactions];
+
+    // Search query filter
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      result = result.filter(tx => 
+        (tx.name && tx.name.toLowerCase().includes(q)) ||
+        (tx.description && tx.description.toLowerCase().includes(q)) ||
+        (tx.email && tx.email.toLowerCase().includes(q)) ||
+        (tx.amount && tx.amount.toLowerCase().includes(q)) ||
+        (tx.category && tx.category.toLowerCase().includes(q)) ||
+        (tx.status && tx.status.toLowerCase().includes(q)) ||
+        (tx.invoice && tx.invoice.toLowerCase().includes(q)) ||
+        (tx.customerId && tx.customerId.toLowerCase().includes(q)) ||
+        (tx.id && tx.id.toLowerCase().includes(q))
+      );
+    }
+
+    // Status filter
+    if (statusFilter !== 'All') {
+      result = result.filter(tx => tx.status.toLowerCase() === statusFilter.toLowerCase());
+    }
+
+    // Category filter
+    if (categoryFilter !== 'All') {
+      result = result.filter(tx => tx.category.toLowerCase() === categoryFilter.toLowerCase());
+    }
+
+    // Timeframe filter
+    if (selectedTimeframe !== 'All') {
+      if (selectedTimeframe === '1D') {
+        result = result.slice(0, 3);
+      } else if (selectedTimeframe === '7D') {
+        result = result.slice(0, 6);
+      } else if (selectedTimeframe === '1M') {
+        result = result.slice(0, 10);
       }
+    }
 
-      // Status filter
-      if (statusFilter !== 'All') {
-        if (tx.status.toLowerCase() !== statusFilter.toLowerCase()) {
-          return false;
+    // Sorting
+    if (sortField) {
+      result.sort((a, b) => {
+        let valA = a[sortField];
+        let valB = b[sortField];
+
+        if (sortField === 'amount') {
+          valA = a.amountNum || 0;
+          valB = b.amountNum || 0;
         }
-      }
 
-      // Category filter
-      if (categoryFilter !== 'All') {
-        if (tx.category.toLowerCase() !== categoryFilter.toLowerCase()) {
-          return false;
+        if (typeof valA === 'number' && typeof valB === 'number') {
+          return sortDirection === 'asc' ? valA - valB : valB - valA;
         }
-      }
 
-      return true;
-    });
-  }, [transactions, searchQuery, statusFilter, categoryFilter]);
+        const strA = String(valA || '').toLowerCase();
+        const strB = String(valB || '').toLowerCase();
 
-  // Pagination calculation
-  const totalEntries = 300; // Display entries count matching Image 2
-  const totalFilteredCount = filteredTransactions.length;
+        if (strA < strB) return sortDirection === 'asc' ? -1 : 1;
+        if (strA > strB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+      });
+    }
+
+    return result;
+  }, [transactions, searchQuery, statusFilter, categoryFilter, selectedTimeframe, sortField, sortDirection]);
+
+  // Paginated Rows
+  const totalItems = filteredTransactions.length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+
+  useEffect(() => {
+    if (currentPage > totalPages) {
+      setCurrentPage(1);
+    }
+  }, [totalPages, currentPage]);
 
   const paginatedTransactions = useMemo(() => {
-    const startIndex = (currentPage - 1) * pageSize;
-    return filteredTransactions.slice(startIndex, startIndex + pageSize);
+    const start = (currentPage - 1) * pageSize;
+    return filteredTransactions.slice(start, start + pageSize);
   }, [filteredTransactions, currentPage, pageSize]);
 
-  // Checkbox selection handlers
+  // Selection Handlers
   const isAllSelected = paginatedTransactions.length > 0 && 
     paginatedTransactions.every((tx) => selectedTxIds.has(tx.id));
 
   const handleSelectAll = (e) => {
-    const next = new Set(selectedTxIds);
     if (e.target.checked) {
-      paginatedTransactions.forEach((tx) => next.add(tx.id));
+      setSelectedTxIds(new Set(paginatedTransactions.map(tx => tx.id)));
     } else {
-      paginatedTransactions.forEach((tx) => next.delete(tx.id));
+      setSelectedTxIds(new Set());
     }
-    setSelectedTxIds(next);
   };
 
   const handleToggleSelect = (id, e) => {
     e.stopPropagation();
-    const next = new Set(selectedTxIds);
-    if (next.has(id)) {
-      next.delete(id);
-    } else {
-      next.add(id);
-    }
-    setSelectedTxIds(next);
+    setSelectedTxIds(prev => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
   };
+
+  // Active filters count
+  const activeFiltersCount = useMemo(() => {
+    let count = 0;
+    if (searchQuery.trim()) count++;
+    if (statusFilter !== 'All') count++;
+    if (categoryFilter !== 'All') count++;
+    if (selectedTimeframe !== 'All') count++;
+    return count;
+  }, [searchQuery, statusFilter, categoryFilter, selectedTimeframe]);
+
+  const handleResetFilters = () => {
+    setSearchQuery('');
+    setStatusFilter('All');
+    setCategoryFilter('All');
+    setSelectedTimeframe('All');
+    setCurrentPage(1);
+    showToast('Filters reset to default.');
+  };
+
+  // Quick stats
+  const totalVolumeFormatted = useMemo(() => {
+    const total = transactions.reduce((acc, tx) => acc + (tx.amountNum || 0), 0);
+    return `$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  }, [transactions]);
+
+  const totalSuccess = useMemo(() => transactions.filter(tx => tx.status === 'Success').length, [transactions]);
+  const totalInProgress = useMemo(() => transactions.filter(tx => tx.status === 'In progress').length, [transactions]);
+  const totalPending = useMemo(() => transactions.filter(tx => tx.status === 'Pending' || tx.status === 'Failed').length, [transactions]);
 
   // Status Badge Renderer matching Image 2
   const renderStatusBadge = (status) => {
@@ -142,10 +262,10 @@ const Transactions = () => {
     }
   };
 
-  // Export CSV
-  const handleExportCSV = () => {
+  // Export to CSV helper
+  const exportToCsvFile = (dataList, filename) => {
     const headers = ['Transaction ID', 'Customer Name', 'Email', 'Description', 'Category', 'Date', 'Time', 'Status', 'Amount'];
-    const rows = filteredTransactions.map(tx => [
+    const rows = dataList.map(tx => [
       tx.id,
       `"${tx.name}"`,
       tx.email,
@@ -161,294 +281,593 @@ const Transactions = () => {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `transactions_history_${Date.now()}.csv`);
+    link.setAttribute('download', filename);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // Bulk Actions
+  const handleBulkApprove = () => {
+    const count = selectedTxIds.size;
+    setTransactions(prev => prev.map(tx => selectedTxIds.has(tx.id) ? { ...tx, status: 'Success' } : tx));
+    setSelectedTxIds(new Set());
+    showToast(`Marked ${count} transactions as Success.`);
+  };
+
+  const handleBulkProcessing = () => {
+    const count = selectedTxIds.size;
+    setTransactions(prev => prev.map(tx => selectedTxIds.has(tx.id) ? { ...tx, status: 'In progress' } : tx));
+    setSelectedTxIds(new Set());
+    showToast(`Marked ${count} transactions as In Progress.`);
+  };
+
+  const handleBulkExportCSV = () => {
+    const listToExport = transactions.filter(tx => selectedTxIds.has(tx.id));
+    exportToCsvFile(listToExport, `transactions_selected_${Date.now()}.csv`);
+    showToast(`Exported ${listToExport.length} selected transactions.`);
+  };
+
+  const handleBulkRefund = () => {
+    const count = selectedTxIds.size;
+    if (window.confirm(`Refund / Cancel ${count} selected transactions?`)) {
+      setTransactions(prev => prev.map(tx => selectedTxIds.has(tx.id) ? { ...tx, status: 'Failed' } : tx));
+      setSelectedTxIds(new Set());
+      showToast(`Cancelled/Refunded ${count} transactions.`);
+    }
+  };
+
+  const handleExportAllFilteredCSV = () => {
+    exportToCsvFile(filteredTransactions, `transactions_export_${Date.now()}.csv`);
+    showToast(`Exported ${filteredTransactions.length} transactions to CSV.`);
+  };
+
   return (
     <AppLayout searchPlaceholder="Search dashboard..." showQuickCreate={false}>
-      <div className="transactions-page-container">
-        {/* Main Content Area */}
-        <div className="transactions-main-wrapper">
-          
-          {/* Top Bar Header with Title, Search, and 1D 7D 1M 1Y Filters matching Image 2 */}
-          <div className="tx-header-bar">
-            {/* Left: Icon and Title */}
-            <div className="tx-title-group">
-              <div className="tx-title-icon-box">
-                <FileText size={18} />
-              </div>
-              <h1 className="tx-page-title">Transactions History</h1>
+      <div className="ptable-page-wrapper">
+
+        {/* Floating Toast Notification */}
+        {toastMessage && (
+          <div className="ptable-floating-toast">
+            <CheckCircle2 size={16} className="toast-icon" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+
+        {/* Page Header matching Participants UI */}
+        <div className="ptable-header-section">
+          <div className="ptable-header-title-block">
+            <div className="ptable-badge-icon">
+              <ReceiptText size={20} strokeWidth={2} />
             </div>
-
-            {/* Right: Search Bar and Timeframe Filters */}
-            <div className="tx-header-controls">
-              {/* Search Pill */}
-              <div className="tx-search-box">
-                <Search size={15} className="tx-search-icon" />
-                <input
-                  type="text"
-                  className="tx-search-input"
-                  placeholder="Search"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setCurrentPage(1);
-                  }}
-                />
-              </div>
-
-              {/* Timeframe Button Pills: 1D, 7D, 1M, 1Y */}
-              <div className="tx-timeframe-group">
-                {timeframeOptions.map((tf) => (
-                  <button
-                    key={tf}
-                    type="button"
-                    className={`tx-timeframe-btn ${selectedTimeframe === tf ? 'active' : ''}`}
-                    onClick={() => setSelectedTimeframe(tf)}
-                  >
-                    {tf}
-                  </button>
-                ))}
-              </div>
+            <div>
+              <h1 className="ptable-main-title">Transactions & Payouts</h1>
+              <p className="ptable-sub-title">
+                Comprehensive directory of attendee ticket bookings, payouts, refunds, and revenue transactions.
+              </p>
             </div>
           </div>
 
-          {/* Secondary Controls Bar: Status / Category Filter & Export */}
-          <div className="tx-secondary-bar">
-            <div className="tx-filter-chips">
-              <span className="tx-filter-label">Status:</span>
-              {statusOptions.map((st) => (
-                <button
-                  key={st}
-                  className={`tx-filter-chip ${statusFilter === st ? 'active' : ''}`}
-                  onClick={() => {
-                    setStatusFilter(st);
-                    setCurrentPage(1);
-                  }}
-                >
-                  {st}
-                </button>
-              ))}
-            </div>
+          <div className="ptable-header-actions">
+            <button 
+              className="ptable-btn-secondary"
+              onClick={handleExportAllFilteredCSV}
+              title="Export all or filtered records to CSV"
+            >
+              <Download size={15} />
+              <span>Export CSV</span>
+            </button>
+          </div>
+        </div>
 
-            <div className="tx-actions-right">
-              {selectedTxIds.size > 0 && (
-                <span className="tx-selected-count-chip">
-                  {selectedTxIds.size} selected
-                </span>
-              )}
+        {/* Metric Quick-Strip matching Participants UI */}
+        <div className="ptable-metric-strip">
+          <div className="metric-pill-item">
+            <span className="metric-pill-label">Total Volume:</span>
+            <span className="metric-pill-val">{totalVolumeFormatted} ({transactions.length} Records)</span>
+          </div>
+          <div className="metric-pill-item">
+            <span className="metric-pill-label">Success / Paid:</span>
+            <span className="metric-pill-val text-green">{totalSuccess} Completed ({Math.round((totalSuccess / transactions.length) * 100 || 0)}%)</span>
+          </div>
+          <div className="metric-pill-item">
+            <span className="metric-pill-label">In Progress:</span>
+            <span className="metric-pill-val text-blue">{totalInProgress} Processing</span>
+          </div>
+          <div className="metric-pill-item">
+            <span className="metric-pill-label">Pending / Review:</span>
+            <span className="metric-pill-val text-amber">{totalPending} Pending</span>
+          </div>
+        </div>
+
+        {/* Toolbar: Search and Filter Dropdowns matching Participants UI */}
+        <div className="ptable-toolbar-container">
+          {/* Search Box with ⌘K shortcut */}
+          <div className="ptable-search-wrapper">
+            <Search size={15} className="ptable-search-icon" />
+            <input 
+              ref={searchInputRef}
+              type="text" 
+              placeholder="Search transactions, customer name, email, invoice..." 
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentPage(1);
+              }}
+              className="ptable-search-input"
+            />
+            {searchQuery ? (
               <button 
-                type="button" 
-                className="tx-export-btn"
-                onClick={handleExportCSV}
-                title="Export filtered transactions as CSV"
+                className="ptable-search-clear" 
+                onClick={() => setSearchQuery('')}
+                title="Clear Search"
               >
-                <Download size={13} />
-                <span>Export CSV</span>
+                <X size={13} />
               </button>
-            </div>
+            ) : (
+              <span className="ptable-search-shortcut" title="Press ⌘K or Ctrl+K to search">⌘K</span>
+            )}
           </div>
 
-          {/* Transactions Table Card matching Image 2 */}
-          <div className="tx-table-card">
-            <div className="tx-table-responsive">
-              <table className="tx-table">
-                <thead>
+          {/* Quick Filter Selects */}
+          <div className="ptable-filter-group">
+            {/* Timeframe Filter */}
+            <div className="ptable-select-wrapper">
+              <span className="select-prefix-label">Period:</span>
+              <select 
+                value={selectedTimeframe}
+                onChange={(e) => { setSelectedTimeframe(e.target.value); setCurrentPage(1); }}
+                className="ptable-select-input"
+              >
+                {timeframeOptions.map((tf, i) => (
+                  <option key={i} value={tf}>{tf === 'All' ? 'All Time' : tf}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="ptable-select-chevron" />
+            </div>
+
+            {/* Status Filter */}
+            <div className="ptable-select-wrapper">
+              <span className="select-prefix-label">Status:</span>
+              <select 
+                value={statusFilter}
+                onChange={(e) => { setStatusFilter(e.target.value); setCurrentPage(1); }}
+                className="ptable-select-input"
+              >
+                {statusOptions.map((st, i) => (
+                  <option key={i} value={st}>{st === 'All' ? 'All Statuses' : st}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="ptable-select-chevron" />
+            </div>
+
+            {/* Category Filter */}
+            <div className="ptable-select-wrapper">
+              <span className="select-prefix-label">Category:</span>
+              <select 
+                value={categoryFilter}
+                onChange={(e) => { setCategoryFilter(e.target.value); setCurrentPage(1); }}
+                className="ptable-select-input"
+              >
+                {categoryOptions.map((cat, i) => (
+                  <option key={i} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="ptable-select-chevron" />
+            </div>
+
+            {/* Reset Button */}
+            {activeFiltersCount > 0 && (
+              <button 
+                className="ptable-reset-filters-btn"
+                onClick={handleResetFilters}
+                title="Reset all filters to default"
+              >
+                <RefreshCw size={13} />
+                <span>Reset ({activeFiltersCount})</span>
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Active Filter Chips */}
+        {activeFiltersCount > 0 && (
+          <div className="ptable-active-chips-bar">
+            <span className="chips-title">Active Filters:</span>
+            {searchQuery && (
+              <span className="filter-chip">
+                Search: "{searchQuery}"
+                <button onClick={() => setSearchQuery('')}><X size={11} /></button>
+              </span>
+            )}
+            {selectedTimeframe !== 'All' && (
+              <span className="filter-chip">
+                Period: {selectedTimeframe}
+                <button onClick={() => setSelectedTimeframe('All')}><X size={11} /></button>
+              </span>
+            )}
+            {statusFilter !== 'All' && (
+              <span className="filter-chip">
+                Status: {statusFilter}
+                <button onClick={() => setStatusFilter('All')}><X size={11} /></button>
+              </span>
+            )}
+            {categoryFilter !== 'All' && (
+              <span className="filter-chip">
+                Category: {categoryFilter}
+                <button onClick={() => setCategoryFilter('All')}><X size={11} /></button>
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Main Table Card matching Participants UI */}
+        <div className="ptable-card-container">
+          <div className="ptable-scroll-frame">
+            <table className="ptable-custom-table">
+              <thead>
+                <tr>
+                  {/* Checkbox Column */}
+                  <th className="ptable-th th-checkbox">
+                    <input 
+                      type="checkbox" 
+                      className="ptable-checkbox-input"
+                      checked={isAllSelected}
+                      onChange={handleSelectAll}
+                      title="Select all on this page"
+                    />
+                  </th>
+
+                  {/* 1. Description (User / Avatar / Bank description) */}
+                  <th 
+                    className="ptable-th th-sortable th-description" 
+                    onClick={() => handleSort('name')}
+                    title="Sort by Description / Name"
+                  >
+                    <div className="th-content-flex">
+                      <User size={13.5} className="th-header-icon" />
+                      <span>Description</span>
+                      {sortField === 'name' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* 2. Category */}
+                  <th 
+                    className="ptable-th th-sortable th-category" 
+                    onClick={() => handleSort('category')}
+                    title="Sort by Category"
+                  >
+                    <div className="th-content-flex">
+                      <Tag size={13.5} className="th-header-icon" />
+                      <span>Category</span>
+                      {sortField === 'category' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* 3. Date */}
+                  <th 
+                    className="ptable-th th-sortable th-date" 
+                    onClick={() => handleSort('date')}
+                    title="Sort by Date"
+                  >
+                    <div className="th-content-flex">
+                      <CalendarDays size={13.5} className="th-header-icon" />
+                      <span>Date</span>
+                      {sortField === 'date' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* 4. Time */}
+                  <th 
+                    className="ptable-th th-sortable th-time" 
+                    onClick={() => handleSort('time')}
+                    title="Sort by Time"
+                  >
+                    <div className="th-content-flex">
+                      <Clock size={13.5} className="th-header-icon" />
+                      <span>Time</span>
+                      {sortField === 'time' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* 5. Email */}
+                  <th 
+                    className="ptable-th th-sortable th-email" 
+                    onClick={() => handleSort('email')}
+                    title="Sort by Email"
+                  >
+                    <div className="th-content-flex">
+                      <Mail size={13.5} className="th-header-icon" />
+                      <span>Email</span>
+                      {sortField === 'email' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* 6. Status */}
+                  <th 
+                    className="ptable-th th-sortable th-status"
+                    onClick={() => handleSort('status')}
+                    title="Sort by Status"
+                  >
+                    <div className="th-content-flex">
+                      <CheckCircle2 size={13.5} className="th-header-icon" />
+                      <span>Status</span>
+                      {sortField === 'status' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* 7. Amount */}
+                  <th 
+                    className="ptable-th th-sortable th-amount" 
+                    onClick={() => handleSort('amount')}
+                    title="Sort by Amount"
+                  >
+                    <div className="th-content-flex">
+                      <CreditCard size={13.5} className="th-header-icon" />
+                      <span>Amount</span>
+                      {sortField === 'amount' && (
+                        sortDirection === 'asc' ? <ArrowUp size={12} className="sort-arrow" /> : <ArrowDown size={12} className="sort-arrow" />
+                      )}
+                    </div>
+                  </th>
+
+                  {/* 8. Action */}
+                  <th className="ptable-th th-action">
+                    <span>Action</span>
+                  </th>
+                </tr>
+              </thead>
+
+              {/* Data table rows PRESERVED exactly as transaction data table rows */}
+              <tbody>
+                {paginatedTransactions.length === 0 ? (
                   <tr>
-                    <th className="th-checkbox">
-                      <input
-                        type="checkbox"
-                        checked={isAllSelected}
-                        onChange={handleSelectAll}
-                        className="tx-custom-checkbox"
-                        aria-label="Select all transactions"
-                      />
-                    </th>
-                    <th className="th-description">Description</th>
-                    <th className="th-category">Category</th>
-                    <th className="th-date">Date</th>
-                    <th className="th-time">Time</th>
-                    <th className="th-email">Email</th>
-                    <th className="th-status">Status</th>
-                    <th className="th-amount">Amount</th>
-                    <th className="th-action">Action</th>
+                    <td colSpan="9" className="ptable-empty-cell">
+                      <div className="empty-state-box">
+                        <ReceiptText size={36} className="empty-state-icon" />
+                        <h3>No transactions found</h3>
+                        <p>No transactions match your current search or filter criteria.</p>
+                        <button className="ptable-btn-secondary" onClick={handleResetFilters}>
+                          Clear all filters
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {paginatedTransactions.length > 0 ? (
-                    paginatedTransactions.map((tx) => {
-                      const isSelected = selectedTxIds.has(tx.id);
-                      return (
-                        <tr
-                          key={tx.id}
-                          className={`tx-table-row ${isSelected ? 'row-selected' : ''}`}
-                          onClick={() => setSelectedTransaction(tx)}
-                        >
-                          {/* Checkbox */}
-                          <td className="td-checkbox" onClick={(e) => e.stopPropagation()}>
-                            <input
-                              type="checkbox"
-                              checked={isSelected}
-                              onChange={(e) => handleToggleSelect(tx.id, e)}
-                              className="tx-custom-checkbox"
+                ) : (
+                  paginatedTransactions.map((tx) => {
+                    const isSelected = selectedTxIds.has(tx.id);
+
+                    return (
+                      <tr 
+                        key={tx.id} 
+                        className={`ptable-row ${isSelected ? 'row-selected' : ''}`}
+                        onClick={() => setSelectedTransaction(tx)}
+                      >
+                        {/* Checkbox Column */}
+                        <td className="ptable-td td-checkbox" onClick={(e) => e.stopPropagation()}>
+                          <input 
+                            type="checkbox" 
+                            className="ptable-checkbox-input"
+                            checked={isSelected}
+                            onChange={(e) => handleToggleSelect(tx.id, e)}
+                          />
+                        </td>
+
+                        {/* Description (Avatar + Name + Bank info) */}
+                        <td className="ptable-td td-description">
+                          <div className="tx-desc-wrapper">
+                            <img
+                              src={tx.avatar}
+                              alt={tx.name}
+                              className="tx-user-avatar"
+                              onError={(e) => {
+                                e.target.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+                              }}
                             />
-                          </td>
-
-                          {/* Description (Avatar + Name + Bank info) */}
-                          <td className="td-description">
-                            <div className="tx-desc-wrapper">
-                              <img
-                                src={tx.avatar}
-                                alt={tx.name}
-                                className="tx-user-avatar"
-                              />
-                              <div className="tx-desc-meta">
-                                <span className="tx-user-name">{tx.name}</span>
-                                <span className="tx-user-sub">{tx.description}</span>
-                              </div>
+                            <div className="tx-desc-meta">
+                              <span className="tx-user-name">{tx.name}</span>
+                              <span className="tx-user-sub">{tx.description}</span>
                             </div>
-                          </td>
+                          </div>
+                        </td>
 
-                          {/* Category */}
-                          <td className="td-category">
-                            <span className="tx-category-text">{tx.category}</span>
-                          </td>
+                        {/* Category */}
+                        <td className="ptable-td td-category">
+                          <span className="tx-category-text">{tx.category}</span>
+                        </td>
 
-                          {/* Date */}
-                          <td className="td-date">
-                            <span className="tx-date-text">{tx.date}</span>
-                          </td>
+                        {/* Date */}
+                        <td className="ptable-td td-date">
+                          <span className="tx-date-text">{tx.date}</span>
+                        </td>
 
-                          {/* Time */}
-                          <td className="td-time">
-                            <span className="tx-time-text">{tx.time}</span>
-                          </td>
+                        {/* Time */}
+                        <td className="ptable-td td-time">
+                          <span className="tx-time-text">{tx.time}</span>
+                        </td>
 
-                          {/* Email */}
-                          <td className="td-email">
-                            <span className="tx-email-text">{tx.email}</span>
-                          </td>
+                        {/* Email */}
+                        <td className="ptable-td td-email">
+                          <span className="tx-email-text">{tx.email}</span>
+                        </td>
 
-                          {/* Status */}
-                          <td className="td-status">
-                            {renderStatusBadge(tx.status)}
-                          </td>
+                        {/* Status */}
+                        <td className="ptable-td td-status">
+                          {renderStatusBadge(tx.status)}
+                        </td>
 
-                          {/* Amount */}
-                          <td className="td-amount">
-                            <span className="tx-amount-text">{tx.amount}</span>
-                          </td>
+                        {/* Amount */}
+                        <td className="ptable-td td-amount">
+                          <span className="tx-amount-text">{tx.amount}</span>
+                        </td>
 
-                          {/* Action */}
-                          <td className="td-action" onClick={(e) => e.stopPropagation()}>
-                            <button
-                              type="button"
-                              className="tx-row-action-btn"
-                              onClick={() => setSelectedTransaction(tx)}
-                              title="View Transaction Details"
-                              aria-label={`View details for ${tx.name}`}
-                            >
-                              <MoreHorizontal size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  ) : (
-                    <tr>
-                      <td colSpan="9" className="tx-empty-state-cell">
-                        <div className="tx-empty-box">
-                          <FileText size={32} color="#94a3b8" />
-                          <p>No transactions match your current search or filters.</p>
+                        {/* Action */}
+                        <td className="ptable-td td-action" onClick={(e) => e.stopPropagation()}>
                           <button
                             type="button"
-                            className="tx-reset-filter-btn"
-                            onClick={() => {
-                              setSearchQuery('');
-                              setStatusFilter('All');
-                              setCategoryFilter('All');
-                            }}
+                            className="tx-row-action-btn"
+                            onClick={() => setSelectedTransaction(tx)}
+                            title="View Transaction Details"
+                            aria-label={`View details for ${tx.name}`}
                           >
-                            Reset Filters
+                            <MoreHorizontal size={16} />
                           </button>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+                        </td>
+                      </tr>
+                    );
+                  })
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Table Pagination Footer matching Participants UI */}
+          <div className="ptable-footer-pagination">
+            <div className="pagination-count-label">
+              Showing {filteredTransactions.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} to{' '}
+              {Math.min(currentPage * pageSize, filteredTransactions.length)} of {filteredTransactions.length} transactions
             </div>
 
-            {/* Pagination Footer matching Image 2 */}
-            <div className="tx-pagination-bar">
-              <div className="tx-pagination-info">
-                Showing {paginatedTransactions.length > 0 ? (currentPage - 1) * pageSize + 1 : 0}-
-                {Math.min(currentPage * pageSize, totalFilteredCount)} of {totalEntries} entries
-              </div>
+            <div className="pagination-controls-center">
+              {/* First Page */}
+              <button 
+                className="pagination-nav-btn" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(1)}
+                title="First Page"
+              >
+                <ChevronsLeft size={15} />
+              </button>
 
-              <div className="tx-pagination-controls">
-                <button
-                  type="button"
-                  className="tx-page-arrow-btn"
-                  disabled={currentPage <= 1}
-                  onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+              {/* Prev Page */}
+              <button 
+                className="pagination-nav-btn" 
+                disabled={currentPage === 1}
+                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                title="Previous Page"
+              >
+                <ChevronLeft size={15} />
+              </button>
+
+              {/* Numbered Page Buttons */}
+              {Array.from({ length: totalPages }, (_, idx) => idx + 1)
+                .filter(page => page === 1 || page === totalPages || Math.abs(page - currentPage) <= 1)
+                .reduce((acc, page, idx, arr) => {
+                  if (idx > 0 && page - arr[idx - 1] > 1) {
+                    acc.push('ellipsis-' + page);
+                  }
+                  acc.push(page);
+                  return acc;
+                }, [])
+                .map((item, idx) => {
+                  if (typeof item === 'string') {
+                    return <span key={idx} className="pagination-ellipsis">…</span>;
+                  }
+                  return (
+                    <button 
+                      key={item} 
+                      className={`pagination-page-number ${currentPage === item ? 'active' : ''}`}
+                      onClick={() => setCurrentPage(item)}
+                    >
+                      {item}
+                    </button>
+                  );
+                })}
+
+              {/* Next Page */}
+              <button 
+                className="pagination-nav-btn" 
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                title="Next Page"
+              >
+                <ChevronRight size={15} />
+              </button>
+
+              {/* Last Page */}
+              <button 
+                className="pagination-nav-btn" 
+                disabled={currentPage === totalPages || totalPages === 0}
+                onClick={() => setCurrentPage(totalPages)}
+                title="Last Page"
+              >
+                <ChevronsRight size={15} />
+              </button>
+            </div>
+
+            {/* Rows Per Page Selector */}
+            <div className="pagination-page-size-wrap">
+              <span className="size-label">Rows per page:</span>
+              <div className="size-select-box">
+                <select 
+                  value={pageSize}
+                  onChange={(e) => {
+                    setPageSize(Number(e.target.value));
+                    setCurrentPage(1);
+                  }}
+                  className="page-size-dropdown"
                 >
-                  <ChevronLeft size={14} />
-                  <span>Previous</span>
-                </button>
-
-                {/* Page numbers */}
-                <button
-                  type="button"
-                  className={`tx-page-num-btn ${currentPage === 1 ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(1)}
-                >
-                  1
-                </button>
-
-                <button
-                  type="button"
-                  className={`tx-page-num-btn ${currentPage === 2 ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(2)}
-                >
-                  2
-                </button>
-
-                <button
-                  type="button"
-                  className={`tx-page-num-btn ${currentPage === 3 ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(3)}
-                >
-                  3
-                </button>
-
-                <span className="tx-page-ellipsis">...</span>
-
-                <button
-                  type="button"
-                  className={`tx-page-num-btn ${currentPage === 12 ? 'active' : ''}`}
-                  onClick={() => setCurrentPage(12)}
-                >
-                  12
-                </button>
-
-                <button
-                  type="button"
-                  className="tx-page-arrow-btn"
-                  disabled={currentPage >= 12}
-                  onClick={() => setCurrentPage((p) => Math.min(p + 1, 12))}
-                >
-                  <span>Next</span>
-                  <ChevronRight size={14} />
-                </button>
+                  <option value={9}>9 / page</option>
+                  <option value={15}>15 / page</option>
+                  <option value={25}>25 / page</option>
+                  <option value={50}>50 / page</option>
+                </select>
+                <ChevronDown size={13} className="size-chevron" />
               </div>
             </div>
           </div>
-
         </div>
+
+        {/* Floating Bulk Action Bar Popup matching Participants UI */}
+        {selectedTxIds.size > 0 && (
+          <div className="ptable-bulk-floating-bar">
+            <span className="bulk-badge-count">{selectedTxIds.size} selected</span>
+
+            <button className="bulk-bar-btn" onClick={handleBulkApprove} title="Mark selected as Success">
+              <CheckCircle2 size={14} />
+              <span>Mark Success</span>
+            </button>
+
+            <button 
+              className="bulk-bar-btn" 
+              onClick={handleBulkProcessing}
+              title="Mark selected as In Progress"
+            >
+              <Loader2 size={14} />
+              <span>Mark Processing</span>
+            </button>
+
+            <button className="bulk-bar-btn" onClick={handleBulkExportCSV} title="Export selected to CSV">
+              <Download size={14} />
+              <span>Export CSV</span>
+            </button>
+
+            <button className="bulk-bar-btn danger" onClick={handleBulkRefund} title="Cancel/Refund selected">
+              <Trash2 size={14} />
+              <span>Cancel / Refund</span>
+            </button>
+
+            <button 
+              className="bulk-close-btn" 
+              onClick={() => setSelectedTxIds(new Set())}
+              title="Deselect all"
+            >
+              <X size={15} />
+            </button>
+          </div>
+        )}
 
         {/* Side Popup / Drawer matching Image 1 */}
         {selectedTransaction && (
