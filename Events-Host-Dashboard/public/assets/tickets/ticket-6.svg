@@ -1,0 +1,122 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 336 573" width="336" height="573">
+  <defs>
+    <!-- MASK FOR SCALLOPS AND TEAR NOTCHES -->
+    <mask id="ticket-mask-design-6">
+      <!-- White base covering ticket with rounded corners -->
+      <rect x="0" y="0" width="336" height="573" rx="20" ry="20" fill="white"/>
+      <!-- Top Scalloped Edge Cutouts -->
+      <circle cx="48" cy="0" r="10" fill="black"/><circle cx="96" cy="0" r="10" fill="black"/><circle cx="144" cy="0" r="10" fill="black"/><circle cx="192" cy="0" r="10" fill="black"/><circle cx="240" cy="0" r="10" fill="black"/><circle cx="288" cy="0" r="10" fill="black"/>
+      <!-- Bottom Scalloped Edge Cutouts -->
+      <circle cx="48" cy="573" r="10" fill="black"/><circle cx="96" cy="573" r="10" fill="black"/><circle cx="144" cy="573" r="10" fill="black"/><circle cx="192" cy="573" r="10" fill="black"/><circle cx="240" cy="573" r="10" fill="black"/><circle cx="288" cy="573" r="10" fill="black"/>
+      <!-- Left Notch at Tear Line (y=112) -->
+      <circle cx="0" cy="112" r="16" fill="black"/>
+      <!-- Right Notch at Tear Line (y=112) -->
+      <circle cx="336" cy="112" r="16" fill="black"/>
+    </mask>
+  </defs>
+
+  <!-- CLIPPED TICKET BODY -->
+  <g mask="url(#ticket-mask-design-6)">
+    <!-- BACKGROUND -->
+    
+      <defs>
+        <linearGradient id="grad6" x1="0%" y1="0%" x2="0%" y2="100%">
+          <stop offset="0%" stop-color="#0a0a0c"/>
+          <stop offset="100%" stop-color="#17171a"/>
+        </linearGradient>
+      </defs>
+      <rect width="336" height="573" fill="url(#grad6)"/>
+      <rect x="14" y="14" width="308" height="545" rx="12" fill="none" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.4"/>
+      <line x1="14" y1="20" x2="40" y2="20" stroke="#ffffff" stroke-width="4"/>
+      <line x1="296" y1="20" x2="322" y2="20" stroke="#ffffff" stroke-width="4"/>
+    
+
+    <!-- TOP SECTION: NITROXX TICKETS LOGO -->
+    <g transform="translate(116, 44)">
+      <!-- Nitroxx Logo Graphic -->
+      <text x="0" y="24" font-family="'Inter', -apple-system, sans-serif" font-weight="900" font-size="24" fill="#ffffff" letter-spacing="-0.5">
+        Nitro
+      </text>
+      <!-- Stylized double X racing mark -->
+      <g transform="translate(56, 4)">
+        <path d="M 4 2 L 18 22 M 18 2 L 4 22" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+        <path d="M 16 2 L 30 22 M 30 2 L 16 22" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+      </g>
+      <text x="0" y="38" font-family="'Inter', -apple-system, sans-serif" font-weight="800" font-size="11" fill="#ffffff" letter-spacing="0.5">
+        Tickets
+      </text>
+    </g>
+
+    <!-- HORIZONTAL PERFORATION DASHED TEAR LINE (y=112) -->
+    <line x1="20" y1="112" x2="316" y2="112" stroke="#ffffff" stroke-width="2.5" stroke-dasharray="6, 6"/>
+
+    <!-- MIDDLE SECTION: EVENT DETAILS -->
+    <g transform="translate(32, 160)">
+      <!-- Title (2 lines max with bold styling) -->
+      <text x="0" y="0" font-family="'Inter', -apple-system, sans-serif" font-weight="900" font-size="20" fill="#ffffff" letter-spacing="0.2">
+        IT COMES WITH IT MIC...
+      </text>
+      
+      <text x="0" y="24" font-family="'Inter', -apple-system, sans-serif" font-weight="900" font-size="20" fill="#ffffff" letter-spacing="0.2">
+         MCCLURE
+      </text>
+      
+
+      <!-- Venue / Location -->
+      <text x="0" y="52" font-family="'Inter', -apple-system, sans-serif" font-weight="700" font-size="13" fill="#ffffff" opacity="0.95">
+        Gateway of India, Colaba
+      </text>
+    </g>
+
+    <!-- HORIZONTAL DIVIDER 1 -->
+    <line x1="32" y1="236" x2="304" y2="236" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.85"/>
+
+    <!-- 3 COLUMNS: DATE, TIME, TICKETS -->
+    <g transform="translate(32, 258)">
+      <!-- Col 1: Date -->
+      <text x="0" y="0" font-family="'Inter', -apple-system, sans-serif" font-weight="700" font-size="13" fill="#ffffff">
+        Date
+      </text>
+      <text x="0" y="20" font-family="'Inter', -apple-system, sans-serif" font-weight="900" font-size="17" fill="#ffffff">
+        08/12
+      </text>
+
+      <!-- Col 2: Time -->
+      <text x="96" y="0" font-family="'Inter', -apple-system, sans-serif" font-weight="700" font-size="13" fill="#ffffff">
+        Time
+      </text>
+      <text x="96" y="20" font-family="'Inter', -apple-system, sans-serif" font-weight="900" font-size="17" fill="#ffffff">
+        02:00 PM
+      </text>
+
+      <!-- Col 3: Tickets -->
+      <text x="204" y="0" font-family="'Inter', -apple-system, sans-serif" font-weight="700" font-size="13" fill="#ffffff">
+        Tickets
+      </text>
+      <text x="204" y="20" font-family="'Inter', -apple-system, sans-serif" font-weight="900" font-size="17" fill="#ffffff">
+        x2
+      </text>
+    </g>
+
+    <!-- HORIZONTAL DIVIDER 2 -->
+    <line x1="32" y1="292" x2="304" y2="292" stroke="#ffffff" stroke-width="1.5" stroke-opacity="0.85"/>
+
+    <!-- BOTTOM SECTION: SCAN INSTRUCTION & QR CODE -->
+    <!-- Vertical Scan instruction rotated 90 degrees counter-clockwise -->
+    <g transform="translate(48, 510) rotate(-90)">
+      <text x="0" y="0" font-family="'Inter', -apple-system, sans-serif" font-weight="800" font-size="12" fill="#ffffff" letter-spacing="1.5">
+        SCAN THIS QR WHEN ENTER
+      </text>
+    </g>
+
+    <!-- QR CODE BOX -->
+    <g transform="translate(68, 318)">
+      
+    <g>
+      <rect x="0.00" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="11.76" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="47.06" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="58.82" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="129.41" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="152.94" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="176.47" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="0.00" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="11.76" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="11.76" width="11.76" height="11.76" fill="#ffffff"/><rect x="105.88" y="11.76" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="11.76" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="11.76" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="47.06" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="152.94" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="23.53" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="47.06" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="105.88" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="152.94" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="35.29" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="47.06" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="105.88" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="152.94" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="47.06" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="58.82" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="58.82" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="58.82" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="58.82" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="58.82" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="11.76" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="47.06" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="58.82" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="129.41" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="152.94" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="176.47" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="70.59" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="82.35" width="11.76" height="11.76" fill="#ffffff"/><rect x="105.88" y="82.35" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="11.76" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="58.82" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="82.35" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="105.88" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="176.47" y="94.12" width="11.76" height="11.76" fill="#ffffff"/><rect x="11.76" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="47.06" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="82.35" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="129.41" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="152.94" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="176.47" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="105.88" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="58.82" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="129.41" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="117.65" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="129.41" width="11.76" height="11.76" fill="#ffffff"/><rect x="105.88" y="129.41" width="11.76" height="11.76" fill="#ffffff"/><rect x="129.41" y="129.41" width="11.76" height="11.76" fill="#ffffff"/><rect x="152.94" y="129.41" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="129.41" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="129.41" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="11.76" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="47.06" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="58.82" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="176.47" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="141.18" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="152.94" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="152.94" width="11.76" height="11.76" fill="#ffffff"/><rect x="105.88" y="152.94" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="152.94" width="11.76" height="11.76" fill="#ffffff"/><rect x="129.41" y="152.94" width="11.76" height="11.76" fill="#ffffff"/><rect x="152.94" y="152.94" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="152.94" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="47.06" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="105.88" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="129.41" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="176.47" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="164.71" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="176.47" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="176.47" width="11.76" height="11.76" fill="#ffffff"/><rect x="94.12" y="176.47" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="176.47" width="11.76" height="11.76" fill="#ffffff"/><rect x="152.94" y="176.47" width="11.76" height="11.76" fill="#ffffff"/><rect x="176.47" y="176.47" width="11.76" height="11.76" fill="#ffffff"/><rect x="0.00" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="11.76" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="23.53" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="35.29" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="47.06" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="58.82" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="70.59" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="105.88" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="117.65" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="129.41" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="141.18" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="164.71" y="188.24" width="11.76" height="11.76" fill="#ffffff"/><rect x="188.24" y="188.24" width="11.76" height="11.76" fill="#ffffff"/>
+    </g>
+  
+    </g>
+  </g>
+</svg>

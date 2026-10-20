@@ -200,8 +200,8 @@ export default function AccountSuspensionModal({
       reasonCategory === 'Other / Custom Reason'
         ? customReason.trim() || 'Administrative suspension'
         : customReason.trim()
-        ? `${reasonCategory}: ${customReason.trim()}`
-        : reasonCategory;
+          ? `${reasonCategory}: ${customReason.trim()}`
+          : reasonCategory;
 
     setIsSubmitting(true);
     try {
@@ -269,9 +269,8 @@ export default function AccountSuspensionModal({
                 <div className="account-summary-name">
                   <span>{accountName}</span>
                   <span
-                    className={`management-badge ${
-                      isCurrentlySuspended ? 'suspended' : 'active'
-                    }`}
+                    className={`management-badge ${isCurrentlySuspended ? 'suspended' : 'active'
+                      }`}
                     style={{ fontSize: '0.7rem', padding: '2px 6px' }}
                   >
                     {isCurrentlySuspended ? 'Suspended' : 'Active'}
@@ -382,9 +381,8 @@ export default function AccountSuspensionModal({
               {/* Duration Preview Card */}
               {startDate && endDate && (
                 <div
-                  className={`account-duration-preview ${
-                    durationDays === 0 ? 'warning' : ''
-                  }`}
+                  className={`account-duration-preview ${durationDays === 0 ? 'warning' : ''
+                    }`}
                   style={{ marginTop: 8 }}
                 >
                   <div className="account-duration-info">

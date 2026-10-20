@@ -38,7 +38,8 @@ import {
   CheckCircle,
   X,
   MessageSquare,
-  UserCheck
+  UserCheck,
+  Ticket
 } from 'lucide-react';
 import './Sidebar.css';
 
@@ -124,6 +125,7 @@ const SIDEBAR_GROUPS = [
       { label: 'Create Event', icon: Plus, path: '/events/create' },
       { label: 'Organizer Logos', icon: ShieldCheck, path: '/organizer-logos' },
       { label: 'Categories', icon: Tags, path: '/events/categories' },
+      { label: 'Ticket Templates', icon: Ticket, path: '/events/ticket-templates' },
       { label: 'Bookings', icon: ShoppingCart, path: '/events/bookings' },
       { label: 'Participants', icon: Users, path: '/events/participants' },
       { label: 'Coupons', icon: Megaphone, path: '/events/coupons' },

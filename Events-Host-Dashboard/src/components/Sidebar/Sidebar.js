@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { 
+import {
   Sparkles,
   Users,
   CalendarDays,
@@ -116,22 +116,22 @@ const Sidebar = () => {
       <aside className="minimal-sidebar">
         {/* Header with black badge, workspace switcher, and search button */}
         <div className="sidebar-top-bar" ref={workspaceRef}>
-          <button 
+          <button
             className={`workspace-trigger ${workspaceMenuOpen ? 'active' : ''}`}
             onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
             title="Switch Workspace"
           >
             <div className="workspace-badge">
-              <svg 
-                className="cmd-icon" 
-                viewBox="0 0 24 24" 
-                fill="none" 
-                stroke="currentColor" 
-                strokeWidth="2.5" 
-                strokeLinecap="round" 
+              <svg
+                className="cmd-icon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z"/>
+                <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
               </svg>
             </div>
             <span className="workspace-name">{profile?.organization || 'Nitroxx Inc'}</span>
@@ -141,17 +141,17 @@ const Sidebar = () => {
 
         {/* Workspaces Section */}
         <div className="sidebar-section-container">
-          <div style={{width:'100%',height:'2px',backgroundColor:'#ebebea',margin:'0 0px'}}></div>
+          <div style={{ width: '100%', height: '2px', backgroundColor: '#ebebea', margin: '0 0px' }}></div>
           {/* <div className="sidebar-section-header">Workspaces</div> */}
           <nav className="sidebar-nav-list">
             {filteredItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path + '/'));
               return (
-                <NavLink 
-                  key={index} 
-                  to={item.path} 
-                  className={({ isActive: linkActive }) => 
+                <NavLink
+                  key={index}
+                  to={item.path}
+                  className={({ isActive: linkActive }) =>
                     `sidebar-nav-item ${linkActive || isActive ? 'active' : ''}`
                   }
                 >
@@ -166,18 +166,18 @@ const Sidebar = () => {
         {/* User Profile at Bottom (Minimal, Notion / Linear styled) */}
         <div className="sidebar-bottom-bar">
           <div className="sidebar-user-pill">
-            <img 
-              src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx'} 
-              alt={profile?.fullName || 'User'} 
-              className="user-avatar-mini" 
+            <img
+              src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx'}
+              alt={profile?.fullName || 'User'}
+              className="user-avatar-mini"
             />
             <div className="user-details">
               <span className="user-name">{profile?.fullName || 'Nitroxx User'}</span>
               <span className="user-role">{profile?.role || 'Host'}</span>
             </div>
-            <button 
-              className="user-logout-btn" 
-              title="Sign Out" 
+            <button
+              className="user-logout-btn"
+              title="Sign Out"
               onClick={logout}
             >
               <LogOut size={15} strokeWidth={1.8} />
@@ -231,20 +231,20 @@ const Sidebar = () => {
             </div>
 
             <div className="ai-prompt-suggestions">
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setAiPrompt('Suggest registration boost strategy for our next race')}
               >
                 ⚡ Boost registrations
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setAiPrompt('Draft email reminder for upcoming event participants')}
               >
                 ✉️ Draft participant reminder
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setAiPrompt('Generate catchy title & description for Monsoon Trail')}
               >
                 ✨ Event description ideas
@@ -252,9 +252,9 @@ const Sidebar = () => {
             </div>
 
             <form className="ai-modal-input-bar" onSubmit={handleAiSend}>
-              <input 
-                type="text" 
-                placeholder="Ask AI anything about your events or participants..." 
+              <input
+                type="text"
+                placeholder="Ask AI anything about your events or participants..."
                 value={aiPrompt}
                 onChange={e => setAiPrompt(e.target.value)}
                 disabled={isGenerating}

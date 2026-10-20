@@ -28,6 +28,8 @@ import {
   RefreshCw,
   Printer
 } from 'lucide-react';
+import { TicketPassView } from './ticketDesigns';
+import './TicketDesigns.css';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import { useRegistrations } from '../../hooks/useRegistrations';
@@ -1142,105 +1144,61 @@ const Participants = () => {
         {/* Digital Boarding Pass Ticket Modal */}
         {ticketModalParticipant && (
           <div className="ptable-modal-backdrop" onClick={() => setTicketModalParticipant(null)}>
-            <div className="digital-ticket-modal-card" onClick={(e) => e.stopPropagation()}>
-              <div className="ticket-hero-banner">
-                <div className="ticket-header-top">
-                  <span className="ticket-brand-badge">⚡ Nitroxx Verified Booking Pass</span>
-                  <button className="modal-close-icon white" onClick={() => setTicketModalParticipant(null)}>
-                    <X size={18} />
-                  </button>
+            <div className="ticket-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="ticket-modal-header">
+                <div className="ticket-modal-title-group">
+                  <h2>Official Participant Boarding Pass</h2>
+                  <p>Gate check-in pass styled with the event's selected ticket template and QR verification.</p>
                 </div>
-                <h2 className="ticket-event-name">{ticketModalParticipant.eventTitle}</h2>
-                <div style={{ marginTop: '6px', display: 'flex', gap: '6px', alignItems: 'center' }}>
-                  <span className={`event-tier-badge tier-${(ticketModalParticipant.tierName || 'standard').toLowerCase().replace(/\s+/g, '-')}`}>
-                    {ticketModalParticipant.tierName || 'Standard'} Tier
-                  </span>
-                  {ticketModalParticipant.ticketFor && (
-                    <span className="ticket-for-subpill" style={{ background: 'rgba(255,255,255,0.2)', color: '#fff' }}>
-                      {ticketModalParticipant.ticketFor}
-                    </span>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  className="ticket-modal-close-btn"
+                  onClick={() => setTicketModalParticipant(null)}
+                  title="Close modal"
+                >
+                  <X size={18} />
+                </button>
               </div>
 
-              {/* Perforation line */}
-              <div className="ticket-perforation-row">
-                <div className="ticket-notch-left" />
-                <div className="ticket-dashed-line" />
-                <div className="ticket-notch-right" />
-              </div>
+              <TicketPassView
+                designId={ticketModalParticipant.ticketDesign || 'design-1'}
+                templateUrl={ticketModalParticipant.ticketTemplateUrl || ''}
+                event={{
+                  title: ticketModalParticipant.eventTitle || 'Motorsport Tour',
+                  category: ticketModalParticipant.category || 'Motorsport',
+                  startDate: ticketModalParticipant.date || 'Event Day',
+                  venue: ticketModalParticipant.venue || 'Buddh International Circuit',
+                  city: 'Greater Noida',
+                  state: 'UP',
+                  organizerName: 'Nitroxx HQ',
+                }}
+                participant={ticketModalParticipant}
+                ticketNumber={ticketModalParticipant.ticketNumber || 'NX-DEMO-001'}
+                tierName={ticketModalParticipant.tierName || 'Standard'}
+                onPrint={() => window.print()}
+              />
 
-              <div className="ticket-body-content">
-                <div className="ticket-rider-row">
-                  <img 
-                    src={ticketModalParticipant.avatar} 
-                    alt={ticketModalParticipant.name} 
-                    className="ticket-rider-avatar" 
-                  />
-                  <div className="ticket-rider-meta">
-                    <h3>{ticketModalParticipant.name}</h3>
-                    <p>{ticketModalParticipant.email} · {ticketModalParticipant.phone}</p>
-                    <div style={{ marginTop: '6px' }}>
-                      {renderGateBadge(ticketModalParticipant.gateStatus)}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="ticket-grid-details">
-                  <div className="ticket-info-item">
-                    <span>Bib Number</span>
-                    <strong>{ticketModalParticipant.bibNumber}</strong>
-                  </div>
-                  <div className="ticket-info-item">
-                    <span>Package Tier</span>
-                    <strong>{ticketModalParticipant.tierName} ({ticketModalParticipant.ticketFor})</strong>
-                  </div>
-                  <div className="ticket-info-item">
-                    <span>Vehicle & Plate</span>
-                    <strong>{ticketModalParticipant.vehicle} ({ticketModalParticipant.vehiclePlate})</strong>
-                  </div>
-                  <div className="ticket-info-item">
-                    <span>Gate Wave / Time</span>
-                    <strong>{ticketModalParticipant.wave}</strong>
-                  </div>
-                  <div className="ticket-info-item">
-                    <span>Blood Group</span>
-                    <strong>{ticketModalParticipant.bloodGroup}</strong>
-                  </div>
-                  <div className="ticket-info-item">
-                    <span>Price & Status</span>
-                    <strong>{ticketModalParticipant.ticketPrice} · {ticketModalParticipant.paymentStatus}</strong>
-                  </div>
-                </div>
-
-                <div className="ticket-barcode-box">
-                  <div className="barcode-svg-line" />
-                  <span className="barcode-num-text">*{ticketModalParticipant.ticketNumber}*</span>
-                </div>
-
-                <div style={{ display: 'flex', gap: '8px', marginTop: '16px' }}>
-                  <button 
-                    className="ptable-btn-primary" 
-                    style={{ flex: 1, justifyContent: 'center' }}
-                    onClick={() => {
-                      const next = ticketModalParticipant.gateStatus === 'Done' ? 'On Progress' : 'Done';
-                      setParticipants(prev => prev.map(p => p.id === ticketModalParticipant.id ? { ...p, gateStatus: next } : p));
-                      setTicketModalParticipant(prev => ({ ...prev, gateStatus: next }));
-                      showToast(next === 'Done' ? 'Gate Verified: Checked In!' : 'Gate Status Reset.');
-                    }}
-                  >
-                    <CheckCircle2 size={16} />
-                    <span>{ticketModalParticipant.gateStatus === 'Done' ? 'Reset Attendance' : 'Confirm Gate Check-In (Done)'}</span>
-                  </button>
-
-                  <button 
-                    className="ptable-btn-secondary"
-                    onClick={() => window.print()}
-                    title="Print Gate Pass"
-                  >
-                    <Printer size={16} />
-                  </button>
-                </div>
+              <div className="ticket-modal-actions-row">
+                <button
+                  type="button"
+                  className="ticket-modal-btn secondary"
+                  onClick={() => {
+                    const next = ticketModalParticipant.gateStatus === 'Done' ? 'On Progress' : 'Done';
+                    setParticipants(prev => prev.map(p => p.id === ticketModalParticipant.id ? { ...p, gateStatus: next } : p));
+                    setTicketModalParticipant(prev => ({ ...prev, gateStatus: next }));
+                    showToast(next === 'Done' ? 'Gate Verified: Checked In!' : 'Gate Status Reset.');
+                  }}
+                >
+                  <CheckCircle2 size={15} />
+                  <span>{ticketModalParticipant.gateStatus === 'Done' ? 'Reset Attendance' : 'Confirm Gate Check-In (Done)'}</span>
+                </button>
+                <button
+                  type="button"
+                  className="ticket-modal-btn primary"
+                  onClick={() => window.print()}
+                >
+                  <Printer size={15} /> Print Gate Pass
+                </button>
               </div>
             </div>
           </div>

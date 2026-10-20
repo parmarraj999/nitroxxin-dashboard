@@ -45,6 +45,7 @@ export const collections = {
   notifications: 'notifications',
   bookmarks: 'eventBookmarks',
   bookings: 'bookings',
+  ticket_tamplate: 'ticket_tamplate',
 };
 
 const cleanObject = (value) =>
@@ -880,4 +881,32 @@ const groupAges = (items) => {
     else buckets['45+'] += 1;
   });
   return Object.entries(buckets).map(([name, value]) => ({ name, value }));
+};
+
+export const subscribeToTicketTemplates = (callback, onError) => {
+  return onSnapshot(
+    collection(db, collections.ticket_tamplate),
+    (snapshot) => {
+      const templates = snapshot.docs.map((docSnap) => ({
+        id: docSnap.id,
+        ...docSnap.data(),
+        image: docSnap.data().image || docSnap.data().imageUrl || docSnap.data().downloadUrl || '',
+        imageUrl: docSnap.data().imageUrl || docSnap.data().image || docSnap.data().downloadUrl || '',
+        name: docSnap.data().name || docSnap.data().title || 'Ticket Template',
+      }));
+      callback(templates);
+    },
+    onError
+  );
+};
+
+export const getTicketTemplates = async () => {
+  const snapshot = await getDocs(collection(db, collections.ticket_tamplate));
+  return snapshot.docs.map((docSnap) => ({
+    id: docSnap.id,
+    ...docSnap.data(),
+    image: docSnap.data().image || docSnap.data().imageUrl || docSnap.data().downloadUrl || '',
+    imageUrl: docSnap.data().imageUrl || docSnap.data().image || docSnap.data().downloadUrl || '',
+    name: docSnap.data().name || docSnap.data().title || 'Ticket Template',
+  }));
 };

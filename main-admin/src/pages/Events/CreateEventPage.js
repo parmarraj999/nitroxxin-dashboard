@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { PlusCircle, ArrowLeft, Save } from 'lucide-react';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
+import { PlusCircle, ArrowLeft, Save, Ticket, ExternalLink } from 'lucide-react';
+import { collection, addDoc, serverTimestamp, onSnapshot } from 'firebase/firestore';
 import { db } from '../../firebase/firebase.config';
 import '../../components/Common/ManagementPageLayout.css';
 
@@ -9,6 +9,7 @@ export default function CreateEventPage() {
   const navigate = useNavigate();
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [ticketTemplates, setTicketTemplates] = useState([]);
 
   const [form, setForm] = useState({
     name: '',
@@ -19,8 +20,31 @@ export default function CreateEventPage() {
     capacity: '',
     status: 'draft',
     imageUrl: '',
-    description: ''
+    description: '',
+    ticketTemplateId: '',
+    ticketTemplateUrl: ''
   });
+
+  useEffect(() => {
+    const unsub = onSnapshot(collection(db, 'ticket_tamplate'), (snapshot) => {
+      const list = snapshot.docs.map((d) => ({
+        id: d.id,
+        ...d.data(),
+        image: d.data().image || d.data().imageUrl || ''
+      }));
+      setTicketTemplates(list);
+      // Auto-select default template if none selected yet
+      const defaultTemplate = list.find((t) => t.isDefault && t.status !== 'inactive');
+      if (defaultTemplate) {
+        setForm((prev) => ({
+          ...prev,
+          ticketTemplateId: prev.ticketTemplateId || defaultTemplate.id,
+          ticketTemplateUrl: prev.ticketTemplateUrl || defaultTemplate.image
+        }));
+      }
+    });
+    return () => unsub();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -47,6 +71,8 @@ export default function CreateEventPage() {
         status: form.status,
         imageUrl: form.imageUrl.trim(),
         description: form.description.trim(),
+        ticketTemplateId: form.ticketTemplateId || '',
+        ticketTemplateUrl: form.ticketTemplateUrl || '',
         featuredForYou: false,
         createdAt: serverTimestamp()
       });
@@ -189,6 +215,64 @@ export default function CreateEventPage() {
             placeholder="https://images.unsplash.com/..." 
             style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)' }}
           />
+        </div>
+
+        {/* Ticket Template Selection */}
+        <div className="form-group" style={{ background: '#f8fafc', padding: '14px 16px', borderRadius: 'var(--radius-md, 8px)', border: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontWeight: 700, margin: 0, color: '#0f172a' }}>
+              <Ticket size={16} color="#ea580c" />
+              Event Ticket Template (1080 × 1920 px)
+            </label>
+            <Link 
+              to="/events/ticket-templates" 
+              target="_blank"
+              style={{ fontSize: '0.8rem', color: '#ea580c', fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
+            >
+              <span>Manage Templates</span>
+              <ExternalLink size={12} />
+            </Link>
+          </div>
+
+          <p style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: '#64748b' }}>
+            Choose the 1080x1920 template that will be used when attendees book tickets for this event.
+          </p>
+
+          <select
+            value={form.ticketTemplateId}
+            onChange={(e) => {
+              const selectedId = e.target.value;
+              const chosen = ticketTemplates.find((t) => t.id === selectedId);
+              setForm((prev) => ({
+                ...prev,
+                ticketTemplateId: selectedId,
+                ticketTemplateUrl: chosen ? chosen.image : ''
+              }));
+            }}
+            style={{ width: '100%', padding: '10px 12px', borderRadius: 'var(--radius-sm)', border: '1px solid var(--border-color)', background: '#ffffff', marginBottom: form.ticketTemplateUrl ? 12 : 0 }}
+          >
+            <option value="">-- Choose Ticket Template --</option>
+            {ticketTemplates.map((t) => (
+              <option key={t.id} value={t.id}>
+                {t.name || t.title || 'Ticket Template'}
+              </option>
+            ))}
+          </select>
+
+          {/* Template Thumbnail Preview */}
+          {form.ticketTemplateUrl && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 14, background: '#ffffff', padding: '10px 12px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
+              <div style={{ width: 45, height: 80, borderRadius: 4, overflow: 'hidden', background: '#090d16', flexShrink: 0, border: '1px solid #cbd5e1' }}>
+                <img src={form.ticketTemplateUrl} alt="Ticket Template" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                <span style={{ fontSize: '0.86rem', fontWeight: 700, color: '#0f172a' }}>
+                  {ticketTemplates.find((t) => t.id === form.ticketTemplateId)?.name || 'Selected Ticket Template'}
+                </span>
+                <span style={{ fontSize: '0.74rem', color: '#ea580c', fontWeight: 600 }}>1080 × 1920 PX IMAGE</span>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="form-group">

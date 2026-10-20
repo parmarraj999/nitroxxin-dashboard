@@ -46,7 +46,7 @@ const Header = ({
 
         {showQuickCreate && (
           <Link to="/events/new" className="header-quick-create-btn">
-            <Plus size={16} />
+            <Plus size={18} />
             Create
           </Link>
         )}

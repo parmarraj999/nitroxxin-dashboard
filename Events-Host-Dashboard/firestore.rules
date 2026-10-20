@@ -94,5 +94,10 @@ service cloud.firestore {
     match /orders/{orderId} {
       allow read: if signedIn() && resource.data.userId == request.auth.uid;
     }
+
+    match /ticket_tamplate/{templateId} {
+      allow read: if true;
+      allow write: if signedIn();
+    }
   }
 }

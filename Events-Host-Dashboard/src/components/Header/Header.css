@@ -1,5 +1,5 @@
 .header {
-  height: 80px;
+  height: 60px;
   background-color: var(--bg-sidebar);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -93,14 +93,13 @@
   font-size: 0.95rem;
   font-weight: 600;
   color: var(--text-main);
-  margin-bottom: 2px;
 }
 
 .header-profile-info p {
   font-size: 0.75rem;
   color: var(--text-muted);
   font-family: monospace;
-  letter-spacing: 0.5px;
+  /* letter-spacing: 0.5px; */
 }
 
 .header-avatar {
@@ -113,11 +112,14 @@
 .header-quick-create-btn {
   background-color: var(--primary-blue);
   color: white;
-  padding: 10px 24px;
+  padding: 5px 10px;
   border-radius: var(--radius-sm);
-  font-weight: 600;
+  font-weight: 500;
   font-size: 0.95rem;
   margin-left: 12px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
   transition: background-color 0.2s ease;
 }
 

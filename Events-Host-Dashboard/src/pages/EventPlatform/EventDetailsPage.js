@@ -18,11 +18,15 @@ import {
   Ticket,
   Trash2,
   Users,
+  X,
+  Printer,
 } from 'lucide-react';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import EmptyState from '../../components/States/EmptyState';
 import LoadingState from '../../components/States/LoadingState';
 import { useAuth } from '../../context/AuthContext';
+import { TicketPassView } from './ticketDesigns';
+import './TicketDesigns.css';
 import { useEvents } from '../../hooks/useEvents';
 import { useRegistrations } from '../../hooks/useRegistrations';
 import {
@@ -67,6 +71,7 @@ const EventDetailsPage = () => {
   console.log(bookings)
   const [activeTab, setActiveTab] = useState('Overview');
   const [selectedBooking, setSelectedBooking] = useState(null);
+  const [bookedTicket, setBookedTicket] = useState(null);
   const { registrations } = useRegistrations({ eventId });
   const { events: relatedEvents } = useEvents({ status: 'Published', category: event?.category });
 
@@ -156,6 +161,7 @@ const EventDetailsPage = () => {
     setError('');
     setMessage('');
     try {
+      const generatedTicketNum = `NX-${Date.now().toString(36).toUpperCase()}`;
       await registerForEvent({
         eventId: event.id,
         hostId: event.hostId,
@@ -163,7 +169,13 @@ const EventDetailsPage = () => {
         participant,
         ticketPrice: event.ticketPrice,
       });
-      setMessage('Registration confirmed. Your ticket number is saved in registrations.');
+      setMessage('Registration confirmed! Your official ticket is ready below.');
+      setBookedTicket({
+        ticketNumber: generatedTicketNum,
+        participant,
+        event,
+        tierName: event.ticketType === 'Free' ? 'Free Pass' : 'Confirmed Entry',
+      });
     } catch (err) {
       setError(err.message);
     } finally {
@@ -346,7 +358,7 @@ const EventDetailsPage = () => {
                       <td>{totalTickets} ({booking.attendeeCounts?.adults || 0}A, {booking.attendeeCounts?.children || 0}C)<p className="muted">{booking.joinAs || 'General'}</p></td>
                       <td>{currency(getBookingAmount(booking))}</td>
                       <td><span className="badge">{booking.status || 'Pending'}</span><p className="muted">{booking.attendanceStatus || 'Not Checked In'}</p></td>
-                      <td><div className="action-row"><button className="ghost-btn" onClick={() => changeBookingStatus(booking, { status: 'approved', approvalStatus: 'approved' })}>Approve</button><button className="ghost-btn" onClick={() => changeBookingStatus(booking, { attendanceStatus: 'Checked In' })}>Check In</button><button className="ghost-btn" onClick={() => changeBookingStatus(booking, { status: 'cancelled', approvalStatus: 'rejected' })}>Cancel</button><button className="ghost-btn" onClick={() => setSelectedBooking(booking)}>More Detail</button></div></td>
+                      <td><div className="action-row"><button className="ghost-btn" onClick={() => setBookedTicket({ ticketNumber: booking.orderId || booking.id, participant: { fullName: booking.attendee?.name || 'Guest', email: booking.attendee?.email, phone: booking.attendee?.phone }, event, tierName: booking.joinAs || 'General' })}><Ticket size={14} /> View Ticket</button><button className="ghost-btn" onClick={() => changeBookingStatus(booking, { status: 'approved', approvalStatus: 'approved' })}>Approve</button><button className="ghost-btn" onClick={() => changeBookingStatus(booking, { attendanceStatus: 'Checked In' })}>Check In</button><button className="ghost-btn" onClick={() => changeBookingStatus(booking, { status: 'cancelled', approvalStatus: 'rejected' })}>Cancel</button><button className="ghost-btn" onClick={() => setSelectedBooking(booking)}>More Detail</button></div></td>
                     </tr>
                   );
                 })}</tbody>
@@ -368,7 +380,7 @@ const EventDetailsPage = () => {
                     <td>{entry.ticketNumber || 'Not issued'}<p className="muted">{currency(getRegistrationAmount(entry))}</p></td>
                     <td>{entry.participant?.city || 'City not set'}<p className="muted">{entry.participant?.gender || 'Gender'} · {entry.participant?.age || 'Age'}</p></td>
                     <td><span className={`badge ${entry.attendanceStatus === 'Checked In' ? 'success' : 'warning'}`}>{entry.attendanceStatus || 'Not Checked In'}</span></td>
-                    <td><button className="ghost-btn" onClick={() => updateRegistration(entry.id, { attendanceStatus: 'Checked In', checkInTime: new Date().toISOString() })}><CheckCircle2 size={15} /> Check In</button></td>
+                    <td><div className="action-row"><button className="ghost-btn" onClick={() => setBookedTicket({ ticketNumber: entry.ticketNumber || 'NX-VERIFIED', participant: { fullName: entry.participantName, email: entry.participantEmail, phone: entry.participantPhone }, event, tierName: 'Confirmed Rider' })}><Ticket size={14} /> View Ticket</button><button className="ghost-btn" onClick={() => updateRegistration(entry.id, { attendanceStatus: 'Checked In', checkInTime: new Date().toISOString() })}><CheckCircle2 size={15} /> Check In</button></div></td>
                   </tr>
                 ))}</tbody>
               </table>
@@ -557,6 +569,56 @@ const EventDetailsPage = () => {
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+        )}
+
+        {/* OFFICIAL BOOKING TICKET MODAL WITH DETAILS & QR */}
+        {bookedTicket && (
+          <div className="ticket-modal-backdrop" onClick={() => setBookedTicket(null)}>
+            <div className="ticket-modal-card" onClick={(e) => e.stopPropagation()}>
+              <div className="ticket-modal-header">
+                <div className="ticket-modal-title-group">
+                  <h2>🎉 Official Event Ticket Pass</h2>
+                  <p>Present this pass with scannable QR code at the event gate entrance for check-in.</p>
+                </div>
+                <button
+                  type="button"
+                  className="ticket-modal-close-btn"
+                  onClick={() => setBookedTicket(null)}
+                  title="Close modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <TicketPassView
+                designId={bookedTicket.event?.ticketDesign || event?.ticketDesign || 'design-1'}
+                templateUrl={bookedTicket.event?.ticketTemplateUrl || event?.ticketTemplateUrl || ''}
+                event={bookedTicket.event || event}
+                participant={bookedTicket.participant}
+                ticketNumber={bookedTicket.ticketNumber}
+                ticketsCount={bookedTicket.ticketsCount || bookedTicket.participant?.tickets || 1}
+                tierName={bookedTicket.tierName}
+                onPrint={() => window.print()}
+              />
+
+              <div className="ticket-modal-actions-row">
+                <button
+                  type="button"
+                  className="ticket-modal-btn secondary"
+                  onClick={() => setBookedTicket(null)}
+                >
+                  Close
+                </button>
+                <button
+                  type="button"
+                  className="ticket-modal-btn primary"
+                  onClick={() => window.print()}
+                >
+                  <Printer size={15} /> Print / Save Pass
+                </button>
+              </div>
             </div>
           </div>
         )}

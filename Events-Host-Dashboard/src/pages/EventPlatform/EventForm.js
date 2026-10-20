@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { 
   Image, 
@@ -28,11 +28,14 @@ import {
   getEvent,
   updateEvent,
   uploadFile,
+  subscribeToTicketTemplates,
 } from "../../services/firebaseService";
 import {
   eventCategories as categories,
   eventCategoryFields,
 } from "./eventCategoryFields";
+import { TicketPassView } from "./ticketDesigns";
+import "./TicketDesigns.css";
 import "./EventPlatform.css";
 import "./EventForm.css";
 
@@ -111,6 +114,10 @@ const initialForm = {
   ticketType: "Free",
   ticketPrice: "",
   capacity: "",
+  ticketDesign: "",
+  ticketTemplateId: "",
+  ticketTemplateUrl: "",
+  ticketTemplateName: "",
   packages: [],
   bannerImage: "",
   thumbnailImage: "",
@@ -129,6 +136,7 @@ const steps = [
   "Details",
   "Schedule",
   "Media",
+  "Ticket Design",
   "Itinerary",
   "Pricing",
   "Coupons",
@@ -140,11 +148,49 @@ const steps = [
 
 const MB = 1024 * 1024;
 
-const validateImage = async (file, { label, maxMb }) => {
-  if (!file.type.match(/^image\/(jpeg|png)$/))
-    throw new Error(`${label} must be a JPG or PNG file.`);
+const getImageDimensions = (file) => {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith("image/")) {
+      return reject(new Error("Selected file is not an image."));
+    }
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      URL.revokeObjectURL(url);
+      resolve({ width, height });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Unable to read image dimensions. Please check the image file."));
+    };
+    img.src = url;
+  });
+};
+
+const validateImage = async (file, { label, maxMb, require16by9 = false }) => {
+  if (!file.type.match(/^image\/(jpeg|png|jpg|webp)$/i))
+    throw new Error(`${label} must be a JPG, PNG, or WEBP file.`);
   if (file.size > maxMb * MB)
     throw new Error(`${label} must be ${maxMb} MB or smaller.`);
+
+  if (require16by9) {
+    const { width, height } = await getImageDimensions(file);
+    if (!width || !height) {
+      throw new Error(`Unable to detect ${label.toLowerCase()} dimensions.`);
+    }
+    const ratio = width / height;
+    const targetRatio = 16 / 9; // ~1.7777777777777777
+    const diff = Math.abs(ratio - targetRatio);
+    // Allow slight rounding tolerance (0.015) for standard displays like 1366x768 and 854x480
+    if (diff > 0.015) {
+      const currentRatio = (width / height).toFixed(2);
+      throw new Error(
+        `${label} resolution must strictly be 16:9 (e.g. 1920×1080, 1600×900, 1280×720). Uploaded resolution is ${width}×${height} (aspect ratio ${currentRatio}:1). No other resolution is accepted.`
+      );
+    }
+  }
 };
 
 const StringListBuilder = ({ items = [], onChange, title, placeholder }) => {
@@ -216,6 +262,20 @@ const EventForm = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
+  const [firestoreTemplates, setFirestoreTemplates] = useState([]);
+
+  // Subscribe to Firestore collection `ticket_tamplate` in real-time
+  useEffect(() => {
+    const unsub = subscribeToTicketTemplates(
+      (templates) => {
+        setFirestoreTemplates(templates);
+      },
+      (err) => {
+        console.warn("Could not fetch ticket_tamplate collection:", err);
+      }
+    );
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     if (!eventId) return;
@@ -224,6 +284,10 @@ const EventForm = () => {
         setForm({
           ...initialForm,
           ...event,
+          ticketDesign: event.ticketDesign || event.ticketTemplateId || "",
+          ticketTemplateId: event.ticketTemplateId || event.ticketDesign || "",
+          ticketTemplateUrl: event.ticketTemplateUrl || "",
+          ticketTemplateName: event.ticketTemplateName || "",
           packages: event.packages || [],
           itinerary: event.itinerary || [],
           coupons: event.coupons || [],
@@ -235,6 +299,45 @@ const EventForm = () => {
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [eventId]);
+
+  // Only show fetched data from Firestore `ticket_tamplate` collection
+  const availableTemplates = useMemo(() => {
+    return (firestoreTemplates || []).map((t, idx) => ({
+      id: t.id,
+      name: t.name || t.title || `Template #${idx + 1}`,
+      image: t.image || t.imageUrl || t.downloadUrl || '',
+      imageUrl: t.imageUrl || t.image || t.downloadUrl || '',
+      source: 'ticket_tamplate',
+    }));
+  }, [firestoreTemplates]);
+
+  // When templates are fetched and no template is selected yet, default to the first fetched template
+  useEffect(() => {
+    if (firestoreTemplates && firestoreTemplates.length > 0) {
+      if (!form.ticketTemplateId && !form.ticketTemplateUrl) {
+        const first = firestoreTemplates[0];
+        setForm((prev) => ({
+          ...prev,
+          ticketDesign: first.id,
+          ticketTemplateId: first.id,
+          ticketTemplateUrl: first.image || first.imageUrl || first.downloadUrl || '',
+          ticketTemplateName: first.name || first.title || '',
+        }));
+      }
+    }
+  }, [firestoreTemplates, form.ticketTemplateId, form.ticketTemplateUrl]);
+
+
+  // Host choose ONE template only
+  const handleChooseTemplate = (template) => {
+    setForm((prev) => ({
+      ...prev,
+      ticketDesign: template.id,
+      ticketTemplateId: template.id,
+      ticketTemplateUrl: template.image || template.imageUrl || '',
+      ticketTemplateName: template.name || '',
+    }));
+  };
 
   const update = (field, value) =>
     setForm((current) => ({ ...current, [field]: value }));
@@ -277,8 +380,13 @@ const EventForm = () => {
   const chooseMedia = async (kind, selected) => {
     setError("");
     try {
+      if (!selected || selected.length === 0) return;
       if (kind === "banner")
-        await validateImage(selected[0], { label: "Event banner", maxMb: 15 });
+        await validateImage(selected[0], {
+          label: "Event banner",
+          maxMb: 15,
+          require16by9: true,
+        });
       if (kind === "thumbnail")
         await validateImage(selected[0], {
           label: "Event thumbnail",
@@ -286,30 +394,82 @@ const EventForm = () => {
         });
       if (kind === "routeMap") {
         const file = selected[0];
-        if (!file.type.match(/^(image\/(jpeg|png)|application\/pdf)$/))
-          throw new Error("Route map must be JPG, PNG, or PDF.");
+        if (!file.type.match(/^(image\/(jpeg|png|jpg|webp)|application\/pdf)$/i))
+          throw new Error("Route map must be JPG, PNG, WEBP, or PDF.");
         if (file.size > 15 * MB)
           throw new Error("Route map must be 15 MB or smaller.");
       }
-      if (kind === "gallery") {
-        if (selected.length > 6)
-          throw new Error("Select no more than 6 gallery images.");
-        await Promise.all(
-          selected.map((file, index) =>
-            validateImage(file, {
-              label: `Gallery image ${index + 1}`,
-              maxMb: 15,
-            })
-          )
-        );
-      }
       setFiles((current) => ({
         ...current,
-        [kind]: kind === "gallery" ? selected : selected[0],
+        [kind]: selected[0],
       }));
     } catch (err) {
       setError(err.message);
+      window.scrollTo({ top: 0, behavior: "smooth" });
     }
+  };
+
+  const removeMedia = (kind) => {
+    setError("");
+    if (kind === "banner") {
+      setFiles((prev) => ({ ...prev, banner: null }));
+      update("bannerImage", "");
+    } else if (kind === "thumbnail") {
+      setFiles((prev) => ({ ...prev, thumbnail: null }));
+      update("thumbnailImage", "");
+    } else if (kind === "routeMap") {
+      setFiles((prev) => ({ ...prev, routeMap: null }));
+      update("routeMap", "");
+    }
+  };
+
+  const addGalleryFiles = async (newSelected) => {
+    setError("");
+    try {
+      if (!newSelected || !newSelected.length) return;
+      const currentSavedCount = (form.galleryImages || []).length;
+      const currentFilesCount = (files.gallery || []).length;
+      const currentTotal = currentSavedCount + currentFilesCount;
+      if (currentTotal + newSelected.length > 6) {
+        throw new Error(
+          `Gallery allows a maximum of 6 images. You currently have ${currentTotal} images.`
+        );
+      }
+      await Promise.all(
+        newSelected.map((file, index) =>
+          validateImage(file, {
+            label: `Gallery image ${currentTotal + index + 1}`,
+            maxMb: 15,
+          })
+        )
+      );
+      setFiles((prev) => ({
+        ...prev,
+        gallery: [...(prev.gallery || []), ...newSelected],
+      }));
+    } catch (err) {
+      setError(err.message);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  };
+
+  const removeGalleryFile = (index) => {
+    setFiles((prev) => ({
+      ...prev,
+      gallery: (prev.gallery || []).filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const removeGalleryExisting = (index) => {
+    setForm((prev) => ({
+      ...prev,
+      galleryImages: (prev.galleryImages || []).filter((_, idx) => idx !== index),
+    }));
+  };
+
+  const clearAllGallery = () => {
+    setFiles((prev) => ({ ...prev, gallery: [] }));
+    setForm((prev) => ({ ...prev, galleryImages: [] }));
   };
 
   const validateBeforeSubmit = () => {
@@ -330,7 +490,7 @@ const EventForm = () => {
         `${missingCategoryField.label} is required for ${form.category}.`
       );
     if (!form.bannerImage && !files.banner)
-      throw new Error("Event banner is required.");
+      throw new Error("Event banner is required (16:9 aspect ratio).");
     if (!form.thumbnailImage && !files.thumbnail)
       throw new Error("Event thumbnail is required.");
     const galleryCount =
@@ -407,6 +567,10 @@ const EventForm = () => {
           : [];
       const payload = {
         ...form,
+        ticketDesign: form.ticketDesign || form.ticketTemplateId || "design-1",
+        ticketTemplateId: form.ticketTemplateId || form.ticketDesign || "",
+        ticketTemplateUrl: form.ticketTemplateUrl || "",
+        ticketTemplateName: form.ticketTemplateName || "",
         status: eventId ? form.status : "Draft",
         hostId: user.uid,
         hostName: profile?.fullName || "",
@@ -838,52 +1002,141 @@ const EventForm = () => {
               </div>
 
               <div className="media-grid">
-                <MediaInput
-                  title="Event Banner"
-                  required
-                  hint="1200 x 628 px · JPG/PNG · Max 15 MB"
-                  accept="image/jpeg,image/png"
-                  file={files.banner}
-                  existing={form.bannerImage}
-                  onChange={(items) => chooseMedia("banner", items)}
-                />
+                <div className="media-grid-full-width">
+                  <MediaInput
+                    title="Event Banner"
+                    required
+                    aspectBadge="Strict 16:9 Ratio Only"
+                    aspectRatio="16/9"
+                    hint="Strict 16:9 aspect ratio required (e.g. 1920×1080, 1600×900, 1280×720) · JPG/PNG · Max 15 MB"
+                    accept="image/jpeg,image/png,image/webp"
+                    file={files.banner}
+                    existing={form.bannerImage}
+                    onChange={(items) => chooseMedia("banner", items)}
+                    onDelete={() => removeMedia("banner")}
+                  />
+                </div>
+
                 <MediaInput
                   title="Your Logo / Thumbnail"
                   required
-                  hint="600 x 600 px · JPG/PNG · Max 15 MB"
-                  accept="image/jpeg,image/png"
+                  aspectBadge="1:1 Ratio"
+                  aspectRatio="1/1"
+                  hint="Square 1:1 recommended (e.g. 600×600 px) · JPG/PNG · Max 15 MB"
+                  accept="image/jpeg,image/png,image/webp"
                   file={files.thumbnail}
                   existing={form.thumbnailImage}
                   onChange={(items) => chooseMedia("thumbnail", items)}
+                  onDelete={() => removeMedia("thumbnail")}
                 />
+
                 <MediaInput
                   title="Route Map Image / GPX"
-                  hint="Any resolution · JPG/PNG/PDF · Max 15 MB"
-                  accept="image/jpeg,image/png,application/pdf"
+                  hint="Any resolution · JPG/PNG/WEBP or PDF roadbook · Max 15 MB"
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
                   file={files.routeMap}
                   existing={form.routeMap}
                   onChange={(items) => chooseMedia("routeMap", items)}
+                  onDelete={() => removeMedia("routeMap")}
                 />
-                <MediaInput
-                  title="Gallery Photos"
-                  required
-                  hint="5 required, max 6 · Min 800 x 600 px · Max 15 MB each"
-                  accept="image/jpeg,image/png"
-                  multiple
-                  file={files.gallery}
-                  existing={
-                    form.galleryImages?.length
-                      ? `${form.galleryImages.length} saved images`
-                      : ""
-                  }
-                  onChange={(items) => chooseMedia("gallery", items)}
-                />
+
+                <div className="media-grid-full-width">
+                  <GalleryMediaInput
+                    title="Gallery Photos"
+                    required
+                    hint="5 required, max 6 · Min 800×600 px · Max 15 MB each"
+                    accept="image/jpeg,image/png,image/webp"
+                    files={files.gallery}
+                    existing={form.galleryImages || []}
+                    onAdd={addGalleryFiles}
+                    onDeleteFile={removeGalleryFile}
+                    onDeleteExisting={removeGalleryExisting}
+                    onClearAll={clearAllGallery}
+                  />
+                </div>
               </div>
             </section>
           )}
 
-          {/* STEP 3: ITINERARY */}
+          {/* STEP 3: CHOOSE TICKET TEMPLATE */}
           {currentStep === 3 && (
+            <section className="form-section">
+              <div className="section-title-wrap">
+                <div className="section-title-icon-box">
+                  <Ticket size={18} />
+                </div>
+                <div>
+                  <h2 className="section-main-heading">Choose Ticket Template</h2>
+                  <p className="section-sub-heading">
+                    Select 1 ticket image for this event from the <code>ticket_tamplate</code> collection. Click any image to choose it.
+                  </p>
+                </div>
+              </div>
+
+              {/* Simple Grid Option to Choose Image (No preview) - strictly fetched data only */}
+              {availableTemplates.length === 0 ? (
+                <div className="empty-builder-state">
+                  <Ticket size={36} className="empty-state-icon" />
+                  <h4>No Ticket Templates Found</h4>
+                  <p>
+                    No ticket templates are currently uploaded in the <code>ticket_tamplate</code> collection. Please upload templates from the Admin Dashboard.
+                  </p>
+                </div>
+              ) : (
+                <div className="simple-ticket-template-grid">
+                  {availableTemplates.map((t, index) => {
+                    const isChosen =
+                      form.ticketTemplateId === t.id ||
+                      form.ticketDesign === t.id;
+                    const imageUrl = t.image || t.imageUrl;
+
+                    return (
+                      <div
+                        key={t.id}
+                        className={`simple-template-card ${isChosen ? 'is-selected' : ''}`}
+                        onClick={() => handleChooseTemplate(t)}
+                        role="button"
+                        tabIndex={0}
+                      >
+                        <div className="simple-template-image-box">
+                          {imageUrl ? (
+                            <img
+                              src={imageUrl}
+                              alt={t.name || 'Ticket Template'}
+                              className="simple-template-img"
+                              loading="lazy"
+                            />
+                          ) : (
+                            <div className="simple-template-gradient-fallback" />
+                          )}
+
+                          <div className="simple-template-select-pill">
+                            {isChosen ? (
+                              <span className="pill-badge selected">
+                                <CheckCircle2 size={13} /> Selected
+                              </span>
+                            ) : (
+                              <span className="pill-badge unselected">
+                                Select
+                              </span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="simple-template-info">
+                          <span className="simple-template-title">{t.name || `Template #${index + 1}`}</span>
+                          <span className="simple-template-meta">1080 × 1920 px</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          )}
+
+          {/* STEP 4: ITINERARY */}
+          {currentStep === 4 && (
             <section className="form-section">
               <div className="section-heading">
                 <div className="section-title-wrap">
@@ -1020,8 +1273,8 @@ const EventForm = () => {
             </section>
           )}
 
-          {/* STEP 4: PRICING & PACKAGES */}
-          {currentStep === 4 && (
+          {/* STEP 5: PRICING & PACKAGES */}
+          {currentStep === 5 && (
             <section className="form-section">
               <div className="section-title-wrap">
                 <div className="section-title-icon-box">
@@ -1261,8 +1514,8 @@ const EventForm = () => {
             </section>
           )}
 
-          {/* STEP 5: COUPONS */}
-          {currentStep === 5 && (
+          {/* STEP 6: COUPONS */}
+          {currentStep === 6 && (
             <section className="form-section">
               <div className="section-heading">
                 <div className="section-title-wrap">
@@ -1401,8 +1654,8 @@ const EventForm = () => {
             </section>
           )}
 
-          {/* STEP 6: ADD-ONS */}
-          {currentStep === 6 && (
+          {/* STEP 7: ADD-ONS */}
+          {currentStep === 7 && (
             <section className="form-section">
               <div className="section-heading">
                 <div className="section-title-wrap">
@@ -1508,8 +1761,8 @@ const EventForm = () => {
             </section>
           )}
 
-          {/* STEP 7: TERMS & CONDITIONS */}
-          {currentStep === 7 && (
+          {/* STEP 8: TERMS & CONDITIONS */}
+          {currentStep === 8 && (
             <section className="form-section">
               <div className="section-title-wrap">
                 <div className="section-title-icon-box">
@@ -1536,8 +1789,8 @@ const EventForm = () => {
             </section>
           )}
 
-          {/* STEP 8: PREVIEW */}
-          {currentStep === 8 && (
+          {/* STEP 9: PREVIEW */}
+          {currentStep === 9 && (
             <EventPreview form={form} files={files} progress={progress} />
           )}
 
@@ -1600,50 +1853,397 @@ const EventForm = () => {
 const MediaInput = ({
   title,
   required,
+  aspectBadge,
+  aspectRatio = "auto",
   hint,
-  accept,
-  multiple,
+  accept = "image/jpeg,image/png,image/webp",
   file,
   existing,
   onChange,
+  onDelete,
 }) => {
-  const isSelected = multiple
-    ? (file && file.length > 0) || existing
-    : file || existing;
+  const fileInputRef = useRef(null);
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [dimensions, setDimensions] = useState(null);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const fileName = multiple
-    ? file?.length
-      ? `${file.length} images selected`
-      : existing || "Choose images"
-    : file?.name || (existing ? "Saved file on server" : "Choose file");
+  const isPdf = Boolean(
+    (file && file.type === "application/pdf") ||
+    (typeof existing === "string" && existing.toLowerCase().includes(".pdf"))
+  );
+
+  useEffect(() => {
+    if (file instanceof File) {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      if (file.type.startsWith("image/")) {
+        const img = new window.Image();
+        img.onload = () => {
+          setDimensions({
+            width: img.naturalWidth || img.width,
+            height: img.naturalHeight || img.height,
+          });
+        };
+        img.src = url;
+      } else {
+        setDimensions(null);
+      }
+      return () => URL.revokeObjectURL(url);
+    } else if (typeof existing === "string" && existing) {
+      setPreviewUrl(existing);
+      setDimensions(null);
+    } else {
+      setPreviewUrl("");
+      setDimensions(null);
+    }
+  }, [file, existing]);
+
+  const hasMedia = Boolean(previewUrl);
+
+  const handleFileChange = (e) => {
+    const selected = Array.from(e.target.files || []);
+    if (selected.length > 0) {
+      onChange(selected);
+    }
+    e.target.value = "";
+  };
+
+  const handleChangeClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    fileInputRef.current?.click();
+  };
+
+  const handleDeleteClick = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    if (onDelete) onDelete();
+  };
+
+  const handleDragOver = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
+  const handleDrop = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const droppedFiles = Array.from(e.dataTransfer.files || []);
+    if (droppedFiles.length > 0) {
+      onChange(droppedFiles);
+    }
+  };
 
   return (
-    <label className={`media-input-box ${isSelected ? "has-selected-file" : ""}`}>
-      <div className="media-input-top-bar">
-        <span className="media-icon-badge">
-          {accept.includes("pdf") ? <FileText size={18} /> : <Image size={18} />}
-        </span>
-        {required && <span className="media-required-chip">Required</span>}
-      </div>
-
-      <div className="media-text-meta">
-        <strong className="media-label-title">{title}</strong>
-        <p className="media-hint-caption">{hint}</p>
-      </div>
-
+    <div className={`media-upload-container ${hasMedia ? "has-media" : ""}`}>
       <input
+        ref={fileInputRef}
         type="file"
         className="native-hidden-file-input"
         accept={accept}
-        multiple={multiple}
-        onChange={(e) => onChange(Array.from(e.target.files || []))}
+        onChange={handleFileChange}
       />
 
-      <div className="media-upload-pill">
-        <UploadCloud size={14} />
-        <span className="file-name-truncated">{fileName}</span>
+      {!hasMedia ? (
+        <div
+          className={`media-input-box ${isDragging ? "drag-active" : ""}`}
+          onClick={handleChangeClick}
+          onDragOver={handleDragOver}
+          onDragLeave={handleDragLeave}
+          onDrop={handleDrop}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              handleChangeClick(e);
+            }
+          }}
+        >
+          <div className="media-input-top-bar">
+            <span className="media-icon-badge">
+              {accept.includes("pdf") ? <FileText size={18} /> : <Image size={18} />}
+            </span>
+            <div className="media-chips-group">
+              {aspectBadge && <span className="media-aspect-chip">{aspectBadge}</span>}
+              {required && <span className="media-required-chip">Required</span>}
+            </div>
+          </div>
+
+          <div className="media-text-meta">
+            <strong className="media-label-title">{title}</strong>
+            <p className="media-hint-caption">{hint}</p>
+          </div>
+
+          <div className="media-upload-pill">
+            <UploadCloud size={14} />
+            <span>Choose File</span>
+          </div>
+        </div>
+      ) : (
+        <div className="media-preview-card">
+          <div className="media-preview-header">
+            <div className="media-preview-header-meta">
+              <span className="media-icon-badge small">
+                {isPdf ? <FileText size={16} /> : <Image size={16} />}
+              </span>
+              <div>
+                <div className="media-header-title-row">
+                  <strong className="media-preview-title">{title}</strong>
+                  {aspectBadge && <span className="media-aspect-chip">{aspectBadge}</span>}
+                </div>
+                <span className="media-meta-subtext">
+                  {dimensions
+                    ? `${dimensions.width} × ${dimensions.height} px`
+                    : file?.name || "Uploaded image"}
+                </span>
+              </div>
+            </div>
+
+            <div className="media-actions-row">
+              <button
+                type="button"
+                className="media-action-button change-btn"
+                onClick={handleChangeClick}
+                title="Change image"
+              >
+                <UploadCloud size={13} />
+                <span>Change</span>
+              </button>
+              <button
+                type="button"
+                className="media-action-button delete-btn"
+                onClick={handleDeleteClick}
+                title="Delete image"
+              >
+                <Trash2 size={13} />
+                <span>Delete</span>
+              </button>
+            </div>
+          </div>
+
+          <div className="media-preview-frame-wrap">
+            {isPdf ? (
+              <div className="media-pdf-preview-box">
+                <FileText size={32} className="media-pdf-icon" />
+                <div className="media-pdf-details">
+                  <strong className="media-pdf-name">{file?.name || "Route Map (PDF)"}</strong>
+                  <span className="media-pdf-badge">PDF Document</span>
+                </div>
+              </div>
+            ) : (
+              <div
+                className={`media-image-frame ${
+                  aspectRatio === "16/9"
+                    ? "ratio-16-9"
+                    : aspectRatio === "1/1"
+                    ? "ratio-1-1"
+                    : ""
+                }`}
+              >
+                <img src={previewUrl} alt={title} className="media-frame-img" />
+                {aspectRatio === "16/9" && (
+                  <div className="media-badge-overlay-16-9">
+                    <CheckCircle2 size={12} />
+                    <span>16:9 Banner Verified</span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+const GalleryFileThumbnail = ({ file, index, onDelete }) => {
+  const [url, setUrl] = useState("");
+  useEffect(() => {
+    const objectUrl = URL.createObjectURL(file);
+    setUrl(objectUrl);
+    return () => URL.revokeObjectURL(objectUrl);
+  }, [file]);
+
+  return (
+    <div className="gallery-thumbnail-card">
+      {url ? (
+        <img src={url} alt={file.name} className="gallery-thumb-img" />
+      ) : (
+        <div className="gallery-thumb-placeholder">Loading...</div>
+      )}
+      <div className="gallery-thumb-overlay">
+        <span className="gallery-index-tag">#{index}</span>
+        <button
+          type="button"
+          className="gallery-thumb-del-btn"
+          onClick={onDelete}
+          title={`Delete photo #${index}`}
+        >
+          <Trash2 size={13} />
+        </button>
       </div>
-    </label>
+    </div>
+  );
+};
+
+const GalleryMediaInput = ({
+  title = "Gallery Photos",
+  required,
+  hint,
+  accept = "image/jpeg,image/png,image/webp",
+  files = [],
+  existing = [],
+  onAdd,
+  onDeleteFile,
+  onDeleteExisting,
+  onClearAll,
+}) => {
+  const fileInputRef = useRef(null);
+  const totalCount = existing.length + files.length;
+  const hasRoom = totalCount < 6;
+
+  const handleFileChange = (e) => {
+    const selected = Array.from(e.target.files || []);
+    if (selected.length > 0) {
+      onAdd(selected);
+    }
+    e.target.value = "";
+  };
+
+  const handleOpenPicker = () => {
+    fileInputRef.current?.click();
+  };
+
+  return (
+    <div className="media-gallery-section-box">
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="native-hidden-file-input"
+        accept={accept}
+        multiple
+        onChange={handleFileChange}
+      />
+
+      <div className="media-gallery-header">
+        <div className="media-gallery-header-left">
+          <span className="media-icon-badge">
+            <Image size={18} />
+          </span>
+          <div>
+            <div className="media-gallery-title-row">
+              <strong className="media-label-title">{title}</strong>
+              {required && <span className="media-required-chip">5 required, max 6</span>}
+            </div>
+            <p className="media-hint-caption">{hint}</p>
+          </div>
+        </div>
+
+        <div className="media-gallery-header-right">
+          <span
+            className={`gallery-counter-pill ${
+              totalCount >= 5 && totalCount <= 6
+                ? "status-valid"
+                : totalCount > 0
+                ? "status-warning"
+                : "status-empty"
+            }`}
+          >
+            {totalCount >= 5 && totalCount <= 6 ? (
+              <CheckCircle2 size={13} />
+            ) : (
+              <AlertCircle size={13} />
+            )}
+            <span>
+              {totalCount} / 6 Photos
+              {totalCount < 5 && ` (${5 - totalCount} more required)`}
+            </span>
+          </span>
+
+          {totalCount > 0 && (
+            <button
+              type="button"
+              className="gallery-clear-all-btn"
+              onClick={onClearAll}
+              title="Remove all gallery photos"
+            >
+              <Trash2 size={13} />
+              <span>Clear All</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {totalCount === 0 ? (
+        <div
+          className="media-input-box gallery-dropzone"
+          onClick={handleOpenPicker}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="gallery-empty-content">
+            <UploadCloud size={28} className="gallery-empty-icon" />
+            <strong>Upload Event Gallery Photos</strong>
+            <p>Select 5 to 6 high resolution showcase photos (JPG/PNG)</p>
+            <div className="media-upload-pill">
+              <UploadCloud size={14} />
+              <span>Choose 5 to 6 Photos</span>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="gallery-preview-grid">
+          {/* Saved existing photos */}
+          {existing.map((url, idx) => (
+            <div key={`existing-${idx}`} className="gallery-thumbnail-card">
+              <img src={url} alt={`Gallery item ${idx + 1}`} className="gallery-thumb-img" />
+              <div className="gallery-thumb-overlay">
+                <span className="gallery-index-tag">#{idx + 1}</span>
+                <button
+                  type="button"
+                  className="gallery-thumb-del-btn"
+                  onClick={() => onDeleteExisting(idx)}
+                  title={`Delete photo #${idx + 1}`}
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {/* Newly chosen files */}
+          {files.map((file, idx) => (
+            <GalleryFileThumbnail
+              key={`${file.name}-${file.lastModified}-${idx}`}
+              file={file}
+              index={existing.length + idx + 1}
+              onDelete={() => onDeleteFile(idx)}
+            />
+          ))}
+
+          {/* Add more slot */}
+          {hasRoom && (
+            <button
+              type="button"
+              className="gallery-add-tile-btn"
+              onClick={handleOpenPicker}
+              title="Add more photos"
+            >
+              <Plus size={20} />
+              <span>Add Photo</span>
+              <small>{6 - totalCount} slot{6 - totalCount > 1 ? "s" : ""} left</small>
+            </button>
+          )}
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -1813,6 +2413,26 @@ const EventPreview = ({ form, files, progress }) => (
         file={files.banner}
         src={form.bannerImage}
         alt="Event banner"
+      />
+    </div>
+
+    {/* Chosen Ticket Design in Event Preview */}
+    <div style={{ marginBottom: "24px" }}>
+      <h3 className="preview-block-title">Official Event Ticket Pass</h3>
+      <TicketPassView
+        designId={form.ticketDesign || "design-1"}
+        templateUrl={form.ticketTemplateUrl || ""}
+        event={form}
+        participant={{
+          name: "Sample Participant",
+          phone: "+91 98765 43210",
+          email: "rider@nitroxx.com",
+          bibNumber: "007",
+          tickets: form.ticketType === "Free" ? 1 : 2,
+        }}
+        ticketsCount={form.ticketType === "Free" ? 1 : 2}
+        ticketNumber="NX-PREVIEW-PASS"
+        surroundBg="#111827"
       />
     </div>
 

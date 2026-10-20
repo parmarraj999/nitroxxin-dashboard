@@ -25,6 +25,7 @@ import OrganizerLogosPage from './pages/LayoutMedia/OrganizerLogosPage';
 import EventsManagement from './pages/Events/EventsManagement';
 import CreateEventPage from './pages/Events/CreateEventPage';
 import EventCategoriesPage from './pages/Events/EventCategoriesPage';
+import TicketTemplatesPage from './pages/Events/TicketTemplatesPage';
 import EventBookingsPage from './pages/Events/EventBookingsPage';
 import EventParticipantsPage from './pages/Events/EventParticipantsPage';
 import EventCouponsPage from './pages/Events/EventCouponsPage';
@@ -100,16 +101,20 @@ function App() {
 
               {/* Event Management Routes */}
               <Route path="events" element={<EventsManagement />} />
-              <Route path="events/:eventId" element={<EventDetails />} />
               <Route path="events/create" element={<CreateEventPage />} />
-              <Route path="events/hosts" element={<Hosts />} />
-              <Route path="events/hosts/:hostId" element={<HostDetails />} />
               <Route path="events/categories" element={<EventCategoriesPage />} />
+              <Route path="events/ticket-templates" element={<TicketTemplatesPage />} />
+              <Route path="events/ticket-template" element={<TicketTemplatesPage />} />
+              <Route path="ticket-templates" element={<TicketTemplatesPage />} />
+              <Route path="ticket_tamplate" element={<TicketTemplatesPage />} />
               <Route path="events/bookings" element={<EventBookingsPage />} />
               <Route path="events/participants" element={<EventParticipantsPage />} />
               <Route path="events/coupons" element={<EventCouponsPage />} />
               <Route path="events/reviews" element={<EventReviewsPage />} />
               <Route path="events/analytics" element={<EventAnalyticsPage />} />
+              <Route path="events/hosts" element={<Hosts />} />
+              <Route path="events/hosts/:hostId" element={<HostDetails />} />
+              <Route path="events/:eventId" element={<EventDetails />} />
 
               {/* Vendor Management Routes */}
               <Route path="vendors" element={<VendorListPage />} />

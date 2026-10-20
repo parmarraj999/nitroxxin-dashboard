@@ -35,7 +35,9 @@ export const COLLECTIONS = {
   queries: 'query',
   query: 'query',
   organizerLogos: 'organizer_logos',
-  hostApplications: 'host_applications'
+  hostApplications: 'host_applications',
+  ticketTemplates: 'ticket_tamplate',
+  ticket_tamplate: 'ticket_tamplate'
 };
 
 export const PRODUCT_STATUSES = {
@@ -188,5 +190,6 @@ export const collectionStructure = {
   shipping_templates: '{templateId}: vendorId, rates, regions, dispatchTime',
   return_policies: '{policyId}: vendorId, windowDays, terms',
   certifications: '{certificationId}: vendorId, productId, type, documentUrl',
-  bike_compatibility: '{compatibilityId}: vendorId, productId, make, model, yearRange'
+  bike_compatibility: '{compatibilityId}: vendorId, productId, make, model, yearRange',
+  ticket_tamplate: '{templateId}: title, image (1080x1920), category, description, status, isDefault, theme, dimensions'
 };
