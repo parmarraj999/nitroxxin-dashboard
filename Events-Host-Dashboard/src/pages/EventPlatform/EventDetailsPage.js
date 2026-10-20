@@ -20,6 +20,7 @@ import {
   Users,
   X,
   Printer,
+  Bike,
 } from 'lucide-react';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import EmptyState from '../../components/States/EmptyState';
@@ -228,6 +229,19 @@ const EventDetailsPage = () => {
     navigate('/events');
   };
 
+  const displayStatus = useMemo(() => {
+    if (!event) return 'Draft';
+    if (event.status === 'Cancelled') return 'Cancelled';
+    if (event.status === 'Draft') return 'Draft';
+    if (event.startDate) {
+      const sDate = event.startDate.toDate ? event.startDate.toDate() : new Date(event.startDate);
+      if (!isNaN(sDate.getTime()) && sDate > new Date()) {
+        return (event.status && event.status !== 'Complete' && event.status !== 'Completed') ? event.status : 'Published';
+      }
+    }
+    return event.status || 'Published';
+  }, [event]);
+
   if (loading) return <AppLayout><LoadingState label="Loading event details" /></AppLayout>;
   if (!event) return <AppLayout><EmptyState title="Event not found" action={<button className="primary-btn" onClick={() => navigate('/explore')}>Browse events</button>} /></AppLayout>;
 
@@ -244,7 +258,7 @@ const EventDetailsPage = () => {
               <img src={event.thumbnailImage || event.bannerImage || 'https://images.unsplash.com/photo-1501281668745-f7f57925c3b4?auto=format&fit=crop&w=240&q=80'} alt={event.title} />
               <div>
                 <div className="badge-row">
-                  <span className={`badge ${event.status === 'Published' ? 'success' : event.status === 'Cancelled' ? 'danger' : 'warning'}`}>{event.status || 'Draft'}</span>
+                  <span className={`badge ${displayStatus === 'Published' ? 'success' : displayStatus === 'Cancelled' ? 'danger' : 'warning'}`}>{displayStatus}</span>
                   <span className="badge">{event.ticketType || 'General'}</span>
                   {event.featured && <span className="badge success">Featured</span>}
                 </div>
@@ -320,15 +334,67 @@ const EventDetailsPage = () => {
                 <span><MapPin size={14} /> {event.venue}, {event.address}, {event.city}, {event.state}</span>
                 <span><Users size={14} /> {analytics.sold} / {analytics.capacity || 'Unlimited'} participants</span>
               </div>
+              {/* Specific Bike Requirement if configured */}
+              {(event.specificBikeRequired || event.bikeRequirements) && (
+                <div className="event-detail-bike-card" style={{ marginTop: '16px', background: '#fff7ed', border: '1px solid #ffedd5', borderLeft: '4px solid #ea580c', borderRadius: '10px', padding: '14px 16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#c2410c', fontWeight: 700, fontSize: '13.5px', marginBottom: '8px' }}>
+                    <Bike size={16} />
+                    <span>Specific Bike Requirement</span>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '10px', fontSize: '13px', color: '#431407' }}>
+                    <div><span style={{ color: '#9a3412', fontWeight: 600 }}>Brand:</span> {event.bikeBrand || event.bikeRequirements?.brand || 'Any'}</div>
+                    <div><span style={{ color: '#9a3412', fontWeight: 600 }}>Model:</span> {event.bikeModel || event.bikeRequirements?.model || 'Any'}</div>
+                    <div><span style={{ color: '#9a3412', fontWeight: 600 }}>Engine CC:</span> {event.bikeEngineCC || event.bikeRequirements?.engineCC ? `${event.bikeEngineCC || event.bikeRequirements?.engineCC} CC` : 'Any'}</div>
+                    {(event.bikeType || event.bikeRequirements?.bikeType) && (
+                      <div><span style={{ color: '#9a3412', fontWeight: 600 }}>Type:</span> {event.bikeType || event.bikeRequirements?.bikeType}</div>
+                    )}
+                  </div>
+                  {(event.bikeCriteria || event.bikeRequirements?.criteria) && (
+                    <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px dashed #fed7aa', fontSize: '12px', color: '#7c2d12' }}>
+                      <strong>Criteria:</strong> {event.bikeCriteria || event.bikeRequirements?.criteria}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Compulsory Category Details if configured */}
+              {event.categoryDetails && Object.keys(event.categoryDetails).length > 0 && (
+                <div className="event-detail-category-card" style={{ marginTop: '16px', background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px 16px' }}>
+                  <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', fontWeight: 700, color: '#0f172a' }}>
+                    {event.category || 'Event'} Operational Specifications
+                  </h3>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', fontSize: '12.5px' }}>
+                    {Object.entries(event.categoryDetails).map(([key, val]) => (
+                      <div key={key} style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span style={{ color: '#64748b', fontSize: '11px', textTransform: 'capitalize' }}>
+                          {key.replace(/([A-Z])/g, ' $1')}
+                        </span>
+                        <strong style={{ color: '#0f172a' }}>
+                          {typeof val === 'boolean' ? (val ? 'Yes' : 'No') : Array.isArray(val) ? val.join(', ') : String(val)}
+                        </strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <h3>Rules</h3>
               <p className="muted">{event.rules || 'No additional rules published.'}</p>
               <h3>Contact</h3>
               <p className="muted">{event.contactInfo || event.organizerEmail || 'No contact information published.'}</p>
             </div>
-            <aside className="panel registration-panel">
+              <aside className="panel registration-panel">
               <h2>{isHost ? 'Public Registration Preview' : 'Register'}</h2>
               <p className="muted">{event.ticketType === 'Free' ? 'Free registration' : currency(event.ticketPrice)}</p>
               <form className="form-grid" onSubmit={submitRegistration}>
+                {event.specificBikeRequired && (
+                  <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '8px 12px', fontSize: '12px', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}>
+                    <Bike size={14} />
+                    <span>
+                      <strong>Required Bike:</strong> {event.bikeRequirements?.brand || event.bikeBrand || 'Any'} {event.bikeRequirements?.model || event.bikeModel || ''} {(event.bikeRequirements?.engineCC || event.bikeEngineCC) ? `(${event.bikeRequirements?.engineCC || event.bikeEngineCC} CC)` : ''}
+                    </span>
+                  </div>
+                )}
                 <label className="form-field"><span>Full Name</span><input required value={participant.fullName} onChange={(e) => setParticipant({ ...participant, fullName: e.target.value })} /></label>
                 <label className="form-field"><span>Email</span><input type="email" required value={participant.email} onChange={(e) => setParticipant({ ...participant, email: e.target.value })} /></label>
                 <label className="form-field"><span>Phone</span><input required value={participant.phone} onChange={(e) => setParticipant({ ...participant, phone: e.target.value })} /></label>

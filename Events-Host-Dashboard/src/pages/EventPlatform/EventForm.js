@@ -18,7 +18,8 @@ import {
   ChevronLeft,
   ChevronDown,
   UploadCloud,
-  AlertCircle
+  AlertCircle,
+  Bike
 } from "lucide-react";
 import AppLayout from "../../components/AppLayout/AppLayout";
 import LoadingState from "../../components/States/LoadingState";
@@ -107,10 +108,6 @@ const initialForm = {
   address: "",
   city: "",
   state: "",
-  organizerName: "",
-  organizerPhone: "",
-  organizerEmail: "",
-  organizerInstagram: "",
   ticketType: "Free",
   ticketPrice: "",
   capacity: "",
@@ -130,6 +127,12 @@ const initialForm = {
   addons: [],
   tripSupport: [],
   mandatoryRequirements: [],
+  specificBikeRequired: false,
+  bikeBrand: "",
+  bikeModel: "",
+  bikeEngineCC: "",
+  bikeType: "",
+  bikeCriteria: "",
 };
 
 const steps = [
@@ -280,10 +283,26 @@ const EventForm = () => {
   useEffect(() => {
     if (!eventId) return;
     getEvent(eventId)
-      .then((event) =>
+      .then((event) => {
+        const bikeReq = event.bikeRequirements || {};
+        const {
+          banner: _legacyBanner,
+          organizerName: _legacyOrgName,
+          organizerPhone: _legacyOrgPhone,
+          organizerEmail: _legacyOrgEmail,
+          organizerInstagram: _legacyOrgInstagram,
+          bikeBrand: _legacyBikeBrand,
+          bikeModel: _legacyBikeModel,
+          bikeEngineCC: _legacyBikeEngineCC,
+          bikeType: _legacyBikeType,
+          bikeCriteria: _legacyBikeCriteria,
+          ...cleanedEvent
+        } = event || {};
+
         setForm({
           ...initialForm,
-          ...event,
+          ...cleanedEvent,
+          bannerImage: event.bannerImage || event.banner || "",
           ticketDesign: event.ticketDesign || event.ticketTemplateId || "",
           ticketTemplateId: event.ticketTemplateId || event.ticketDesign || "",
           ticketTemplateUrl: event.ticketTemplateUrl || "",
@@ -294,8 +313,17 @@ const EventForm = () => {
           addons: event.addons || [],
           tripSupport: event.tripSupport || [],
           mandatoryRequirements: event.mandatoryRequirements || [],
-        })
-      )
+          specificBikeRequired: Boolean(
+            event.specificBikeRequired ||
+            (event.bikeRequirements && Object.keys(event.bikeRequirements).length > 0)
+          ),
+          bikeBrand: bikeReq.brand || event.bikeBrand || "",
+          bikeModel: bikeReq.model || event.bikeModel || "",
+          bikeEngineCC: bikeReq.engineCC || event.bikeEngineCC || "",
+          bikeType: bikeReq.bikeType || event.bikeType || "",
+          bikeCriteria: bikeReq.criteria || event.bikeCriteria || "",
+        });
+      })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
   }, [eventId]);
@@ -472,23 +500,63 @@ const EventForm = () => {
     setForm((prev) => ({ ...prev, galleryImages: [] }));
   };
 
+  const validateStep = (stepIndex) => {
+    if (stepIndex === 0) {
+      if (!form.title?.trim()) throw new Error("Event Title is required.");
+      if (!form.category) throw new Error("Please select an Event Category.");
+      if (!form.description?.trim()) throw new Error("Event Description is required.");
+
+      // Category specific details is compulsory
+      const categoryFields = eventCategoryFields[form.category] || [];
+      const mandatoryBooleans = ['helmet', 'Gear', 'RC AND INSURANCE', 'MEDICAL DECLARATION', 'Driving Licence'];
+      for (const f of categoryFields) {
+        const val = form.categoryDetails?.[f.id];
+        if (f.type === "boolean") {
+          if (mandatoryBooleans.includes(f.id) && !val) {
+            throw new Error(`"${f.label}" confirmation is compulsory for ${form.category}.`);
+          }
+        } else {
+          if (
+            val === undefined ||
+            val === null ||
+            (typeof val === "string" && !val.trim()) ||
+            (Array.isArray(val) && !val.length)
+          ) {
+            throw new Error(
+              `"${f.label}" is compulsory for ${form.category}. Please complete all category specific details.`
+            );
+          }
+        }
+      }
+
+      // If specific bike is required, ensure brand, model, and engine CC are provided
+      if (form.specificBikeRequired) {
+        if (!form.bikeBrand?.trim()) {
+          throw new Error("Please specify the required Bike Brand (e.g. Royal Enfield, KTM, BMW, etc.).");
+        }
+        if (!form.bikeModel?.trim()) {
+          throw new Error("Please specify the required Bike Model (e.g. Himalayan 450, Duke 390, etc.).");
+        }
+        if (!form.bikeEngineCC?.trim()) {
+          throw new Error("Please specify the required Engine Displacement / CC (e.g. 350, 450, 350cc+, etc.).");
+        }
+      }
+    } else if (stepIndex === 1) {
+      if (!form.startDate) throw new Error("Event Start Date is required.");
+      if (!form.startTime) throw new Error("Daily Start Time is required.");
+      if (!form.endTime) throw new Error("Daily End Time is required.");
+      if (!form.registrationStart) throw new Error("Registration Start Date is required.");
+      if (!form.registrationEnd) throw new Error("Registration End Date is required.");
+      if (!form.venue?.trim()) throw new Error("Venue / Flag-off Point is required.");
+      if (!form.city?.trim()) throw new Error("City is required.");
+      if (!form.state?.trim()) throw new Error("State is required.");
+      if (!form.address?.trim()) throw new Error("Full street address is required.");
+    }
+  };
+
   const validateBeforeSubmit = () => {
-    const missingCategoryField = (
-      eventCategoryFields[form.category] || []
-    ).find((field) => {
-      if (!field.required) return false;
-      const value = form.categoryDetails?.[field.id];
-      return (
-        value === undefined ||
-        value === null ||
-        value === "" ||
-        (Array.isArray(value) && !value.length)
-      );
-    });
-    if (missingCategoryField)
-      throw new Error(
-        `${missingCategoryField.label} is required for ${form.category}.`
-      );
+    validateStep(0);
+    validateStep(1);
     if (!form.bannerImage && !files.banner)
       throw new Error("Event banner is required (16:9 aspect ratio).");
     if (!form.thumbnailImage && !files.thumbnail)
@@ -565,13 +633,29 @@ const EventForm = () => {
             seats: Number(item.seats),
           }))
           : [];
+      // Destructure out any dual or unwanted fields so they are never written to Firestore
+      const {
+        banner: _unusedBanner,
+        organizerName: _unusedOrgName,
+        organizerPhone: _unusedOrgPhone,
+        organizerEmail: _unusedOrgEmail,
+        organizerInstagram: _unusedOrgInstagram,
+        bikeBrand: _unusedBikeBrand,
+        bikeModel: _unusedBikeModel,
+        bikeEngineCC: _unusedBikeEngineCC,
+        bikeType: _unusedBikeType,
+        bikeCriteria: _unusedBikeCriteria,
+        bikeRequirements: _unusedBikeReq,
+        ...cleanedForm
+      } = form;
+
       const payload = {
-        ...form,
+        ...cleanedForm,
         ticketDesign: form.ticketDesign || form.ticketTemplateId || "design-1",
         ticketTemplateId: form.ticketTemplateId || form.ticketDesign || "",
         ticketTemplateUrl: form.ticketTemplateUrl || "",
         ticketTemplateName: form.ticketTemplateName || "",
-        status: eventId ? form.status : "Draft",
+        status: form.status || (eventId ? "Draft" : "Published"),
         hostId: user.uid,
         hostName: profile?.fullName || "",
         hostPhotoURL: profile?.photoURL || "",
@@ -581,6 +665,16 @@ const EventForm = () => {
         itinerary,
         packages,
         galleryImages: [...(form.galleryImages || []), ...newGallery],
+        specificBikeRequired: Boolean(form.specificBikeRequired),
+        bikeRequirements: form.specificBikeRequired
+          ? {
+              brand: form.bikeBrand?.trim() || "",
+              model: form.bikeModel?.trim() || "",
+              engineCC: form.bikeEngineCC?.trim() || "",
+              bikeType: form.bikeType?.trim() || "",
+              criteria: form.bikeCriteria?.trim() || "",
+            }
+          : null,
         capacity:
           form.ticketType === "Paid"
             ? packages.reduce((sum, item) => sum + item.seats, 0)
@@ -604,10 +698,17 @@ const EventForm = () => {
     }
   };
 
-  // Enhanced step navigation handlers (Smooth scrolling to top on transition)
+  // Enhanced step navigation handlers (Smooth scrolling to top on transition with step validation)
   const handleNextStep = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep((prev) => prev + 1);
+    setError("");
+    try {
+      validateStep(currentStep);
+      if (currentStep < steps.length - 1) {
+        setCurrentStep((prev) => prev + 1);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    } catch (err) {
+      setError(err.message);
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   };
@@ -816,9 +917,14 @@ const EventForm = () => {
               {form.category && (
                 <div className="category-details">
                   <div className="category-details-heading">
-                    <h3 className="category-details-title">{form.category} Details</h3>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                      <h3 className="category-details-title">{form.category} Details</h3>
+                      <span className="compulsory-badge">
+                        <CheckCircle2 size={12} /> Compulsory Details
+                      </span>
+                    </div>
                     <p className="section-note">
-                      Specific operational metrics and attributes configured for this event category.
+                      Specific operational metrics and attributes configured for this event category. All category-specific fields are mandatory.
                     </p>
                   </div>
                   <div className="form-grid two">
@@ -835,6 +941,155 @@ const EventForm = () => {
                   </div>
                 </div>
               )}
+
+              {/* SPECIFIC BIKE REQUIREMENT SECTION */}
+              <div className="specific-bike-section">
+                <div className="section-subtitle-bar">
+                  <div className="section-subtitle-icon">
+                    <Bike size={16} />
+                  </div>
+                  <div>
+                    <h3 className="section-inner-heading">Specific Bike Requirement</h3>
+                    <p className="section-note">
+                      Specify whether participants must bring a particular motorcycle brand, model, or minimum engine displacement.
+                    </p>
+                  </div>
+                </div>
+
+                <label className="boolean-field-card bike-requirement-toggle">
+                  <input
+                    type="checkbox"
+                    className="custom-toggle-checkbox"
+                    checked={Boolean(form.specificBikeRequired)}
+                    onChange={(e) => {
+                      const checked = e.target.checked;
+                      setForm((prev) => ({
+                        ...prev,
+                        specificBikeRequired: checked,
+                        ...(checked
+                          ? {}
+                          : {
+                              bikeBrand: "",
+                              bikeModel: "",
+                              bikeEngineCC: "",
+                              bikeType: "",
+                              bikeCriteria: "",
+                            }),
+                      }));
+                    }}
+                  />
+                  <div className="boolean-info-col">
+                    <span className="boolean-title-label">
+                      Is any specific bike required for this event?
+                    </span>
+                    <small className="field-unit-note">
+                      Check this box if riders can only participate with specific motorcycle brands, models, or engine CC classes.
+                    </small>
+                  </div>
+                </label>
+
+                {form.specificBikeRequired && (
+                  <div className="bike-requirements-inputs-card">
+                    <div className="form-grid two">
+                      <label className="form-field">
+                        <span className="field-label-text">
+                          Bike Brand / Manufacturer <em className="required-star">*</em>
+                        </span>
+                        <div className="select-input-container">
+                          <input
+                            list="popular-bike-brands"
+                            className="form-input"
+                            required={form.specificBikeRequired}
+                            placeholder="e.g. Royal Enfield, KTM, BMW, Harley-Davidson, Any Brand"
+                            value={form.bikeBrand || ""}
+                            onChange={(e) => update("bikeBrand", e.target.value)}
+                          />
+                          <datalist id="popular-bike-brands">
+                            <option value="Royal Enfield" />
+                            <option value="KTM" />
+                            <option value="BMW Motorrad" />
+                            <option value="Harley-Davidson" />
+                            <option value="Triumph" />
+                            <option value="Ducati" />
+                            <option value="Kawasaki" />
+                            <option value="Honda" />
+                            <option value="Yamaha" />
+                            <option value="Suzuki" />
+                            <option value="Bajaj" />
+                            <option value="TVS" />
+                            <option value="Jawa / Yezdi" />
+                            <option value="Aprilia" />
+                            <option value="Husqvarna" />
+                            <option value="Benelli" />
+                            <option value="Any Brand (Specific Model / CC Only)" />
+                          </datalist>
+                        </div>
+                      </label>
+
+                      <label className="form-field">
+                        <span className="field-label-text">
+                          Bike Model <em className="required-star">*</em>
+                        </span>
+                        <input
+                          className="form-input"
+                          required={form.specificBikeRequired}
+                          placeholder="e.g. Himalayan 450, Duke 390, Continental GT 650, GS 1250"
+                          value={form.bikeModel || ""}
+                          onChange={(e) => update("bikeModel", e.target.value)}
+                        />
+                      </label>
+
+                      <label className="form-field">
+                        <span className="field-label-text">
+                          Engine Displacement / CC <em className="required-star">*</em>
+                        </span>
+                        <div className="input-with-unit-wrap">
+                          <input
+                            className="form-input"
+                            required={form.specificBikeRequired}
+                            placeholder="e.g. 350, 450, 650, 350cc+, 500cc+"
+                            value={form.bikeEngineCC || ""}
+                            onChange={(e) => update("bikeEngineCC", e.target.value)}
+                          />
+                          <span className="field-unit-tag">CC</span>
+                        </div>
+                      </label>
+
+                      <label className="form-field">
+                        <span className="field-label-text">Bike Category / Type</span>
+                        <div className="select-input-container">
+                          <select
+                            className="form-select"
+                            value={form.bikeType || ""}
+                            onChange={(e) => update("bikeType", e.target.value)}
+                          >
+                            <option value="">Any Bike Type</option>
+                            <option value="Adventure / ADV">Adventure / ADV</option>
+                            <option value="Cruiser">Cruiser</option>
+                            <option value="Naked / Streetfighter">Naked / Streetfighter</option>
+                            <option value="Sport / Supersport">Sport / Supersport</option>
+                            <option value="Tourer / Sport Tourer">Tourer / Sport Tourer</option>
+                            <option value="Off-Road / Dirt / Enduro">Off-Road / Dirt / Enduro</option>
+                            <option value="Scrambler / Cafe Racer">Scrambler / Cafe Racer</option>
+                            <option value="Electric Motorcycle">Electric Motorcycle</option>
+                          </select>
+                          <ChevronDown size={14} className="select-dropdown-chevron" />
+                        </div>
+                      </label>
+                    </div>
+
+                    <label className="form-field category-wide" style={{ marginTop: "14px" }}>
+                      <span className="field-label-text">Additional Bike Specifications / Rules (Optional)</span>
+                      <input
+                        className="form-input"
+                        placeholder="e.g. Stock exhaust mandatory, Dual-purpose knobby tyres required, Luggage panniers allowed"
+                        value={form.bikeCriteria || ""}
+                        onChange={(e) => update("bikeCriteria", e.target.value)}
+                      />
+                    </label>
+                  </div>
+                )}
+              </div>
             </section>
           )}
 
@@ -2461,6 +2716,42 @@ const EventPreview = ({ form, files, progress }) => (
         }
       />
     </div>
+
+    {/* Specific Bike Requirement Summary in Preview */}
+    {form.specificBikeRequired && (
+      <div className="preview-bike-requirement-box">
+        <div className="preview-bike-badge">
+          <Bike size={16} />
+          <span>Specific Bike Required for this Event</span>
+        </div>
+        <div className="preview-bike-details-row">
+          <div><strong>Brand:</strong> {form.bikeBrand || "Any"}</div>
+          <div><strong>Model:</strong> {form.bikeModel || "Any"}</div>
+          <div><strong>Engine:</strong> {form.bikeEngineCC ? `${form.bikeEngineCC} CC` : "Any"}</div>
+          {form.bikeType && <div><strong>Type:</strong> {form.bikeType}</div>}
+        </div>
+        {form.bikeCriteria && (
+          <p className="preview-bike-criteria"><strong>Notes / Criteria:</strong> {form.bikeCriteria}</p>
+        )}
+      </div>
+    )}
+
+    {/* Compulsory Category Details Summary in Preview */}
+    {form.category && form.categoryDetails && Object.keys(form.categoryDetails).length > 0 && (
+      <div className="preview-category-details-box">
+        <h4 style={{ margin: "0 0 8px 0", fontSize: "14px", fontWeight: 700, color: "#0f172a" }}>
+          {form.category} Operational Attributes
+        </h4>
+        <div className="preview-category-grid">
+          {Object.entries(form.categoryDetails).map(([key, val]) => (
+            <div key={key} className="preview-category-item">
+              <span>{key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}</span>
+              <strong>{typeof val === 'boolean' ? (val ? 'Yes' : 'No') : Array.isArray(val) ? val.join(', ') : String(val)}</strong>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
 
     <div className="preview-content">
       <div>

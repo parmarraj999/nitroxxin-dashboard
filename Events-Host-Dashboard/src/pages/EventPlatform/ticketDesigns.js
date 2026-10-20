@@ -1,5 +1,4 @@
-import React, { useState } from 'react';
-import { QrCode as QrIcon } from 'lucide-react';
+import React from 'react';
 import './TicketDesigns.css';
 
 /**
@@ -101,8 +100,6 @@ export const TicketPassView = ({
   surroundBg = '',
   onPrint = null
 }) => {
-  const [qrLoaded, setQrLoaded] = useState(true);
-
   // Background resolution strictly from fetched template image
   const activeTemplateUrl =
     templateUrl ||
@@ -130,10 +127,6 @@ export const TicketPassView = ({
   const timeFormatted = formatTicketTime(event.startTime);
   const qty = ticketsCount || participant.tickets || participant.seats || 1;
   const attendeeName = participant.fullName || participant.name || '';
-
-  // QR Code Data
-  const qrData = `NITROXX-TICKET:${ticketNumber}|EVENT:${title}|VENUE:${venue}|DATE:${dateFormatted}|TIME:${timeFormatted}|TICKETS:x${qty}|ATTENDEE:${attendeeName}`;
-  const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=260x260&data=${encodeURIComponent(qrData)}&margin=2&format=png`;
 
   return (
     <div className={`ticket-pass-outer-shell ${compact ? 'is-compact-pass' : ''}`}>

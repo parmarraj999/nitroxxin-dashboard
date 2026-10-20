@@ -6,6 +6,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  Clock,
   Download,
   Edit2,
   Eye,
@@ -324,6 +325,40 @@ const EventList = () => {
           subtitle = '🏍️ ' + subtitle;
         }
 
+        // Intelligently compute status based on event date and Firestore status
+        const now = new Date();
+        const startTimestamp = dateObj ? dateObj.getTime() : null;
+        let endTimestamp = null;
+        if (evt.endDate) {
+          const eDate = evt.endDate.toDate ? evt.endDate.toDate() : new Date(evt.endDate);
+          if (!isNaN(eDate.getTime())) {
+            eDate.setHours(23, 59, 59, 999);
+            endTimestamp = eDate.getTime();
+          }
+        } else if (startTimestamp) {
+          const sEnd = new Date(startTimestamp);
+          sEnd.setHours(23, 59, 59, 999);
+          endTimestamp = sEnd.getTime();
+        }
+
+        const isFuture = startTimestamp ? startTimestamp > now.getTime() : false;
+        const isPast = endTimestamp ? endTimestamp < now.getTime() : false;
+
+        let computedStatus = evt.status;
+        if (computedStatus === 'Cancelled') {
+          computedStatus = 'Cancelled';
+        } else if (computedStatus === 'Draft') {
+          computedStatus = 'Draft';
+        } else if (isFuture) {
+          // Event date is in the future (e.g. 1 Nov 2026) -> Always Published (never Completed)
+          computedStatus = (evt.status && evt.status !== 'Complete' && evt.status !== 'Completed') ? evt.status : 'Published';
+        } else if (isPast) {
+          // Event date has passed
+          computedStatus = 'Completed';
+        } else {
+          computedStatus = evt.status || 'Published';
+        }
+
         return {
           id: evt.id,
           title: evt.title || 'Untitled Event',
@@ -337,7 +372,7 @@ const EventList = () => {
           capacity: cap,
           grossDisplay: grossFormatted,
           gross: grossNum,
-          status: evt.status || 'Complete',
+          status: computedStatus,
           category: evt.category || 'General',
           city: evt.city || '',
           venue: evt.venue || '',
@@ -365,7 +400,11 @@ const EventList = () => {
 
       const matchesStatus =
         selectedStatus === 'all' ||
-        event.status.toLowerCase() === selectedStatus.toLowerCase();
+        event.status.toLowerCase() === selectedStatus.toLowerCase() ||
+        (selectedStatus.toLowerCase() === 'completed' && event.status.toLowerCase() === 'complete') ||
+        (selectedStatus.toLowerCase() === 'complete' && event.status.toLowerCase() === 'completed') ||
+        (selectedStatus.toLowerCase() === 'published' && event.status.toLowerCase() === 'upcoming') ||
+        (selectedStatus.toLowerCase() === 'upcoming' && event.status.toLowerCase() === 'published');
 
       const matchesCategory =
         selectedCategory === 'all' ||
@@ -578,8 +617,8 @@ const EventList = () => {
                       onChange={(e) => setSelectedStatus(e.target.value)}
                     >
                       <option value="all">All Statuses</option>
-                      <option value="Complete">Complete</option>
                       <option value="Published">Published</option>
+                      <option value="Completed">Completed</option>
                       <option value="Draft">Draft</option>
                       <option value="Cancelled">Cancelled</option>
                     </select>
@@ -718,9 +757,15 @@ const EventList = () => {
                         {/* Status Column */}
                         <div className="event-metric-col metric-col-status">
                           <span className="metric-col-header">Status</span>
-                          <span className="status-badge-pill">
-                            <CheckCircle2 size={13} className="status-check-icon" strokeWidth={2.5} />
-                            <span>Complete</span>
+                          <span className={`status-badge-pill ${event.status ? event.status.toLowerCase() : 'published'}`}>
+                            {event.status === 'Draft' ? (
+                              <Clock size={13} className="status-check-icon" />
+                            ) : event.status === 'Cancelled' ? (
+                              <X size={13} className="status-check-icon" />
+                            ) : (
+                              <CheckCircle2 size={13} className="status-check-icon" strokeWidth={2.5} />
+                            )}
+                            <span>{event.status}</span>
                           </span>
                         </div>
 

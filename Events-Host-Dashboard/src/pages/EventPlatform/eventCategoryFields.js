@@ -6,6 +6,7 @@ const field = (id, type, options = {}) => ({
   id,
   label: labelFromId(id),
   type,
+  required: true,
   ...options,
 });
 
@@ -33,7 +34,7 @@ export const eventCategoryFields = {
   ],
   'Mountain Biking': [
     field('trailDistance', 'number'), field('elevationGain', 'number'), field('bikeTypeAllowed', 'text'),
-    field('waveStarts', 'array'), field('timingChip', 'boolean'),
+    field('timingChip', 'boolean'),
   ],
   'Gravel / Offroad Rides': [
     field('trailType', 'textarea'),  field('recommendedTyres', 'text'), field('minimumCC', 'number', { label: 'Minimum CC' }), field('totalDistance', 'number', { label: 'Total Distance (KM)', unit: 'km', required: true }), field('waterCrossings', 'boolean'), field('helmet', 'boolean', { required: true }), field('Gear', 'boolean', { required: true }), field('RC AND INSURANCE', 'boolean', { required: true }), field('MEDICAL DECLARATION', 'boolean', { required: true }),

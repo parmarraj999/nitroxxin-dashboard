@@ -1830,3 +1830,147 @@
     display: none;
   }
 }
+
+/* =========================================================================
+   SPECIFIC BIKE REQUIREMENT & COMPULSORY CATEGORY STYLES
+   ========================================================================= */
+.specific-bike-section {
+  border-top: 1px solid #ebecee;
+  margin-top: 24px;
+  padding-top: 24px;
+}
+
+.section-subtitle-bar {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.section-subtitle-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #ea580c;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(234, 88, 12, 0.25);
+}
+
+.section-inner-heading {
+  font-size: 15px;
+  font-weight: 700;
+  color: #09090b;
+  margin: 0 0 2px 0;
+}
+
+.bike-requirement-toggle {
+  background: #fafaf9;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 10px;
+  padding: 14px 16px;
+  transition: all 0.15s ease;
+}
+
+.bike-requirement-toggle:hover {
+  background: #f4f4f5;
+  border-color: #d4d4d8;
+}
+
+.bike-requirements-inputs-card {
+  margin-top: 16px;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-left: 3.5px solid #ea580c;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.compulsory-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+/* Event Preview Bike Requirement Box */
+.preview-bike-requirement-box {
+  background: #fff7ed;
+  border: 1px solid #ffedd5;
+  border-left: 4px solid #ea580c;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 24px;
+}
+
+.preview-bike-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #c2410c;
+  margin-bottom: 10px;
+}
+
+.preview-bike-details-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  font-size: 13px;
+  color: #431407;
+}
+
+.preview-bike-details-row strong {
+  color: #9a3412;
+}
+
+.preview-bike-criteria {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #fed7aa;
+  font-size: 12.5px;
+  color: #7c2d12;
+}
+
+.preview-category-details-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 16px 18px;
+  margin-bottom: 24px;
+}
+
+.preview-category-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.preview-category-item {
+  display: flex;
+  flex-direction: column;
+  font-size: 12.5px;
+}
+
+.preview-category-item span {
+  color: #64748b;
+  font-size: 11.5px;
+}
+
+.preview-category-item strong {
+  color: #0f172a;
+  font-weight: 600;
+}
+

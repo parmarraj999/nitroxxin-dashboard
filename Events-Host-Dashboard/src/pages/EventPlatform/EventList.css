@@ -537,14 +537,28 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  background: #ecfdf5;
-  border: 1px solid #a7f3d0;
-  color: #059669;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #2563eb;
   padding: 3px 12px;
   border-radius: 9999px;
   font-size: 12px;
   font-weight: 600;
   white-space: nowrap;
+}
+
+.status-badge-pill.published,
+.status-badge-pill.upcoming {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+  color: #2563eb;
+}
+
+.status-badge-pill.completed,
+.status-badge-pill.complete {
+  background: #ecfdf5;
+  border-color: #a7f3d0;
+  color: #059669;
 }
 
 .status-badge-pill.draft {
