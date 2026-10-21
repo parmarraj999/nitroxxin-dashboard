@@ -15,7 +15,7 @@ export default function EventBookingsPage() {
 
   // Real-time listener for bookings
   useEffect(() => {
-    const q = query(collection(db, 'event_bookings'));
+    const q = query(collection(db, 'bookings'));
     const unsubscribe = onSnapshot(q, (snapshot) => {
       setBookings(snapshot.docs.map((d) => ({ id: d.id, ...d.data() })));
       setLoading(false);

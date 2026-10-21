@@ -24,7 +24,7 @@ const UserDetails = () => {
         setUser(profile);
         const [orders, bookings, reviews] = await Promise.all([
           getDocs(query(collection(db, 'orders'), where('customerId', '==', userId))),
-          getDocs(query(collection(db, 'event_bookings'), where('customerId', '==', userId))),
+          getDocs(query(collection(db, 'bookings'), where('customerId', '==', userId))),
           getDocs(query(collection(db, 'reviews'), where('customerId', '==', userId)))
         ]);
         const items = [

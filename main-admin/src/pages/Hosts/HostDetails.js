@@ -74,7 +74,7 @@ export default function HostDetails() {
   // Subscribe to related collections for events, bookings, and participants
   useEffect(() => {
     subscribeToModule('all-events', 'events', []);
-    subscribeToModule('all-bookings', 'event_bookings', []);
+    subscribeToModule('all-bookings', 'bookings', []);
     subscribeToModule('all-participants', 'event_participants', []);
   }, [subscribeToModule]);
 

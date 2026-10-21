@@ -228,7 +228,7 @@ export default function EventDetails() {
   // 2. Listen to Event Bookings
   useEffect(() => {
     if (!eventId) return;
-    const unsubBookings = onSnapshot(collection(db, 'event_bookings'), (snapshot) => {
+    const unsubBookings = onSnapshot(collection(db, 'bookings'), (snapshot) => {
       const allDocs = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
       const matched = allDocs.filter((b) => 
         b.eventId === eventId || 
@@ -400,7 +400,7 @@ export default function EventDetails() {
       return;
     }
     try {
-      await updateDoc(doc(db, 'event_bookings', booking.id), {
+      await updateDoc(doc(db, 'bookings', booking.id), {
         checkInStatus: nextVal,
         updatedAt: serverTimestamp()
       });
@@ -419,7 +419,7 @@ export default function EventDetails() {
       return;
     }
     try {
-      await updateDoc(doc(db, 'event_bookings', booking.id), {
+      await updateDoc(doc(db, 'bookings', booking.id), {
         status: nextStatus,
         updatedAt: serverTimestamp()
       });
@@ -440,7 +440,7 @@ export default function EventDetails() {
     }
     if (window.confirm('Are you sure you want to delete this booking record?')) {
       try {
-        await deleteDoc(doc(db, 'event_bookings', booking.id));
+        await deleteDoc(doc(db, 'bookings', booking.id));
         if (selectedBooking?.id === booking.id) {
           setSelectedBooking(null);
         }
@@ -459,7 +459,7 @@ export default function EventDetails() {
     }
     try {
       const code = `BK-${Math.floor(10000 + Math.random() * 90000)}`;
-      await addDoc(collection(db, 'event_bookings'), {
+      await addDoc(collection(db, 'bookings'), {
         bookingId: code,
         eventId: eventId,
         eventName: event.title || event.name || 'Event',

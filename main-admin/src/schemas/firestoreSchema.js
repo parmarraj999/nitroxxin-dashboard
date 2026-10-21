@@ -25,7 +25,7 @@ export const COLLECTIONS = {
   events: 'events',
   eventHost: 'event_host',
   eventCategories: 'event_categories',
-  eventBookings: 'event_bookings',
+  eventBookings: 'bookings',
   eventParticipants: 'event_participants',
   eventCoupons: 'event_coupons',
   eventReviews: 'event_reviews',
