@@ -35,11 +35,12 @@ import { useAuth } from '../../context/AuthContext';
 import { useRegistrations } from '../../hooks/useRegistrations';
 import { EVENT_PARTICIPANTS_DATA } from './participantsData';
 import { downloadCsv, formatDateTime } from '../../utils/formatters';
+import { ParticipantTableSkeleton } from '../../components/States/SkeletonLoading';
 import './Participants.css';
 
 const Participants = () => {
   const { user } = useAuth();
-  const { registrations } = useRegistrations({ hostId: user?.uid });
+  const { registrations, loading: registrationsLoading } = useRegistrations({ hostId: user?.uid });
 
   // Master Participants List initialized with event booking participants
   const [participants, setParticipants] = useState(() => {
@@ -877,7 +878,9 @@ const Participants = () => {
               </thead>
 
               <tbody>
-                {paginatedRows.length === 0 ? (
+                {registrationsLoading && (!participants || participants.length === 0) ? (
+                  <ParticipantTableSkeleton rows={pageSize || 10} />
+                ) : paginatedRows.length === 0 ? (
                   <tr>
                     <td colSpan="8" className="ptable-empty-cell">
                       <div className="empty-state-box">

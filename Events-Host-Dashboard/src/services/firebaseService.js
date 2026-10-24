@@ -730,23 +730,213 @@ export const subscribeToEventBookings = (eventId, callback, onError) => {
 };
 
 export const updateEventBookingStatus = async ({ bookingId, registrationId, status, approvalStatus, attendanceStatus }) => {
+  const isCheckIn = attendanceStatus === 'Checked In';
   const payload = timestamped(cleanObject({
     status,
     approvalStatus,
     attendanceStatus,
+    ...(isCheckIn ? { checkInTime: serverTimestamp(), gateStatus: 'Done' } : {}),
     statusHistory: {
       [status || approvalStatus || attendanceStatus]: {
         at: serverTimestamp(),
       },
     },
   }));
-  await updateDoc(doc(db, collections.bookings, bookingId), payload);
+  if (bookingId) {
+    await updateDoc(doc(db, collections.bookings, bookingId), payload);
+  }
   if (registrationId) {
     await updateDoc(doc(db, collections.registrations, registrationId), timestamped(cleanObject({
       status: approvalStatus === 'approved' ? 'Confirmed' : approvalStatus === 'rejected' ? 'Rejected' : undefined,
       attendanceStatus,
+      ...(isCheckIn ? { checkInTime: serverTimestamp(), gateStatus: 'Done' } : {}),
     })));
   }
+};
+
+export const checkInParticipantTicket = async ({
+  eventId,
+  ticketCode,
+  bookingId,
+  registrationId,
+  hostUserId,
+}) => {
+  const cleanCode = String(ticketCode || '').trim();
+  const checkInTimestamp = serverTimestamp();
+  const currentHostUid = hostUserId || auth?.currentUser?.uid || 'gate_host';
+  let updatedAny = false;
+
+  const updateFields = {
+    status: 'Checked In',
+    attendanceStatus: 'Checked In',
+    gateStatus: 'Done',
+    checkInTime: checkInTimestamp,
+    checkedInBy: currentHostUid,
+    updatedAt: checkInTimestamp,
+  };
+
+  // 1. Update Booking doc if provided
+  if (bookingId) {
+    try {
+      await updateDoc(doc(db, collections.bookings, bookingId), updateFields);
+      updatedAny = true;
+    } catch (e) {
+      console.warn('Booking check-in doc update error:', e);
+    }
+  }
+
+  // 2. Update Registration doc if provided
+  if (registrationId) {
+    try {
+      await updateDoc(doc(db, collections.registrations, registrationId), updateFields);
+      updatedAny = true;
+    } catch (e) {
+      console.warn('Registration check-in doc update error:', e);
+    }
+  }
+
+  // 3. Fallback: Search Firestore by ticketCode or ticketNumber if direct IDs were not provided
+  if (!updatedAny && cleanCode && eventId) {
+    try {
+      // Search in registrations
+      let regSnap = await getDocs(
+        query(
+          collection(db, collections.registrations),
+          where('eventId', '==', eventId),
+          where('ticketCode', '==', cleanCode)
+        )
+      );
+      if (regSnap.empty) {
+        regSnap = await getDocs(
+          query(
+            collection(db, collections.registrations),
+            where('eventId', '==', eventId),
+            where('ticketNumber', '==', cleanCode)
+          )
+        );
+      }
+      if (!regSnap.empty) {
+        for (const d of regSnap.docs) {
+          await updateDoc(d.ref, updateFields);
+          updatedAny = true;
+        }
+      }
+
+      // Search in bookings by ticketCode or ticketNumber
+      let bkgSnap = await getDocs(
+        query(
+          collection(db, collections.bookings),
+          where('eventId', '==', eventId),
+          where('ticketCode', '==', cleanCode)
+        )
+      );
+      if (bkgSnap.empty) {
+        bkgSnap = await getDocs(
+          query(
+            collection(db, collections.bookings),
+            where('eventId', '==', eventId),
+            where('ticketNumber', '==', cleanCode)
+          )
+        );
+      }
+      if (!bkgSnap.empty) {
+        for (const d of bkgSnap.docs) {
+          await updateDoc(d.ref, updateFields);
+          updatedAny = true;
+        }
+      }
+
+      // Search in bookings by bookingId
+      if (!updatedAny) {
+        const bkgIdSnap = await getDocs(
+          query(
+            collection(db, collections.bookings),
+            where('eventId', '==', eventId),
+            where('bookingId', '==', cleanCode)
+          )
+        );
+        if (!bkgIdSnap.empty) {
+          for (const d of bkgIdSnap.docs) {
+            await updateDoc(d.ref, updateFields);
+            updatedAny = true;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Error during ticket check-in search:', err);
+    }
+  }
+
+  return { success: true };
+};
+
+export const lookupTicketDirect = async ({ eventId, code }) => {
+  const clean = String(code || '').trim();
+  if (!clean || !eventId) return null;
+
+  try {
+    // 1. Check in registrations collection
+    const regQueries = [
+      query(collection(db, collections.registrations), where('eventId', '==', eventId), where('ticketCode', '==', clean)),
+      query(collection(db, collections.registrations), where('eventId', '==', eventId), where('ticketNumber', '==', clean)),
+      query(collection(db, collections.registrations), where('eventId', '==', eventId), where('bibNumber', '==', clean)),
+    ];
+    for (const q of regQueries) {
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const docData = snap.docs[0].data();
+        const isDone = docData.attendanceStatus === 'Checked In' || docData.status === 'Checked In' || docData.gateStatus === 'Done';
+        return {
+          id: snap.docs[0].id,
+          name: docData.participantName || docData.participant?.fullName || docData.fullName || 'Participant',
+          email: docData.participantEmail || docData.email || 'N/A',
+          phone: docData.participantPhone || docData.phone || 'N/A',
+          tierName: docData.tierName || docData.ticketType || 'Standard Entry',
+          ticketNumber: docData.ticketNumber || clean,
+          ticketsCount: Number(docData.ticketsCount || docData.tickets || 1),
+          isCheckedIn: isDone,
+          gateStatus: isDone ? 'Done' : 'Pending Gate',
+          checkInTime: docData.checkInTime || null,
+          registrationId: snap.docs[0].id,
+          rawRegistration: { id: snap.docs[0].id, ...docData },
+          rawBooking: null,
+        };
+      }
+    }
+
+    // 2. Check in bookings collection
+    const bkgQueries = [
+      query(collection(db, collections.bookings), where('eventId', '==', eventId), where('ticketNumber', '==', clean)),
+      query(collection(db, collections.bookings), where('eventId', '==', eventId), where('ticketCode', '==', clean)),
+      query(collection(db, collections.bookings), where('eventId', '==', eventId), where('bookingId', '==', clean)),
+      query(collection(db, collections.bookings), where('eventId', '==', eventId), where('orderId', '==', clean)),
+    ];
+    for (const q of bkgQueries) {
+      const snap = await getDocs(q);
+      if (!snap.empty) {
+        const docData = snap.docs[0].data();
+        const isDone = docData.attendanceStatus === 'Checked In' || docData.status === 'Checked In' || docData.gateStatus === 'Done';
+        return {
+          id: snap.docs[0].id,
+          name: docData.bookingContact?.name || docData.attendee?.name || docData.name || 'Attendee',
+          email: docData.bookingContact?.email || docData.attendee?.email || docData.email || 'N/A',
+          phone: docData.bookingContact?.phone || docData.attendee?.phone || docData.phone || 'N/A',
+          tierName: docData.tierName || docData.packageName || 'Confirmed Pass',
+          ticketNumber: docData.ticketNumber || clean,
+          ticketsCount: Number(docData.totalTickets || 1),
+          isCheckedIn: isDone,
+          gateStatus: isDone ? 'Done' : 'Pending Gate',
+          checkInTime: docData.checkInTime || null,
+          bookingId: snap.docs[0].id,
+          rawBooking: { id: snap.docs[0].id, ...docData },
+          rawRegistration: null,
+        };
+      }
+    }
+  } catch (err) {
+    console.warn('lookupTicketDirect error:', err);
+  }
+  return null;
 };
 
 export const updateRegistration = (registrationId, data) =>

@@ -19,6 +19,7 @@ import Unauthorized from './pages/System/Unauthorized';
 import NotFound from './pages/System/NotFound';
 import ApprovalPending from './pages/Auth/ApprovalPending';
 import Transactions from './pages/Transactions/Transactions';
+import EventCheckInMobile from './pages/EventPlatform/EventCheckInMobile';
 import './App.css';
 
 /**
@@ -62,6 +63,8 @@ function App() {
               <Route path="/dashboard-preview" element={<Dashboard />} />
               <Route path="/transactions-preview" element={<Transactions />} />
               <Route path="/profile-preview" element={<Profile />} />
+              <Route path="/events/:eventId/checkin" element={<EventCheckInMobile />} />
+              <Route path="/checkin/:eventId" element={<EventCheckInMobile />} />
 
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />

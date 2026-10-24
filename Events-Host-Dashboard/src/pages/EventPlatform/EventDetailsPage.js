@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState, useRef } from 'react';
+import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
 import { useNavigate, useParams, Link } from 'react-router-dom';
 import {
   Check,
@@ -8,7 +8,6 @@ import {
   Edit,
   Eye,
   IndianRupee,
-  Megaphone,
   PauseCircle,
   PlayCircle,
   Share2,
@@ -32,6 +31,8 @@ import {
   Mail,
   CreditCard,
   MapPin,
+  Phone,
+  RotateCcw,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -44,10 +45,16 @@ import {
   Info,
   Loader2,
   XCircle,
+  Smartphone,
+  Camera,
+  KeyRound,
+  QrCode,
+  Upload,
 } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import EmptyState from '../../components/States/EmptyState';
-import LoadingState from '../../components/States/LoadingState';
+import EventDetailsSkeleton, { ParticipantTableSkeleton, TransactionTableSkeleton } from '../../components/States/SkeletonLoading';
 import { useAuth } from '../../context/AuthContext';
 import { TicketPassView } from './ticketDesigns';
 import './TicketDesigns.css';
@@ -62,6 +69,7 @@ import {
   updateEvent,
   updateEventBookingStatus,
   updateRegistration,
+  checkInParticipantTicket,
 } from '../../services/firebaseService';
 import { currency, downloadCsv, formatDate, formatDateTime } from '../../utils/formatters';
 import './EventPlatform.css';
@@ -69,6 +77,78 @@ import './EventManagementFlow.css';
 import './Participants.css';
 import '../Transactions/Transactions.css';
 import '../Auth/Auth.css';
+
+// Sound effect generator using Web Audio API
+const playChime = (type = 'success') => {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    if (type === 'success') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(784, ctx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(1568, ctx.currentTime + 0.16);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.16);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.16);
+    } else if (type === 'warning') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.frequency.setValueAtTime(330, ctx.currentTime + 0.1);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    } else {
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(220, ctx.currentTime);
+      osc.frequency.setValueAtTime(160, ctx.currentTime + 0.12);
+      gain.gain.setValueAtTime(0.3, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.25);
+      osc.start();
+      osc.stop(ctx.currentTime + 0.25);
+    }
+  } catch (e) {}
+};
+
+// Intelligent QR payload parser
+const parseScannedText = (raw) => {
+  if (!raw) return '';
+  const text = String(raw).trim();
+  if (text.startsWith('{') && text.endsWith('}')) {
+    try {
+      const parsed = JSON.parse(text);
+      return (
+        parsed.ticketNumber ||
+        parsed.ticketCode ||
+        parsed.code ||
+        parsed.bookingId ||
+        parsed.orderId ||
+        parsed.id ||
+        parsed.registrationId ||
+        text
+      );
+    } catch (e) {}
+  }
+  if (text.includes('?') || text.includes('://')) {
+    try {
+      const url = new URL(text, window.location.origin);
+      const code =
+        url.searchParams.get('ticket') ||
+        url.searchParams.get('ticketNumber') ||
+        url.searchParams.get('code') ||
+        url.searchParams.get('id');
+      if (code) return code;
+      const parts = url.pathname.split('/').filter(Boolean);
+      if (parts.length > 0) return parts[parts.length - 1];
+    } catch (e) {}
+  }
+  return text;
+};
 
 
 
@@ -84,6 +164,55 @@ const asDate = (value) => {
   }
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const formatEventDateTime = (dateVal, timeVal) => {
+  if (!dateVal) return 'Not set';
+  const d = asDate(dateVal);
+  if (!d) return 'Not set';
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  const dateStr = `${day} ${month}`;
+
+  if (timeVal) {
+    const match = String(timeVal).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i);
+    if (match) {
+      let hrs = parseInt(match[1], 10);
+      const mins = match[2];
+      let ampm = match[3] ? match[3].toUpperCase() : null;
+      if (!ampm) {
+        ampm = hrs >= 12 ? 'PM' : 'AM';
+        hrs = hrs % 12 || 12;
+      }
+      return `${dateStr}, ${String(hrs).padStart(2, '0')}:${mins} ${ampm}`;
+    }
+    return `${dateStr}, ${timeVal}`;
+  }
+
+  if (d.getHours() !== 0 || d.getMinutes() !== 0) {
+    const hrs = d.getHours() % 12 || 12;
+    const mins = String(d.getMinutes()).padStart(2, '0');
+    const ampm = d.getHours() >= 12 ? 'PM' : 'AM';
+    return `${dateStr}, ${String(hrs).padStart(2, '0')}:${mins} ${ampm}`;
+  }
+
+  return dateStr;
+};
+
+const formatEventUpdatedTime = (value) => {
+  if (!value) return 'Not set';
+  const d = value.toDate && typeof value.toDate === 'function' ? value.toDate() : new Date(value);
+  if (Number.isNaN(d.getTime())) return 'Not set';
+
+  const day = String(d.getDate()).padStart(2, '0');
+  const month = d.toLocaleString('en-US', { month: 'short' });
+  let hrs = d.getHours();
+  const mins = String(d.getMinutes()).padStart(2, '0');
+  const ampm = hrs >= 12 ? 'PM' : 'AM';
+  hrs = hrs % 12 || 12;
+
+  return `${day} ${month}, ${String(hrs).padStart(2, '0')}:${mins} ${ampm}`;
 };
 
 const EventDetailsPage = () => {
@@ -149,9 +278,69 @@ const EventDetailsPage = () => {
   const [newChatMessage, setNewChatMessage] = useState('');
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [bookedTicket, setBookedTicket] = useState(null);
+  const [selectedParticipantModal, setSelectedParticipantModal] = useState(null);
+  const [copiedModalTicketCode, setCopiedModalTicketCode] = useState(false);
+  const [modalCheckInLoading, setModalCheckInLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [meterFilter, setMeterFilter] = useState('All');
-  const { registrations } = useRegistrations({ eventId });
+  const [copiedEventId, setCopiedEventId] = useState(false);
+
+  // 3 Check-In Modes States (Phone, Laptop Webcam, Code Entry)
+  const [showPhoneScanModal, setShowPhoneScanModal] = useState(false);
+  const [showLaptopScanModal, setShowLaptopScanModal] = useState(false);
+  const [showCodeCheckInModal, setShowCodeCheckInModal] = useState(false);
+  const [copiedPhoneUrl, setCopiedPhoneUrl] = useState(false);
+  const [phoneHostIp, setPhoneHostIp] = useState(() => {
+    try {
+      const saved = localStorage.getItem('nitroxx_phone_host_ip');
+      if (saved && saved.trim()) return saved.trim();
+    } catch (e) {}
+    return window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+      ? '172.20.10.4'
+      : window.location.hostname;
+  });
+
+  const phoneCheckInUrl = useMemo(() => {
+    const port = window.location.port ? `:${window.location.port}` : '';
+    const protocol = window.location.protocol;
+    const host = (phoneHostIp || '').trim() || window.location.hostname;
+    const hostUid = user?.uid || profile?.id || '';
+    const hostEmail = user?.email || profile?.email || '';
+    const authParams = hostUid
+      ? `&autoGate=1&hostUid=${encodeURIComponent(hostUid)}&hostEmail=${encodeURIComponent(hostEmail)}`
+      : '&autoGate=1';
+    return `${protocol}//${host}${port}/events/${eventId}/checkin?source=qr${authParams}`;
+  }, [phoneHostIp, eventId, user?.uid, user?.email, profile?.id, profile?.email]);
+
+  // Laptop Webcam States
+  const [laptopScanResult, setLaptopScanResult] = useState(null);
+  const [laptopCameraError, setLaptopCameraError] = useState('');
+  const [laptopProcessing, setLaptopProcessing] = useState(false);
+  const [availableCameras, setAvailableCameras] = useState([]);
+  const [selectedCameraId, setSelectedCameraId] = useState('');
+  const laptopScannerRef = useRef(null);
+  const isLaptopRunningRef = useRef(false);
+  const laptopFileInputRef = useRef(null);
+
+  // Code Check-In States
+  const [enteredCheckInCode, setEnteredCheckInCode] = useState('');
+  const [matchedAttendee, setMatchedAttendee] = useState(null);
+  const [codeSearchError, setCodeSearchError] = useState('');
+  const [codeCheckInLoading, setCodeCheckInLoading] = useState(false);
+
+  const handleCopyEventId = (e) => {
+    if (e) e.stopPropagation();
+    const idToCopy = event?.eventId || event?.id || '';
+    if (!idToCopy) return;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(idToCopy).then(() => {
+        setCopiedEventId(true);
+        setTimeout(() => setCopiedEventId(false), 2000);
+      });
+    }
+  };
+  const { registrations, loading: loadingRegistrations } = useRegistrations({ eventId });
+  const [loadingBookings, setLoadingBookings] = useState(true);
 
   useEffect(() => {
     setParticipant({
@@ -182,7 +371,18 @@ const EventDetailsPage = () => {
 
   useEffect(() => {
     if (!eventId) return undefined;
-    return subscribeToEventBookings(eventId, setBookings, (err) => setError(err.message));
+    setLoadingBookings(true);
+    return subscribeToEventBookings(
+      eventId,
+      (items) => {
+        setBookings(items);
+        setLoadingBookings(false);
+      },
+      (err) => {
+        setError(err.message);
+        setLoadingBookings(false);
+      }
+    );
   }, [eventId]);
 
   const isHost = !event?.hostId || event?.hostId === user?.uid || profile?.role === 'Host';
@@ -892,25 +1092,58 @@ const EventDetailsPage = () => {
       else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
 
       const ticketNumber = r.ticketNumber || `NX-${(r.id || String(idx)).slice(0, 6).toUpperCase()}`;
-      const bibNumber = r.bibNumber || (r.ticketNumber ? `BIB-${r.ticketNumber.slice(-3)}` : `BIB-${101 + idx}`);
+      const bibNumber = r.bibNumber || (r.ticketNumber ? `${r.ticketNumber.slice(-3)}` : `${101 + idx}`);
       const priceNumeric = getRegistrationAmount(r);
       const ticketPrice = priceNumeric > 0 ? currency(priceNumeric) : 'Free';
       const dateObj = asDate(r.registrationDate || r.createdAt) || new Date();
       const bookedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
       const bookedMinutes = dateObj.getTime();
-      const isCheckedIn = r.attendanceStatus === 'Checked In';
+      const isCheckedIn = (r.attendanceStatus === 'Checked In' || r.status === 'Checked In' || r.gateStatus === 'Done');
       const gateStatus = isCheckedIn ? 'Done' : 'Pending Gate';
       const paymentStatus = (r.paymentStatus === 'Paid' || priceNumeric === 0 || r.status === 'Confirmed') ? 'Paid' : (r.paymentStatus || 'Pending');
+
+      // Match with booking document if exists to extract extended details
+      const matchedBooking = (bookings || []).find((b) => {
+        if (!b) return false;
+        if (r.bookingId && (b.id === r.bookingId || b.bookingId === r.bookingId || b.orderId === r.bookingId)) return true;
+        if (b.registrationId && (b.registrationId === id || b.registrationId === r.id)) return true;
+        if (b.ticketNumber && (b.ticketNumber === r.ticketNumber || b.ticketNumber === r.ticketCode)) return true;
+        const bEmail = (b.bookingContact?.email || b.attendee?.email || b.email || '').toLowerCase().trim();
+        if (email && bEmail && email === bEmail) return true;
+        return false;
+      });
+
+      const bookingId = r.bookingId || matchedBooking?.bookingId || matchedBooking?.id || matchedBooking?.orderId || id;
+      const orderId = matchedBooking?.orderId || matchedBooking?.bookingId || r.orderId || r.bookingId || id;
+      const phone = r.participantPhone || r.participant?.phone || r.phone || matchedBooking?.bookingContact?.phone || matchedBooking?.attendee?.phone || matchedBooking?.phone || 'N/A';
+      const age = r.participant?.age || r.age || matchedBooking?.attendee?.age || 'N/A';
+      const gender = r.participant?.gender || r.gender || matchedBooking?.attendee?.gender || 'N/A';
+      const idType = r.participant?.idType || r.idType || matchedBooking?.attendee?.idType || 'Govt ID';
+      const idNumber = r.participant?.idNumber || r.idNumber || matchedBooking?.attendee?.idNumber || 'Verified';
+      const emergencyContact = r.participant?.emergencyContact || r.emergencyContact || matchedBooking?.emergencyContact || (r.emergencyPhone ? { name: r.emergencyName || 'Emergency Contact', phone: r.emergencyPhone, relation: r.emergencyRelation || 'Contact' } : null);
+      const bikeDetails = r.participant?.bikeDetails || r.bikeDetails || matchedBooking?.bikeDetails || null;
+      const paymentMethod = matchedBooking?.paymentMethod || matchedBooking?.payment?.method || r.paymentMethod || (priceNumeric > 0 ? 'Razorpay / Online' : 'Complimentary Pass');
+      const paymentId = matchedBooking?.paymentId || matchedBooking?.razorpay_payment_id || r.paymentId || 'N/A';
+      const attendeesList = (matchedBooking?.attendees && matchedBooking.attendees.length > 0)
+        ? matchedBooking.attendees
+        : (r.attendees && r.attendees.length > 0
+          ? r.attendees
+          : [{ name, email: email || 'N/A', phone, role: tierName, idType }]);
+      const preferences = matchedBooking?.preferences || r.preferences || null;
+      const fees = matchedBooking?.fees || null;
+      const qrPayload = r.qrPayload || matchedBooking?.qrPayload || JSON.stringify({ ticketNumber, bookingId, eventId: event?.id, name, bibNumber });
 
       list.push({
         id,
         registrationId: id,
+        bookingId,
+        orderId,
         name,
         participantName: name,
         email: email || 'N/A',
         participantEmail: email || 'N/A',
-        phone: r.participantPhone || r.participant?.phone || r.phone || 'N/A',
-        participantPhone: r.participantPhone || r.participant?.phone || r.phone || 'N/A',
+        phone,
+        participantPhone: phone,
         avatar: r.participantPhoto || r.avatar || null,
         avatarInitial: name.charAt(0).toUpperCase(),
         eventTitle: event?.title || 'Current Event',
@@ -924,15 +1157,31 @@ const EventDetailsPage = () => {
         bookedDate,
         bookedMinutes,
         paymentStatus,
+        paymentMethod,
+        paymentId,
         gateStatus,
         attendanceStatus: isCheckedIn ? 'Checked In' : 'Not Checked In',
+        isCheckedIn,
+        checkInTime: r.checkInTime || r.checkedInAt || null,
+        ticketCode: r.ticketCode || r.ticketNumber || ticketNumber,
         vehicle: r.participant?.vehicleNumber || r.vehicle || 'Motorcycle',
         vehiclePlate: r.participant?.vehicleNumber || r.vehiclePlate || 'N/A',
         city: r.participant?.city || r.city || event?.city || 'India',
         ticketsCount: Number(r.ticketsCount || r.tickets || 1),
         status: r.status || 'Confirmed',
+        age,
+        gender,
+        idType,
+        idNumber,
+        emergencyContact,
+        bikeDetails,
+        attendeesList,
+        preferences,
+        fees,
+        qrPayload,
         isFromBooking: false,
         rawRegistration: r,
+        rawBooking: matchedBooking || null,
       });
     });
 
@@ -961,20 +1210,40 @@ const EventDetailsPage = () => {
         const dateObj = asDate(b.createdAt) || new Date();
         const bookedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         const bookedMinutes = dateObj.getTime();
-        const isCheckedIn = b.attendanceStatus === 'Checked In';
+        const isCheckedIn = (b.attendanceStatus === 'Checked In' || b.status === 'Checked In' || b.gateStatus === 'Done');
         const gateStatus = isCheckedIn ? 'Done' : 'Pending Gate';
         const isPaid = (b.paymentStatus === 'paid' || b.status === 'paid' || b.status === 'approved' || b.status === 'confirmed');
         const paymentStatus = isPaid ? 'Paid' : 'Pending';
 
+        const bookingId = b.bookingId || b.id || b.orderId;
+        const orderId = b.orderId || b.bookingId || b.id;
+        const phone = b.bookingContact?.phone || b.attendee?.phone || b.phone || 'N/A';
+        const age = b.attendee?.age || 'N/A';
+        const gender = b.attendee?.gender || 'N/A';
+        const idType = b.attendee?.idType || 'Govt ID';
+        const idNumber = b.attendee?.idNumber || 'Verified';
+        const emergencyContact = b.emergencyContact || (b.emergencyPhone ? { name: b.emergencyName || 'Emergency Contact', phone: b.emergencyPhone, relation: b.emergencyRelation || 'Contact' } : null);
+        const bikeDetails = b.bikeDetails || null;
+        const paymentMethod = b.paymentMethod || b.payment?.method || (priceNumeric > 0 ? 'Razorpay / Online' : 'Complimentary Pass');
+        const paymentId = b.paymentId || b.razorpay_payment_id || 'N/A';
+        const attendeesList = (b.attendees && b.attendees.length > 0)
+          ? b.attendees
+          : [{ name, email: email || 'N/A', phone, role: tierName, idType }];
+        const preferences = b.preferences || null;
+        const fees = b.fees || null;
+        const qrPayload = b.qrPayload || JSON.stringify({ ticketNumber, bookingId, eventId: event?.id, name, bibNumber });
+
         list.push({
           id: b.id || regId,
           registrationId: regId,
+          bookingId,
+          orderId,
           name,
           participantName: name,
           email: email || 'N/A',
           participantEmail: email || 'N/A',
-          phone: b.bookingContact?.phone || b.attendee?.phone || b.phone || 'N/A',
-          participantPhone: b.bookingContact?.phone || b.attendee?.phone || b.phone || 'N/A',
+          phone,
+          participantPhone: phone,
           avatar: b.userPhoto || b.photoURL || null,
           avatarInitial: name.charAt(0).toUpperCase(),
           eventTitle: event?.title || 'Current Event',
@@ -988,15 +1257,31 @@ const EventDetailsPage = () => {
           bookedDate,
           bookedMinutes,
           paymentStatus,
+          paymentMethod,
+          paymentId,
           gateStatus,
           attendanceStatus: isCheckedIn ? 'Checked In' : 'Not Checked In',
+          isCheckedIn,
+          checkInTime: b.checkInTime || null,
+          ticketCode: b.ticketCode || b.ticketNumber || ticketNumber,
           vehicle: b.vehicle || 'Motorcycle',
           vehiclePlate: b.vehiclePlate || 'N/A',
           city: b.city || event?.city || 'India',
           ticketsCount: Number(b.totalTickets || ((b.attendeeCounts?.adults || 0) + (b.attendeeCounts?.children || 0)) || 1),
           status: isPaid ? 'Confirmed' : (b.status || 'Confirmed'),
+          age,
+          gender,
+          idType,
+          idNumber,
+          emergencyContact,
+          bikeDetails,
+          attendeesList,
+          preferences,
+          fees,
+          qrPayload,
           isFromBooking: true,
           rawBooking: b,
+          rawRegistration: null,
         });
       }
     });
@@ -1156,6 +1441,321 @@ const EventDetailsPage = () => {
     );
   };
 
+  // -------------------------------------------------------------------------
+  // GATE CHECK-IN ACTIONS & HANDLERS (Phone, Laptop Webcam, Code Entry)
+  // -------------------------------------------------------------------------
+  const handleCopyPhoneUrl = () => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(phoneCheckInUrl).then(() => {
+        setCopiedPhoneUrl(true);
+        setTimeout(() => setCopiedPhoneUrl(false), 2500);
+      });
+    }
+  };
+
+  const findParticipantByCode = useCallback(
+    (codeToMatch) => {
+      if (!codeToMatch) return null;
+      const clean = String(codeToMatch).trim().toLowerCase();
+
+      return allParticipantsList.find((p) => {
+        const tNum = String(p.ticketNumber || '').trim().toLowerCase();
+        const bib = String(p.bibNumber || '').trim().toLowerCase();
+        const id = String(p.id || '').trim().toLowerCase();
+        const regId = String(p.registrationId || '').trim().toLowerCase();
+        const bkgId = String(p.rawBooking?.bookingId || p.rawBooking?.id || '').trim().toLowerCase();
+        const ordId = String(p.rawBooking?.orderId || '').trim().toLowerCase();
+        const email = String(p.email || p.participantEmail || '').trim().toLowerCase();
+        const phone = String(p.phone || p.participantPhone || '').trim();
+
+        return (
+          tNum === clean ||
+          bib === clean ||
+          id === clean ||
+          regId === clean ||
+          bkgId === clean ||
+          ordId === clean ||
+          (clean.length > 5 && (tNum.includes(clean) || bib.includes(clean))) ||
+          email === clean ||
+          phone === clean
+        );
+      });
+    },
+    [allParticipantsList]
+  );
+
+  const stopLaptopScanner = useCallback(async () => {
+    if (laptopScannerRef.current) {
+      try {
+        if (isLaptopRunningRef.current || laptopScannerRef.current.isScanning) {
+          await laptopScannerRef.current.stop();
+        }
+      } catch (e) {
+        console.warn('Laptop scanner stop error:', e);
+      }
+      try {
+        await laptopScannerRef.current.clear();
+      } catch (e) {}
+      laptopScannerRef.current = null;
+      isLaptopRunningRef.current = false;
+    }
+  }, []);
+
+  const handleCloseLaptopScanner = useCallback(() => {
+    stopLaptopScanner();
+    setLaptopScanResult(null);
+    setLaptopCameraError('');
+    setShowLaptopScanModal(false);
+  }, [stopLaptopScanner]);
+
+  const handleResumeLaptopScan = () => {
+    setLaptopScanResult(null);
+  };
+
+  const startLaptopScanner = useCallback(async (forcedCamId) => {
+    setLaptopCameraError('');
+    try {
+      const el = document.getElementById('laptop-qr-reader');
+      if (!el) {
+        setTimeout(() => startLaptopScanner(forcedCamId), 150);
+        return;
+      }
+
+      // Clean up previous instance before fresh start
+      if (laptopScannerRef.current) {
+        try {
+          if (isLaptopRunningRef.current || laptopScannerRef.current.isScanning) {
+            await laptopScannerRef.current.stop();
+          }
+        } catch (e) {}
+        try {
+          await laptopScannerRef.current.clear();
+        } catch (e) {}
+        laptopScannerRef.current = null;
+        isLaptopRunningRef.current = false;
+      }
+
+      const qrScanner = new Html5Qrcode('laptop-qr-reader');
+      laptopScannerRef.current = qrScanner;
+
+      // Select camera device
+      let cameraConfig = forcedCamId || selectedCameraId;
+      try {
+        const devices = await Html5Qrcode.getCameras();
+        if (devices && devices.length > 0) {
+          setAvailableCameras(devices);
+          if (!cameraConfig) {
+            cameraConfig = devices[0].id;
+            setSelectedCameraId(devices[0].id);
+          }
+        } else {
+          cameraConfig = { facingMode: { ideal: 'user' } };
+        }
+      } catch (camErr) {
+        console.warn('getCameras fallback:', camErr);
+        cameraConfig = { facingMode: { ideal: 'user' } };
+      }
+
+      const qrConfig = {
+        fps: 15,
+        qrbox: (viewfinderWidth, viewfinderHeight) => {
+          const minEdge = Math.min(viewfinderWidth, viewfinderHeight);
+          const edge = Math.max(Math.floor(minEdge * 0.75), 180);
+          return { width: edge, height: edge };
+        },
+        aspectRatio: 1.0,
+      };
+
+      await qrScanner.start(
+        cameraConfig,
+        qrConfig,
+        async (decodedText) => {
+          if (laptopProcessing) return;
+          const parsed = parseScannedText(decodedText);
+          if (!parsed) return;
+
+          setLaptopProcessing(true);
+          const matched = findParticipantByCode(parsed);
+
+          if (!matched) {
+            playChime('error');
+            setLaptopScanResult({
+              status: 'error',
+              code: parsed,
+              message: 'Ticket not found for this event',
+            });
+            setLaptopProcessing(false);
+            return;
+          }
+
+          if (matched.isCheckedIn || matched.gateStatus === 'Done' || matched.status === 'Checked In') {
+            playChime('warning');
+            setLaptopScanResult({
+              status: 'warning',
+              title: 'ALREADY USED',
+              participant: matched,
+              code: parsed,
+              message: 'ALREADY USED',
+              time: matched.checkInTime ? formatDateTime(matched.checkInTime) : 'Earlier today',
+            });
+            setLaptopProcessing(false);
+            return;
+          }
+
+          try {
+            await checkInParticipantTicket({
+              eventId,
+              ticketCode: matched.ticketNumber || parsed,
+              bookingId: matched.rawBooking?.id,
+              registrationId: matched.registrationId || matched.rawRegistration?.id,
+            });
+            playChime('success');
+            setLaptopScanResult({
+              status: 'success',
+              participant: { ...matched, isCheckedIn: true },
+              code: parsed,
+              message: 'Admission Confirmed',
+              time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+            });
+          } catch (err) {
+            setLaptopScanResult({
+              status: 'error',
+              code: parsed,
+              message: err.message || 'Check-in failed',
+            });
+          } finally {
+            setLaptopProcessing(false);
+          }
+        },
+        () => {}
+      );
+      isLaptopRunningRef.current = true;
+    } catch (err) {
+      console.warn('Laptop camera start error:', err);
+      let errorMsg = 'Unable to start laptop webcam. Please verify camera is available.';
+      if (err?.name === 'NotAllowedError' || err?.message?.includes('Permission')) {
+        errorMsg = 'Webcam permission denied by browser. Please click the camera icon in your browser URL address bar to allow access and click Retry.';
+      } else if (err?.name === 'NotReadableError' || err?.message?.includes('NotReadableError')) {
+        errorMsg = 'Camera is currently in use by another app (e.g. Zoom, Teams, Meet). Please close other camera apps and retry.';
+      } else if (err?.name === 'NotFoundError') {
+        errorMsg = 'No webcam hardware detected on this device.';
+      }
+      setLaptopCameraError(errorMsg);
+      isLaptopRunningRef.current = false;
+    }
+  }, [eventId, findParticipantByCode, laptopProcessing, selectedCameraId]);
+
+  const handleLaptopFileScan = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setLaptopCameraError('');
+    setLaptopProcessing(true);
+    try {
+      const scanner = laptopScannerRef.current || new Html5Qrcode('laptop-qr-reader');
+      const decodedText = await scanner.scanFile(file, true);
+      const parsed = parseScannedText(decodedText);
+      if (!parsed) {
+        setLaptopScanResult({ status: 'error', code: 'N/A', message: 'Could not parse ticket data' });
+        return;
+      }
+      const matched = findParticipantByCode(parsed);
+      if (!matched) {
+        playChime('error');
+        setLaptopScanResult({ status: 'error', code: parsed, message: 'Ticket not found for this event' });
+        return;
+      }
+      if (matched.isCheckedIn || matched.gateStatus === 'Done' || matched.status === 'Checked In') {
+        playChime('warning');
+        setLaptopScanResult({
+          status: 'warning',
+          title: 'ALREADY USED',
+          participant: matched,
+          code: parsed,
+          message: 'ALREADY USED',
+          time: matched.checkInTime ? formatDateTime(matched.checkInTime) : 'Earlier today',
+        });
+        return;
+      }
+      await checkInParticipantTicket({
+        eventId,
+        ticketCode: matched.ticketNumber || parsed,
+        bookingId: matched.rawBooking?.id,
+        registrationId: matched.registrationId || matched.rawRegistration?.id,
+      });
+      playChime('success');
+      setLaptopScanResult({
+        status: 'success',
+        participant: { ...matched, isCheckedIn: true },
+        code: parsed,
+        message: 'Admission Confirmed',
+        time: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+      });
+    } catch (err) {
+      console.warn('Laptop file scan error:', err);
+      setLaptopScanResult({ status: 'error', code: '', message: 'No readable QR code found in selected image.' });
+    } finally {
+      setLaptopProcessing(false);
+      if (e.target) e.target.value = '';
+    }
+  };
+
+  useEffect(() => {
+    if (showLaptopScanModal && !laptopScanResult) {
+      const timer = setTimeout(() => {
+        startLaptopScanner();
+      }, 300);
+      return () => clearTimeout(timer);
+    }
+    return () => {
+      stopLaptopScanner();
+    };
+  }, [showLaptopScanModal, laptopScanResult, startLaptopScanner, stopLaptopScanner]);
+
+  const handleSearchCodeCheckIn = (e) => {
+    if (e) e.preventDefault();
+    setCodeSearchError('');
+    setMatchedAttendee(null);
+    if (!enteredCheckInCode.trim()) {
+      setCodeSearchError('Please enter a ticket code, booking ID, or bib number.');
+      return;
+    }
+    const clean = enteredCheckInCode.trim();
+    const found = findParticipantByCode(clean);
+    if (!found) {
+      setCodeSearchError(`No participant found with code "${clean}" for this event.`);
+      playChime('error');
+    } else {
+      setMatchedAttendee(found);
+      playChime(found.isCheckedIn ? 'warning' : 'success');
+    }
+  };
+
+  const handleConfirmCodeCheckIn = async () => {
+    if (!matchedAttendee) return;
+    setCodeCheckInLoading(true);
+    try {
+      await checkInParticipantTicket({
+        eventId,
+        ticketCode: matchedAttendee.ticketNumber || enteredCheckInCode,
+        bookingId: matchedAttendee.rawBooking?.id,
+        registrationId: matchedAttendee.registrationId || matchedAttendee.rawRegistration?.id,
+      });
+      playChime('success');
+      setMatchedAttendee((prev) => ({
+        ...prev,
+        isCheckedIn: true,
+        gateStatus: 'Done',
+        attendanceStatus: 'Checked In',
+        checkInTime: new Date().toISOString(),
+      }));
+    } catch (err) {
+      setCodeSearchError(err.message || 'Check-in failed');
+      playChime('error');
+    } finally {
+      setCodeCheckInLoading(false);
+    }
+  };
+
   // Quick Stats for Participant Metric Strip
   const totalCheckedInCount = allParticipantsList.filter((p) => p.gateStatus === 'Done').length;
   const totalOnTrackCount = allParticipantsList.filter((p) => p.gateStatus === 'On Progress' || p.attendanceStatus === 'Checked In').length;
@@ -1217,6 +1817,38 @@ const EventDetailsPage = () => {
     }
   };
 
+  const handleOpenParticipantDetails = (entry) => {
+    setSelectedParticipantModal(entry);
+    setCopiedModalTicketCode(false);
+  };
+
+  const handleCopyModalTicketCode = (code) => {
+    if (!code) return;
+    navigator.clipboard.writeText(code);
+    setCopiedModalTicketCode(true);
+    setTimeout(() => setCopiedModalTicketCode(false), 2200);
+  };
+
+  const handleModalCheckInToggle = async () => {
+    if (!selectedParticipantModal || modalCheckInLoading) return;
+    setModalCheckInLoading(true);
+    try {
+      await toggleCheckIn(selectedParticipantModal);
+      const isNowCheckedIn = !(selectedParticipantModal.gateStatus === 'Done' || selectedParticipantModal.attendanceStatus === 'Checked In');
+      setSelectedParticipantModal((prev) => ({
+        ...prev,
+        gateStatus: isNowCheckedIn ? 'Done' : 'Pending Gate',
+        attendanceStatus: isNowCheckedIn ? 'Checked In' : 'Not Checked In',
+        isCheckedIn: isNowCheckedIn,
+        checkInTime: isNowCheckedIn ? new Date() : null,
+      }));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setModalCheckInLoading(false);
+    }
+  };
+
   const handleViewPass = (entry) => {
     setBookedTicket({
       ticketNumber: entry.ticketNumber || `NX-${(entry.id || '').slice(0, 6).toUpperCase()}`,
@@ -1236,9 +1868,27 @@ const EventDetailsPage = () => {
   // =========================================================================
   const allTransactionsList = useMemo(() => {
     const list = [];
-    const existingTxIds = new Set();
 
-    bookings.forEach((b, idx) => {
+    // Track seen booking keys to prevent duplicates within bookings
+    const seenBookingKeys = new Set();
+
+    // Sets of identifiers that link bookings to registrations
+    const linkedRefIds = new Set();
+    const linkedTicketNumbers = new Set();
+    const linkedPaymentIds = new Set();
+    const linkedEmails = new Set();
+    const linkedUserIds = new Set();
+    const linkedPhones = new Set();
+
+    // 1. Process Bookings (Primary financial transaction records)
+    (bookings || []).forEach((b, idx) => {
+      // Primary uniqueness key for booking document
+      const primaryBookingKey = String(b.id || b.bookingId || b.orderId || `booking-${idx}`);
+      if (seenBookingKeys.has(primaryBookingKey)) {
+        return; // Skip duplicate booking document snapshot
+      }
+      seenBookingKeys.add(primaryBookingKey);
+
       const orderId = b.bookingId || b.orderId || b.id || `ORD-${1000 + idx}`;
       const amountNum = getBookingAmount(b);
       const isPaid =
@@ -1250,15 +1900,127 @@ const EventDetailsPage = () => {
       const status = isFailed ? 'Failed' : isPaid ? 'Success' : 'Pending';
       const dateObj = asDate(b.createdAt) || new Date();
       const customerName = b.bookingContact?.name || b.attendee?.name || b.name || 'Guest User';
-      const customerEmail = b.bookingContact?.email || b.attendee?.email || b.email || 'N/A';
+      const customerEmail = (b.bookingContact?.email || b.attendee?.email || b.email || b.userEmail || '').trim();
       const category = b.tierName || b.packageName || b.joinAs || (amountNum === 0 ? 'Free Pass' : 'Ticket Booking');
       const ticketsCount = Number(
         b.totalTickets || (b.attendeeCounts?.adults || 0) + (b.attendeeCounts?.children || 0) || 1
       );
 
+      // Collect all identifier linkages so corresponding registration docs are not duplicated
+      if (b.id) linkedRefIds.add(String(b.id).trim());
+      if (b.bookingId) linkedRefIds.add(String(b.bookingId).trim());
+      if (b.orderId) linkedRefIds.add(String(b.orderId).trim());
+      if (b.registrationId) linkedRefIds.add(String(b.registrationId).trim());
+      if (orderId) linkedRefIds.add(String(orderId).trim());
+
+      if (Array.isArray(b.registrationIds)) {
+        b.registrationIds.forEach((rid) => rid && linkedRefIds.add(String(rid).trim()));
+      }
+
+      const pId = b.paymentId || b.transactionId || b.razorpay_payment_id || b.paymentDetails?.razorpay_payment_id;
+      if (pId) linkedPaymentIds.add(String(pId).trim());
+
+      const tNum = b.ticketNumber || b.ticketId;
+      if (tNum) linkedTicketNumbers.add(String(tNum).trim().toUpperCase());
+
+      if (customerEmail) linkedEmails.add(customerEmail.toLowerCase());
+
+      const cPhone = (b.bookingContact?.phone || b.attendee?.phone || b.phone || '').trim();
+      if (cPhone) linkedPhones.add(cPhone);
+
+      if (b.userId) {
+        const uIdStr = String(b.userId).trim();
+        linkedUserIds.add(uIdStr);
+        if (b.eventId || eventId || event?.id) {
+          const evId = b.eventId || eventId || event?.id;
+          linkedRefIds.add(`${evId}_${uIdStr}`);
+          linkedRefIds.add(`${evId}_${uIdStr}_${b.id}`);
+        }
+      }
+
+      // If booking contains attendees or tickets array, record their ticket numbers and emails too
+      if (Array.isArray(b.attendees)) {
+        b.attendees.forEach((att) => {
+          if (att?.ticketNumber) linkedTicketNumbers.add(String(att.ticketNumber).trim().toUpperCase());
+          if (att?.registrationId) linkedRefIds.add(String(att.registrationId).trim());
+          if (att?.email) linkedEmails.add(String(att.email).trim().toLowerCase());
+          if (att?.phone) linkedPhones.add(String(att.phone).trim());
+        });
+      }
+      if (Array.isArray(b.tickets)) {
+        b.tickets.forEach((t) => {
+          if (t?.ticketNumber) linkedTicketNumbers.add(String(t.ticketNumber).trim().toUpperCase());
+          if (t?.registrationId) linkedRefIds.add(String(t.registrationId).trim());
+          if (t?.email) linkedEmails.add(String(t.email).trim().toLowerCase());
+        });
+      }
+
       list.push({
         id: b.id || `tx-${idx}`,
         orderId,
+        name: customerName,
+        description: `${category} · ${ticketsCount} Ticket${ticketsCount > 1 ? 's' : ''}`,
+        category,
+        date: dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
+        time: dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
+        timestamp: dateObj.getTime(),
+        email: customerEmail || 'N/A',
+        status,
+        amount: currency(amountNum),
+        amountNum,
+        avatar:
+          b.userPhoto ||
+          b.photoURL ||
+          `https://images.unsplash.com/photo-${1535713875002 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
+        rawBooking: b,
+      });
+    });
+
+    // 2. Process Registrations (Include standalone registrations that do not originate from bookings)
+    const seenRegKeys = new Set();
+
+    (registrations || []).forEach((r, idx) => {
+      const regKey = String(r.id || r.registrationId || `reg-${idx}`);
+      if (seenRegKeys.has(regKey)) {
+        return; // Skip duplicate registration snapshot
+      }
+      seenRegKeys.add(regKey);
+
+      const rPaymentId = r.paymentId || r.transactionId || r.razorpay_payment_id;
+      const rTicketNumber = r.ticketNumber ? String(r.ticketNumber).trim().toUpperCase() : null;
+      const rEmail = (r.participantEmail || r.participant?.email || r.email || '').trim().toLowerCase();
+      const rUserId = r.userId ? String(r.userId).trim() : null;
+      const rPhone = (r.participantPhone || r.participant?.phone || r.phone || '').trim();
+
+      // Check all possible linkages:
+      const isLinkedToBooking =
+        (r.id && linkedRefIds.has(String(r.id).trim())) ||
+        (r.registrationId && linkedRefIds.has(String(r.registrationId).trim())) ||
+        (r.bookingId && linkedRefIds.has(String(r.bookingId).trim())) ||
+        (r.orderId && linkedRefIds.has(String(r.orderId).trim())) ||
+        (rPaymentId && linkedPaymentIds.has(String(rPaymentId).trim())) ||
+        (rTicketNumber && linkedTicketNumbers.has(rTicketNumber)) ||
+        (rUserId && linkedUserIds.has(rUserId)) ||
+        (rEmail && linkedEmails.has(rEmail)) ||
+        (rPhone && linkedPhones.has(rPhone));
+
+      if (isLinkedToBooking) {
+        return; // Already represented in list by a booking
+      }
+
+      const regTxId = r.ticketNumber || (r.id ? `REG-${String(r.id).slice(0, 8).toUpperCase()}` : `REG-${1000 + idx}`);
+      const amountNum = getRegistrationAmount(r);
+      const isPaid = r.paymentStatus === 'Paid' || amountNum === 0 || r.status === 'Confirmed';
+      const status = isPaid ? 'Success' : 'Pending';
+      const dateObj = asDate(r.registrationDate || r.createdAt) || new Date();
+      const customerName = r.participantName || r.participant?.fullName || r.fullName || 'Participant';
+      const customerEmail = rEmail || 'N/A';
+      const category = r.ticketType || r.tierName || (amountNum === 0 ? 'Free Pass' : 'Direct Registration');
+      const ticketsCount = Number(r.ticketsCount || r.tickets || 1);
+
+      list.push({
+        id: r.id || `reg-tx-${idx}`,
+        orderId: regTxId,
         name: customerName,
         description: `${category} · ${ticketsCount} Ticket${ticketsCount > 1 ? 's' : ''}`,
         category,
@@ -1270,49 +2032,42 @@ const EventDetailsPage = () => {
         amount: currency(amountNum),
         amountNum,
         avatar:
-          b.userPhoto ||
-          b.photoURL ||
-          `https://images.unsplash.com/photo-${1535713875002 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
-        rawBooking: b,
-      });
-      existingTxIds.add(orderId);
-    });
-
-    registrations.forEach((r, idx) => {
-      const regTxId = r.ticketNumber || `REG-${(r.id || String(idx)).slice(0, 6).toUpperCase()}`;
-      if (!existingTxIds.has(regTxId)) {
-        const amountNum = getRegistrationAmount(r);
-        const isPaid = r.paymentStatus === 'Paid' || amountNum === 0 || r.status === 'Confirmed';
-        const status = isPaid ? 'Success' : 'Pending';
-        const dateObj = asDate(r.registrationDate || r.createdAt) || new Date();
-        const customerName = r.participantName || r.participant?.fullName || r.fullName || 'Participant';
-        const customerEmail = r.participantEmail || r.participant?.email || r.email || 'N/A';
-        const category = r.ticketType || r.tierName || (amountNum === 0 ? 'Free Pass' : 'Direct Registration');
-        const ticketsCount = Number(r.ticketsCount || r.tickets || 1);
-
-        list.push({
-          id: r.id || `reg-tx-${idx}`,
+          r.participantPhoto ||
+          `https://images.unsplash.com/photo-${1534528741775 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
+        rawRegistration: r,
+        rawBooking: {
+          id: r.id,
+          bookingId: regTxId,
           orderId: regTxId,
-          name: customerName,
-          description: `${category} · ${ticketsCount} Ticket${ticketsCount > 1 ? 's' : ''}`,
-          category,
-          date: dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
-          time: dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
-          timestamp: dateObj.getTime(),
-          email: customerEmail,
-          status,
-          amount: currency(amountNum),
-          amountNum,
-          avatar:
-            r.participantPhoto ||
-            `https://images.unsplash.com/photo-${1534528741775 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
-          rawRegistration: r,
-        });
-      }
+          registrationId: r.registrationId || r.id,
+          status: isPaid ? 'approved' : 'pending',
+          paymentStatus: isPaid ? 'paid' : 'pending',
+          createdAt: r.registrationDate || r.createdAt,
+          total: amountNum,
+          amount: amountNum,
+          attendee: {
+            name: customerName,
+            email: customerEmail,
+            phone: r.participantPhone || r.participant?.phone || r.phone || 'N/A',
+          },
+          bookingContact: {
+            name: customerName,
+            email: customerEmail,
+            phone: r.participantPhone || r.participant?.phone || r.phone || 'N/A',
+          },
+          totalTickets: ticketsCount,
+          attendanceStatus: r.attendanceStatus || 'Not Checked In',
+          ticketNumber: r.ticketNumber || regTxId,
+          tierName: category,
+        },
+      });
     });
+
+    // Sort by timestamp descending (newest transaction first)
+    list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
     return list;
-  }, [bookings, registrations]);
+  }, [bookings, registrations, eventId, event?.id]);
 
   // Distinct Filter Options for Transactions
   const transactionTimeframeOptions = ['All', '1D', '7D', '1M', '1Y'];
@@ -1578,6 +2333,54 @@ const EventDetailsPage = () => {
         </div>
       </div>
 
+      {/* 3 GATE CHECK-IN ACTIONS: SCAN FROM PHONE, SCAN FROM LAPTOP, SCAN FROM CODE */}
+      <div className="checkin-gate-action-rail">
+        <div className="checkin-gate-rail-left">
+          <div className="checkin-gate-title-wrap">
+            <span className="checkin-gate-live-pulse" />
+            <span className="checkin-gate-rail-title">Participant Gate Check-In</span>
+            <span className="checkin-gate-rail-subtitle">
+              Scan attendee QR passes or verify ticket code
+            </span>
+          </div>
+        </div>
+
+        <div className="checkin-gate-rail-buttons">
+          {/* Button 1: Scan from Phone */}
+          <button
+            type="button"
+            className="checkin-action-btn phone-btn"
+            onClick={() => setShowPhoneScanModal(true)}
+            title="Open mobile scanner link or scan QR with smartphone"
+          >
+            <Smartphone size={15} />
+            <span>Scan from Phone</span>
+          </button>
+
+          {/* Button 2: Scan from Laptop */}
+          <button
+            type="button"
+            className="checkin-action-btn laptop-btn"
+            onClick={() => setShowLaptopScanModal(true)}
+            title="Scan attendee ticket QR directly using laptop camera"
+          >
+            <Camera size={15} />
+            <span>Scan from Laptop</span>
+          </button>
+
+          {/* Button 3: Scan from Code */}
+          <button
+            type="button"
+            className="checkin-action-btn code-btn"
+            onClick={() => setShowCodeCheckInModal(true)}
+            title="Check in attendee by entering ticket booking code"
+          >
+            <KeyRound size={15} />
+            <span>Scan from Code</span>
+          </button>
+        </div>
+      </div>
+
       {/* Toolbar: Search and Filter Dropdowns */}
       <div className="ptable-toolbar-container">
         {/* Search Box */}
@@ -1810,7 +2613,9 @@ const EventDetailsPage = () => {
             </thead>
 
             <tbody>
-              {paginatedParticipants.length === 0 ? (
+              {loadingRegistrations && allParticipantsList.length === 0 ? (
+                <ParticipantTableSkeleton rows={8} />
+              ) : paginatedParticipants.length === 0 ? (
                 <tr>
                   <td colSpan="8" className="ptable-empty-cell">
                     <div className="empty-state-box">
@@ -1833,7 +2638,7 @@ const EventDetailsPage = () => {
                     <tr
                       key={item.id}
                       className={`ptable-row ${isSelected ? 'row-selected' : ''}`}
-                      onClick={() => handleViewPass(item)}
+                      onClick={() => handleOpenParticipantDetails(item)}
                     >
                       {/* Checkbox Column */}
                       <td className="ptable-td td-checkbox" onClick={(e) => e.stopPropagation()}>
@@ -1941,10 +2746,10 @@ const EventDetailsPage = () => {
                           <button
                             type="button"
                             className="stage-action-btn"
-                            onClick={() => handleViewPass(item)}
-                            title="View Official Pass"
+                            onClick={() => handleOpenParticipantDetails(item)}
+                            title="View Booking Details & Pass"
                           >
-                            <Ticket size={12} /> Pass
+                            <Eye size={12} /> Details
                           </button>
                         </div>
                       </td>
@@ -2334,7 +3139,9 @@ const EventDetailsPage = () => {
             </thead>
 
             <tbody>
-              {paginatedTransactions.length === 0 ? (
+              {loadingBookings && allTransactionsList.length === 0 ? (
+                <TransactionTableSkeleton rows={8} />
+              ) : paginatedTransactions.length === 0 ? (
                 <tr>
                   <td colSpan="9" className="ptable-empty-cell">
                     <div className="empty-state-box">
@@ -2601,7 +3408,13 @@ const EventDetailsPage = () => {
     </div>
   );
 
-  if (loading) return <AppLayout><LoadingState label="Loading event details" /></AppLayout>;
+  if (loading) {
+    return (
+      <AppLayout searchPlaceholder="Loading event details...">
+        <EventDetailsSkeleton />
+      </AppLayout>
+    );
+  }
   if (!event) return <AppLayout><EmptyState title="Event not found" action={<button className="primary-btn" onClick={() => navigate('/explore')}>Browse events</button>} /></AppLayout>;
 
   return (
@@ -2718,23 +3531,155 @@ const EventDetailsPage = () => {
           </div>
         </section>
 
-        <section className="event-meta-strip">
-          <div><span>Event ID</span><strong>{event.eventId || event.id}</strong></div>
-          <div><span>Date</span><strong>{formatDate(event.startDate)}</strong></div>
-          <div><span>Location</span><strong>{event.city || event.venue || 'Not set'}</strong></div>
-          <div><span>Visibility</span><strong>{event.visibility || 'Public'}</strong></div>
-          <div><span>Updated</span><strong>{formatDateTime(event.updatedAt)}</strong></div>
+        {/* EVENT META STRIP DETAIL TABLE CARD (MATCHING REFERENCE UI) */}
+        <section className="event-meta-strip-card">
+          <div className="event-meta-table-scroll">
+            <table className="event-meta-table">
+              <thead>
+                <tr>
+                  <th className="event-meta-th th-id">Event ID</th>
+                  <th className="event-meta-th th-datetime">Date & Time</th>
+                  <th className="event-meta-th th-address">Address</th>
+                  <th className="event-meta-th th-status">Status</th>
+                  <th className="event-meta-th th-updated">Updated</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="event-meta-tr">
+                  {/* 1. Event ID */}
+                  <td className="event-meta-td td-id">
+                    <span
+                      className="event-meta-id-text"
+                      onClick={handleCopyEventId}
+                      title="Click to copy Event ID"
+                    >
+                      {event.eventId || event.id || 'Not set'}
+                      {copiedEventId ? (
+                        <Check size={12} className="meta-copy-icon success" />
+                      ) : (
+                        <Copy size={12} className="meta-copy-icon hover-only" />
+                      )}
+                    </span>
+                  </td>
+
+                  {/* 2. Date & Time */}
+                  <td className="event-meta-td td-datetime">
+                    <span className="event-meta-datetime-text">
+                      {formatEventDateTime(event.startDate, event.startTime || event.start_time || event.time)}
+                    </span>
+                  </td>
+
+                  {/* 3. Address */}
+                  <td className="event-meta-td td-address">
+                    <div className="event-meta-address-stack">
+                      <span className="event-meta-venue-line">
+                        <span className="event-meta-city-line">
+                          {event.venue}, {event.city}, {event.state}
+                        </span>
+                        {/* {event.venue
+                          ? (event.venue.endsWith(',') ? event.venue : `${event.venue},`)
+                          : (event.address ? (event.address.endsWith(',') ? event.address : `${event.address},`) : (event.city || 'Not specified'))} */}
+                      </span>
+                      {/* {(event.city || event.state) && (
+                        <span >
+                          {[event.city, event.state].filter(Boolean).join(', ')}
+                        </span>
+                      )} */}
+                    </div>
+                  </td>
+
+                  {/* 4. Status */}
+                  <td className="event-meta-td td-status">
+                    <span className={`event-meta-status-pill ${(displayStatus || event.status || 'Draft').toLowerCase().replace(/\s+/g, '-')}`}>
+                      {displayStatus || event.status || 'Draft'}
+                    </span>
+                  </td>
+
+                  {/* 5. Updated */}
+                  <td className="event-meta-td td-updated">
+                    <span className="event-meta-updated-text">
+                      {formatEventUpdatedTime(event.updatedAt || event.updated_at || event.createdAt)}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </section>
 
         {isHost && (
           <section className="quick-action-rail">
-            <button className="ghost-btn" onClick={() => changeEventStatus('Published')}><PlayCircle size={16} /> Publish</button>
-            <button className="ghost-btn" onClick={() => changeEventStatus('Draft')}><PauseCircle size={16} /> Pause Booking</button>
-            <button className="ghost-btn" onClick={() => changeEventStatus('Completed')}><CheckCircle2 size={16} /> Close Booking</button>
-            <button className="ghost-btn" onClick={() => duplicateEvent(event)}><Copy size={16} /> Duplicate</button>
-            <button className="ghost-btn" onClick={exportEventReport}><Download size={16} /> Reports</button>
-            <button className="ghost-btn"><Megaphone size={16} /> Broadcast</button>
-            <button className="danger-btn" onClick={removeEvent}><Trash2 size={16} /> Delete</button>
+            <button
+              type="button"
+              className="quick-pill-btn green"
+              onClick={() => changeEventStatus('Published')}
+              title="Publish Event"
+            >
+              <span className="quick-pill-icon-circle">
+                <PlayCircle size={15} />
+              </span>
+              <span className="quick-pill-label">Publish</span>
+            </button>
+
+            <button
+              type="button"
+              className="quick-pill-btn amber"
+              onClick={() => changeEventStatus('Draft')}
+              title="Pause Booking"
+            >
+              <span className="quick-pill-icon-circle">
+                <PauseCircle size={15} />
+              </span>
+              <span className="quick-pill-label">Pause Booking</span>
+            </button>
+
+            <button
+              type="button"
+              className="quick-pill-btn purple"
+              onClick={() => changeEventStatus('Completed')}
+              title="Close Booking"
+            >
+              <span className="quick-pill-icon-circle">
+                <CheckCircle2 size={15} />
+              </span>
+              <span className="quick-pill-label">Close Booking</span>
+            </button>
+
+            <button
+              type="button"
+              className="quick-pill-btn cyan"
+              onClick={() => duplicateEvent(event)}
+              title="Duplicate Event"
+            >
+              <span className="quick-pill-icon-circle">
+                <Copy size={15} />
+              </span>
+              <span className="quick-pill-label">Duplicate</span>
+            </button>
+
+            <button
+              type="button"
+              className="quick-pill-btn teal"
+              onClick={exportEventReport}
+              title="Export Event Reports"
+            >
+              <span className="quick-pill-icon-circle">
+                <Download size={15} />
+              </span>
+              <span className="quick-pill-label">Reports</span>
+            </button>
+
+            <button
+              type="button"
+              className="quick-pill-btn red"
+              onClick={removeEvent}
+              title="Delete Event"
+            >
+              <span className="quick-pill-icon-circle">
+                <Trash2 size={15} />
+              </span>
+              <span className="quick-pill-label">Delete</span>
+            </button>
           </section>
         )}
 
@@ -3055,6 +4000,834 @@ const EventDetailsPage = () => {
                 >
                   <Printer size={15} /> Print / Save Pass
                 </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            UNTITLED UI STYLE PARTICIPANT & BOOKING DETAILS POPUP MODAL
+           ========================================================================= */}
+        {selectedParticipantModal && (
+          <div className="pmodal-backdrop" onClick={() => setSelectedParticipantModal(null)}>
+            <div className="pmodal-card" onClick={(e) => e.stopPropagation()}>
+              {/* Top Close Button */}
+              <button
+                type="button"
+                className="pmodal-close-btn"
+                onClick={() => setSelectedParticipantModal(null)}
+                title="Close dialog"
+              >
+                <X size={18} />
+              </button>
+
+              <div className="pmodal-grid">
+                {/* ================= LEFT COLUMN: ATTENDEE GATE PASS ================= */}
+                <div className="pmodal-col-left">
+                  <h3 className="pmodal-col-title">Attendee Gate Pass</h3>
+                  <p className="pmodal-col-subtitle">
+                    Official pass & instant gate verification QR code.
+                  </p>
+
+                  {/* Ticket Code Input Box with Copy Button */}
+                  <span className="pmodal-input-label">Ticket Code</span>
+                  <div className="pmodal-code-input-group">
+                    <span className="pmodal-code-val">
+                      {selectedParticipantModal.ticketCode || selectedParticipantModal.ticketNumber}
+                    </span>
+                    <button
+                      type="button"
+                      className={`pmodal-code-copy-btn ${copiedModalTicketCode ? 'copied' : ''}`}
+                      onClick={() => handleCopyModalTicketCode(selectedParticipantModal.ticketCode || selectedParticipantModal.ticketNumber)}
+                      title="Copy Ticket Code"
+                    >
+                      {copiedModalTicketCode ? (
+                        <>
+                          <Check size={13} /> Copied
+                        </>
+                      ) : (
+                        <>
+                          <Copy size={13} /> Copy
+                        </>
+                      )}
+                    </button>
+                  </div>
+
+                  {/* Quick link action */}
+                  <button
+                    type="button"
+                    className="pmodal-link-action"
+                    onClick={() => {
+                      const url = `${window.location.origin}/event-platform/events/${eventId}/checkin-mobile`;
+                      navigator.clipboard.writeText(url);
+                      setMessage('Mobile gate scanner link copied to clipboard!');
+                      setTimeout(() => setMessage(''), 3000);
+                    }}
+                    title="Copy Gate Scanner Link"
+                  >
+                    <Smartphone size={13} /> + Copy Gate Scanner Link
+                  </button>
+
+                  {/* Divider */}
+                  <div className="pmodal-divider">
+                    <span>Scan to admit at gate</span>
+                  </div>
+
+                  {/* Scannable QR Code with modern brackets and laser line */}
+                  <div className="pmodal-qr-box">
+                    <div className="pmodal-qr-frame">
+                      <div className="pmodal-qr-bracket tl" />
+                      <div className="pmodal-qr-bracket tr" />
+                      <div className="pmodal-qr-bracket bl" />
+                      <div className="pmodal-qr-bracket br" />
+                      <div className="pmodal-qr-scanline" />
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
+                          selectedParticipantModal.ticketCode || selectedParticipantModal.ticketNumber || selectedParticipantModal.id
+                        )}`}
+                        alt={`QR for ${selectedParticipantModal.ticketNumber}`}
+                        loading="lazy"
+                      />
+                    </div>
+                    <p className="pmodal-qr-caption">
+                      Scan this code with your phone or gate scanner to admit attendee.
+                    </p>
+                  </div>
+
+                  {/* Left Column Bottom Action Buttons */}
+                  <div className="pmodal-left-actions">
+                    <button
+                      type="button"
+                      className={`pmodal-checkin-btn ${selectedParticipantModal.isCheckedIn ? 'checked-in' : ''}`}
+                      onClick={handleModalCheckInToggle}
+                      disabled={modalCheckInLoading}
+                    >
+                      {selectedParticipantModal.isCheckedIn ? (
+                        <>
+                          <RotateCcw size={15} /> Undo Gate Check-In
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 size={16} /> Admit Attendee
+                        </>
+                      )}
+                    </button>
+                    <button
+                      type="button"
+                      className="pmodal-print-btn"
+                      onClick={() => handleViewPass(selectedParticipantModal)}
+                      title="Open Printable Badge / Ticket"
+                    >
+                      <Printer size={14} /> Printable Badge / Ticket
+                    </button>
+                  </div>
+                </div>
+
+                {/* ================= RIGHT COLUMN: COMPLETE BOOKING DETAILS ================= */}
+                <div className="pmodal-col-right">
+                  <h3 className="pmodal-col-title">Booking & Participant Details</h3>
+                  <p className="pmodal-col-subtitle">
+                    Every booking detail, payment confirmation, and registered attendee.
+                  </p>
+
+                  {/* Top Badges Strip */}
+                  <div className="pmodal-badges-bar">
+                    <span className="pmodal-pill tier">
+                      <Ticket size={12} /> {selectedParticipantModal.tierName || 'Standard Pass'}
+                    </span>
+                    <span className={`pmodal-pill ${selectedParticipantModal.paymentStatus === 'Paid' ? 'paid' : 'pending'}`}>
+                      <CreditCard size={12} /> {selectedParticipantModal.paymentStatus || 'Paid'}
+                    </span>
+                    <span className={`pmodal-pill ${selectedParticipantModal.isCheckedIn ? 'gate-done' : 'gate-pending'}`}>
+                      {selectedParticipantModal.isCheckedIn ? <CheckCircle2 size={12} /> : <Clock size={12} />}
+                      {selectedParticipantModal.isCheckedIn ? 'Gate Admitted' : 'Pending Gate'}
+                    </span>
+                    <span className="pmodal-pill ref" title="Booking ID / Reference">
+                      #{selectedParticipantModal.bookingId || selectedParticipantModal.id}
+                    </span>
+                  </div>
+
+                  {/* Attendees List Card (Matches screenshot UI) */}
+                  <div className="pmodal-attendees-card">
+                    <div className="pmodal-attendees-header">
+                      <span>Registered Attendees ({selectedParticipantModal.attendeesList?.length || 1})</span>
+                      <span style={{ fontSize: '11px', color: '#4f46e5', textTransform: 'none', fontWeight: 600 }}>
+                        {selectedParticipantModal.tierName}
+                      </span>
+                    </div>
+                    {selectedParticipantModal.attendeesList && selectedParticipantModal.attendeesList.length > 0 ? (
+                      selectedParticipantModal.attendeesList.map((att, idx) => {
+                        const attName = att.name || att.fullName || selectedParticipantModal.name;
+                        const attEmail = att.email || selectedParticipantModal.email;
+                        const initial = (attName || 'A').charAt(0).toUpperCase();
+                        return (
+                          <div key={idx} className="pmodal-attendee-row">
+                            <div className="pmodal-attendee-left">
+                              <div className="pmodal-avatar">
+                                {att.photoURL ? <img src={att.photoURL} alt={attName} /> : initial}
+                              </div>
+                              <div className="pmodal-attendee-info">
+                                <span className="pmodal-attendee-name">{attName}</span>
+                                <span className="pmodal-attendee-sub">{attEmail}</span>
+                              </div>
+                            </div>
+                            <span className={`pmodal-attendee-status ${selectedParticipantModal.isCheckedIn ? '' : 'pending'}`}>
+                              {selectedParticipantModal.isCheckedIn ? 'Gate Admitted' : 'Pass Confirmed'}
+                            </span>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <div className="pmodal-attendee-row">
+                        <div className="pmodal-attendee-left">
+                          <div className="pmodal-avatar">
+                            {selectedParticipantModal.avatar ? (
+                              <img src={selectedParticipantModal.avatar} alt={selectedParticipantModal.name} />
+                            ) : (
+                              selectedParticipantModal.avatarInitial || selectedParticipantModal.name?.charAt(0)
+                            )}
+                          </div>
+                          <div className="pmodal-attendee-info">
+                            <span className="pmodal-attendee-name">{selectedParticipantModal.name}</span>
+                            <span className="pmodal-attendee-sub">{selectedParticipantModal.email}</span>
+                          </div>
+                        </div>
+                        <span className={`pmodal-attendee-status ${selectedParticipantModal.isCheckedIn ? '' : 'pending'}`}>
+                          {selectedParticipantModal.isCheckedIn ? 'Gate Admitted' : 'Pass Confirmed'}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Cards Grid: Every single important booking detail with Lucide icons */}
+                  <div className="pmodal-cards-grid">
+                    {/* 1. Contact Information */}
+                    <div className="pmodal-info-card">
+                      <div className="pmodal-card-title">
+                        <User size={14} /> Contact Details
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Full Name</span>
+                        <span className="pmodal-field-val">{selectedParticipantModal.name}</span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Email</span>
+                        <span className="pmodal-field-val">
+                          <a href={`mailto:${selectedParticipantModal.email}`}>{selectedParticipantModal.email}</a>
+                        </span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Phone</span>
+                        <span className="pmodal-field-val">
+                          <a href={`tel:${selectedParticipantModal.phone}`}>
+                            <Phone size={11} style={{ marginRight: '4px', verticalAlign: '-1px' }} />
+                            {selectedParticipantModal.phone}
+                          </a>
+                        </span>
+                      </div>
+                      {(selectedParticipantModal.age !== 'N/A' || selectedParticipantModal.gender !== 'N/A') && (
+                        <div className="pmodal-field-row">
+                          <span className="pmodal-field-label">Age / Gender</span>
+                          <span className="pmodal-field-val">
+                            {selectedParticipantModal.age !== 'N/A' ? `${selectedParticipantModal.age} yrs` : ''}{' '}
+                            {selectedParticipantModal.gender !== 'N/A' ? `· ${selectedParticipantModal.gender}` : ''}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* 2. Ticket & Gate Admission */}
+                    <div className="pmodal-info-card">
+                      <div className="pmodal-card-title">
+                        <Ticket size={14} /> Ticket & Admission
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Tier / Pass</span>
+                        <span className="pmodal-field-val">{selectedParticipantModal.ticketTier || selectedParticipantModal.tierName}</span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Bib Number</span>
+                        <span className="pmodal-field-val" style={{ color: '#4f46e5', fontWeight: 700 }}>
+                          #{selectedParticipantModal.bibNumber}
+                        </span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Passes / Seats</span>
+                        <span className="pmodal-field-val">{selectedParticipantModal.ticketsCount || 1} Seat(s)</span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Booked Date</span>
+                        <span className="pmodal-field-val">{selectedParticipantModal.bookedDate}</span>
+                      </div>
+                    </div>
+
+                    {/* 3. Payment & Billing Details */}
+                    <div className="pmodal-info-card">
+                      <div className="pmodal-card-title">
+                        <CreditCard size={14} /> Billing & Payment
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Amount Paid</span>
+                        <span className="pmodal-field-val" style={{ color: '#059669', fontWeight: 700 }}>
+                          {selectedParticipantModal.ticketPrice}
+                        </span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Payment Status</span>
+                        <span className="pmodal-field-val">{selectedParticipantModal.paymentStatus}</span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Payment Method</span>
+                        <span className="pmodal-field-val">{selectedParticipantModal.paymentMethod || 'Online'}</span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Order Ref</span>
+                        <span className="pmodal-field-val" style={{ fontFamily: 'monospace', fontSize: '11px' }}>
+                          {selectedParticipantModal.orderId || selectedParticipantModal.bookingId}
+                        </span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Refund Policy</span>
+                        <span className="pmodal-field-val">
+                          {event?.refundPolicyType === 'refundable' ? (
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#047857', background: '#ecfdf5', padding: '2px 8px', borderRadius: '6px', border: '1px solid #a7f3d0' }}>
+                              Refundable till {event.refundLastDate || 'specified date'} ({event.refundPercentage || 100}%)
+                            </span>
+                          ) : (
+                            <span style={{ fontSize: '11px', fontWeight: 600, color: '#b91c1c', background: '#fee2e2', padding: '2px 8px', borderRadius: '6px', border: '1px solid #fecaca' }}>
+                              Strictly Non-Refundable
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* 4. Ride, Vehicle & Emergency SOS */}
+                    <div className="pmodal-info-card">
+                      <div className="pmodal-card-title">
+                        <Bike size={14} /> Ride & Safety Info
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Machine / Ride</span>
+                        <span className="pmodal-field-val">{selectedParticipantModal.vehicle}</span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">Plate / Reg No</span>
+                        <span className="pmodal-field-val">{selectedParticipantModal.vehiclePlate}</span>
+                      </div>
+                      <div className="pmodal-field-row">
+                        <span className="pmodal-field-label">City</span>
+                        <span className="pmodal-field-val">{selectedParticipantModal.city}</span>
+                      </div>
+                      {selectedParticipantModal.emergencyContact && (
+                        <div className="pmodal-field-row">
+                          <span className="pmodal-field-label">Emergency SOS</span>
+                          <span className="pmodal-field-val">
+                            {selectedParticipantModal.emergencyContact.name ? `${selectedParticipantModal.emergencyContact.name}: ` : ''}
+                            <a href={`tel:${selectedParticipantModal.emergencyContact.phone}`}>
+                              <Phone size={11} style={{ marginRight: '4px', verticalAlign: '-1px' }} />
+                              {selectedParticipantModal.emergencyContact.phone}
+                            </a>
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Bottom Progress Card (Matching 6/10 team seats used in screenshot) */}
+                  <div className="pmodal-progress-card">
+                    <div className="pmodal-progress-top">
+                      <span className="pmodal-progress-label">
+                        {selectedParticipantModal.isCheckedIn ? '1/1 Gate Passes Admitted' : '0/1 Gate Passes Admitted'}
+                      </span>
+                      <button
+                        type="button"
+                        className="pmodal-progress-action"
+                        onClick={handleModalCheckInToggle}
+                        disabled={modalCheckInLoading}
+                      >
+                        {selectedParticipantModal.isCheckedIn ? 'Undo Check-In' : 'Admit Now'}
+                      </button>
+                    </div>
+                    <div className="pmodal-progress-sub">
+                      {selectedParticipantModal.isCheckedIn
+                        ? `Attendee admitted & confirmed through Nitroxxin Gate Admission System.`
+                        : `Verified pass. Clearance required at main event paddock gate.`}
+                    </div>
+                    <div className="pmodal-progress-track">
+                      <div
+                        className="pmodal-progress-bar"
+                        style={{
+                          width: selectedParticipantModal.isCheckedIn ? '100%' : '0%',
+                          backgroundColor: selectedParticipantModal.isCheckedIn ? '#10b981' : '#4f46e5',
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            1. SCAN FROM PHONE MODAL (MOBILE LINK + QR CODE)
+           ========================================================================= */}
+        {showPhoneScanModal && (
+          <div className="checkin-modal-backdrop" onClick={() => setShowPhoneScanModal(false)}>
+            <div className="checkin-modal-card phone-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="checkin-modal-header">
+                <div className="modal-title-lockup">
+                  <div className="modal-icon-badge phone">
+                    <Smartphone size={20} />
+                  </div>
+                  <div>
+                    <h3>Scan from Phone</h3>
+                    <p>Open live gate scanner on your smartphone</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="checkin-modal-close"
+                  onClick={() => setShowPhoneScanModal(false)}
+                  title="Close modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="phone-scan-modal-body">
+                <div className="phone-qr-frame">
+                  <img
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=240x240&data=${encodeURIComponent(
+                      phoneCheckInUrl
+                    )}`}
+                    alt="Scan this QR code with your phone camera"
+                    className="phone-qr-image"
+                  />
+                  <div className="phone-qr-badge">
+                    <QrCode size={13} />
+                    <span>Point smartphone camera to open</span>
+                  </div>
+                </div>
+
+                <div className="phone-link-section">
+                  {/* Local Wi-Fi Network IP config for Phone Access */}
+                  <div className="phone-ip-config-card" style={{ background: 'rgba(255, 255, 255, 0.05)', padding: '12px 14px', borderRadius: '12px', border: '1px solid rgba(255, 255, 255, 0.12)', marginBottom: '14px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
+                      <span style={{ fontSize: '12.5px', fontWeight: '600', color: '#f1f5f9' }}>Laptop Wi-Fi IP (for Phone Access)</span>
+                      <span style={{ fontSize: '11px', color: '#38bdf8' }}>Active Wi-Fi: 172.20.10.4</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                      <input
+                        type="text"
+                        value={phoneHostIp}
+                        onChange={(e) => {
+                          const val = e.target.value;
+                          setPhoneHostIp(val);
+                          try { localStorage.setItem('nitroxx_phone_host_ip', val); } catch (err) {}
+                        }}
+                        placeholder="e.g. 172.20.10.4"
+                        style={{
+                          background: '#0f172a',
+                          border: '1px solid rgba(255, 255, 255, 0.22)',
+                          color: '#ffffff',
+                          padding: '7px 10px',
+                          borderRadius: '8px',
+                          fontSize: '13px',
+                          flex: 1,
+                        }}
+                      />
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPhoneHostIp('172.20.10.4');
+                          try { localStorage.setItem('nitroxx_phone_host_ip', '172.20.10.4'); } catch (err) {}
+                        }}
+                        style={{
+                          background: phoneHostIp === '172.20.10.4' ? 'rgba(56, 189, 248, 0.28)' : 'rgba(56, 189, 248, 0.12)',
+                          border: '1px solid rgba(56, 189, 248, 0.45)',
+                          color: '#38bdf8',
+                          padding: '5px 12px',
+                          borderRadius: '8px',
+                          fontSize: '11.5px',
+                          fontWeight: '600',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        ✓ Use Wi-Fi (172.20.10.4)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPhoneHostIp(window.location.hostname);
+                          try { localStorage.setItem('nitroxx_phone_host_ip', window.location.hostname); } catch (err) {}
+                        }}
+                        style={{
+                          background: 'rgba(255, 255, 255, 0.08)',
+                          border: '1px solid rgba(255, 255, 255, 0.18)',
+                          color: '#cbd5e1',
+                          padding: '5px 10px',
+                          borderRadius: '8px',
+                          fontSize: '11.5px',
+                          fontWeight: '500',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        Localhost ({window.location.hostname})
+                      </button>
+                    </div>
+                  </div>
+
+                  <span className="phone-link-label">Direct Mobile Scanner URL</span>
+                  <div className="phone-url-copy-box">
+                    <input
+                      type="text"
+                      readOnly
+                      value={phoneCheckInUrl}
+                      className="phone-url-input"
+                    />
+                    <button
+                      type="button"
+                      className="phone-copy-btn"
+                      onClick={handleCopyPhoneUrl}
+                    >
+                      {copiedPhoneUrl ? <Check size={14} className="text-green" /> : <Copy size={14} />}
+                      <span>{copiedPhoneUrl ? 'Copied!' : 'Copy'}</span>
+                    </button>
+                  </div>
+
+                  <button
+                    type="button"
+                    className="phone-open-tab-btn"
+                    onClick={() => window.open(phoneCheckInUrl, '_blank')}
+                  >
+                    <ExternalLink size={14} />
+                    <span>Open Mobile Scanner in New Tab</span>
+                  </button>
+
+                  <div className="phone-instructions-list">
+                    <div className="inst-step">
+                      <span className="step-num">1</span>
+                      <span>Connect phone to the same Wi-Fi and scan the QR code above</span>
+                    </div>
+                    <div className="inst-step">
+                      <span className="step-num">2</span>
+                      <span>Log in once with your host credentials (if not already logged in)</span>
+                    </div>
+                    <div className="inst-step">
+                      <span className="step-num">3</span>
+                      <span>Aim camera at attendee ticket QR or tap "Snap Ticket" to admit attendees</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            2. SCAN FROM LAPTOP WEBCAM MODAL
+           ========================================================================= */}
+        {showLaptopScanModal && (
+          <div className="checkin-modal-backdrop" onClick={handleCloseLaptopScanner}>
+            <div className="checkin-modal-card laptop-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="checkin-modal-header">
+                <div className="modal-title-lockup">
+                  <div className="modal-icon-badge laptop">
+                    <Camera size={20} />
+                  </div>
+                  <div>
+                    <h3>Scan from Laptop Camera</h3>
+                    <p>Hold attendee ticket QR code up to your webcam</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="checkin-modal-close"
+                  onClick={handleCloseLaptopScanner}
+                  title="Close webcam"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="laptop-scan-modal-body">
+                {/* Hidden File Input for fallback photo / image scan */}
+                <input
+                  type="file"
+                  accept="image/*"
+                  ref={laptopFileInputRef}
+                  style={{ display: 'none' }}
+                  onChange={handleLaptopFileScan}
+                />
+
+                {/* Camera selector if multiple cameras detected */}
+                {availableCameras.length > 1 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+                    <span style={{ fontSize: '12px', color: '#94a3b8' }}>Camera:</span>
+                    <select
+                      value={selectedCameraId}
+                      onChange={(e) => {
+                        setSelectedCameraId(e.target.value);
+                        startLaptopScanner(e.target.value);
+                      }}
+                      style={{
+                        background: '#0f172a',
+                        border: '1px solid rgba(255, 255, 255, 0.15)',
+                        color: '#ffffff',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
+                        fontSize: '12.5px',
+                        flex: 1,
+                      }}
+                    >
+                      {availableCameras.map((cam, idx) => (
+                        <option key={cam.id} value={cam.id}>
+                          {cam.label || `Camera ${idx + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+
+                {/* Viewfinder box */}
+                <div className="laptop-viewfinder-box">
+                  <div id="laptop-qr-reader" className="laptop-camera-surface" />
+
+                  {!laptopScanResult && (
+                    <div className="laptop-scanner-overlay" aria-hidden="true">
+                      <div className="scanner-target-corners">
+                        <span className="corner top-left" />
+                        <span className="corner top-right" />
+                        <span className="corner bottom-left" />
+                        <span className="corner bottom-right" />
+                      </div>
+                      <div className="scanner-laser-beam" />
+                      <div className="scanner-helper-text">
+                        <QrCode size={14} />
+                        <span>Center QR code in front of webcam</span>
+                      </div>
+                    </div>
+                  )}
+
+                  {laptopCameraError && (
+                    <div className="laptop-camera-error">
+                      <AlertTriangle size={24} className="text-amber" />
+                      <p>{laptopCameraError}</p>
+                      <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                        <button
+                          type="button"
+                          className="ptable-btn-secondary"
+                          onClick={() => startLaptopScanner()}
+                        >
+                          <RefreshCw size={14} /> Retry Webcam
+                        </button>
+                        <button
+                          type="button"
+                          className="ptable-btn-secondary"
+                          onClick={() => laptopFileInputRef.current?.click()}
+                        >
+                          <Upload size={14} /> Upload / Snap Ticket Image
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* Secondary Actions Row */}
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+                  <button
+                    type="button"
+                    className="ptable-btn-secondary"
+                    onClick={() => laptopFileInputRef.current?.click()}
+                    style={{ fontSize: '12px' }}
+                  >
+                    <Upload size={14} /> Scan from Image / Screenshot
+                  </button>
+                </div>
+
+                {/* Live Scan Result */}
+                {laptopScanResult && (
+                  <div className={`laptop-scan-result-card ${laptopScanResult.status}`}>
+                    <div className="scan-result-header">
+                      {laptopScanResult.status === 'success' && <CheckCircle2 size={28} className="text-green" />}
+                      {laptopScanResult.status === 'warning' && <AlertTriangle size={28} className="text-amber" />}
+                      {laptopScanResult.status === 'error' && <XCircle size={28} className="text-red" />}
+                      <div>
+                        <span className="result-status-tag">
+                          {laptopScanResult.status === 'success' && 'CHECK-IN CONFIRMED'}
+                          {laptopScanResult.status === 'warning' && (laptopScanResult.title || 'ALREADY USED')}
+                          {laptopScanResult.status === 'error' && 'TICKET NOT FOUND'}
+                        </span>
+                        <h4>{laptopScanResult.message}</h4>
+                      </div>
+                    </div>
+
+                    {laptopScanResult.participant ? (
+                      <div className="result-attendee-mini">
+                        <span className="name">{laptopScanResult.participant.name}</span>
+                        <span className="meta">
+                          {laptopScanResult.participant.ticketNumber} · {laptopScanResult.participant.tierName}
+                        </span>
+                        <span className="time">
+                          {laptopScanResult.status === 'warning'
+                            ? `Checked in previously at ${laptopScanResult.time || 'earlier today'}`
+                            : `Admitted at ${laptopScanResult.time || 'just now'}`}
+                        </span>
+                      </div>
+                    ) : (
+                      <p className="result-code-text">
+                        Scanned code: <code>{laptopScanResult.code}</code>
+                      </p>
+                    )}
+
+                    <button
+                      type="button"
+                      className="laptop-resume-btn"
+                      onClick={handleResumeLaptopScan}
+                    >
+                      Scan Next Attendee
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            3. SCAN FROM CODE (MANUAL CODE CHECK-IN MODAL)
+           ========================================================================= */}
+        {showCodeCheckInModal && (
+          <div className="checkin-modal-backdrop" onClick={() => setShowCodeCheckInModal(false)}>
+            <div className="checkin-modal-card code-modal" onClick={(e) => e.stopPropagation()}>
+              <div className="checkin-modal-header">
+                <div className="modal-title-lockup">
+                  <div className="modal-icon-badge code">
+                    <KeyRound size={20} />
+                  </div>
+                  <div>
+                    <h3>Check-In by Ticket Code</h3>
+                    <p>Enter attendee ticket booking code or ID to check in</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="checkin-modal-close"
+                  onClick={() => setShowCodeCheckInModal(false)}
+                  title="Close modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="code-checkin-modal-body">
+                {/* Search Form */}
+                <form onSubmit={handleSearchCodeCheckIn} className="code-search-form">
+                  <div className="code-search-input-wrap">
+                    <Search size={18} className="code-search-icon" />
+                    <input
+                      type="text"
+                      placeholder="Enter Ticket # or Booking ID (e.g. NX-89214, BK-1001)"
+                      value={enteredCheckInCode}
+                      onChange={(e) => setEnteredCheckInCode(e.target.value)}
+                      autoFocus
+                    />
+                    {enteredCheckInCode && (
+                      <button
+                        type="button"
+                        className="code-clear-btn"
+                        onClick={() => {
+                          setEnteredCheckInCode('');
+                          setMatchedAttendee(null);
+                          setCodeSearchError('');
+                        }}
+                      >
+                        <X size={14} />
+                      </button>
+                    )}
+                  </div>
+                  <button type="submit" className="code-verify-btn">
+                    Verify Ticket
+                  </button>
+                </form>
+
+                {codeSearchError && (
+                  <div className="code-search-error-box">
+                    <AlertTriangle size={16} />
+                    <span>{codeSearchError}</span>
+                  </div>
+                )}
+
+                {/* Matched Attendee Card */}
+                {matchedAttendee && (
+                  <div className={`matched-attendee-card ${matchedAttendee.isCheckedIn ? 'is-checked-in' : 'is-pending'}`}>
+                    <div className="attendee-card-top">
+                      <div className="attendee-avatar-initial">
+                        {matchedAttendee.name.charAt(0).toUpperCase()}
+                      </div>
+                      <div className="attendee-header-info">
+                        <h4>{matchedAttendee.name}</h4>
+                        <p>{matchedAttendee.email} · {matchedAttendee.phone}</p>
+                      </div>
+                      <div className="attendee-status-badge">
+                        {matchedAttendee.isCheckedIn ? (
+                          <span className="gate-pill done">
+                            <CheckCircle2 size={13} /> Checked In
+                          </span>
+                        ) : (
+                          <span className="gate-pill pending">
+                            <Clock size={13} /> Pending Gate
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="attendee-details-grid">
+                      <div className="grid-cell">
+                        <span className="cell-lbl">Ticket Number</span>
+                        <span className="cell-val mono">{matchedAttendee.ticketNumber}</span>
+                      </div>
+                      <div className="grid-cell">
+                        <span className="cell-lbl">Pass Tier</span>
+                        <span className="cell-val">{matchedAttendee.tierName}</span>
+                      </div>
+                      <div className="grid-cell">
+                        <span className="cell-lbl">Pass Quantity</span>
+                        <span className="cell-val">{matchedAttendee.ticketsCount} Ticket(s)</span>
+                      </div>
+                      <div className="grid-cell">
+                        <span className="cell-lbl">Bib Number</span>
+                        <span className="cell-val">{matchedAttendee.bibNumber}</span>
+                      </div>
+                    </div>
+
+                    {/* Action Button */}
+                    <div className="attendee-action-box">
+                      {(matchedAttendee.isCheckedIn || matchedAttendee.gateStatus === 'Done' || matchedAttendee.status === 'Checked In') ? (
+                        <div className="already-admitted-note" style={{ background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(239, 68, 68, 0.3)', color: '#fca5a5', padding: '10px 14px', borderRadius: '8px' }}>
+                          <AlertTriangle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
+                          <span>
+                            <strong style={{ color: '#f87171' }}>ALREADY USED</strong> — First admitted on{' '}<strong>{matchedAttendee.checkInTime ? formatDateTime(matchedAttendee.checkInTime) : 'earlier today'}</strong>.
+                          </span>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          className="confirm-checkin-btn"
+                          onClick={handleConfirmCodeCheckIn}
+                          disabled={codeCheckInLoading}
+                        >
+                          <Check size={16} />
+                          <span>{codeCheckInLoading ? 'Checking In...' : 'Confirm Gate Check-In'}</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
           </div>

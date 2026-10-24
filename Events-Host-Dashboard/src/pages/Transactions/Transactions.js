@@ -28,9 +28,11 @@ import {
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { INITIAL_TRANSACTIONS } from './transactionsData';
 import TransactionDetailDrawer from './TransactionDetailDrawer';
+import { TransactionTableSkeleton } from '../../components/States/SkeletonLoading';
 import './Transactions.css';
 
 const Transactions = () => {
+  const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTimeframe, setSelectedTimeframe] = useState('All'); // 'All' | '1D' | '7D' | '1M' | '1Y'
@@ -69,6 +71,14 @@ const Transactions = () => {
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Initial smooth skeleton loading transition
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 400);
+    return () => clearTimeout(timer);
   }, []);
 
   const showToast = (msg) => {
@@ -632,7 +642,9 @@ const Transactions = () => {
 
               {/* Data table rows PRESERVED exactly as transaction data table rows */}
               <tbody>
-                {paginatedTransactions.length === 0 ? (
+                {loading ? (
+                  <TransactionTableSkeleton rows={pageSize || 9} />
+                ) : paginatedTransactions.length === 0 ? (
                   <tr>
                     <td colSpan="9" className="ptable-empty-cell">
                       <div className="empty-state-box">

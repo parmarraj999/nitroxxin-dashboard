@@ -1,0 +1,244 @@
+/* =========================================================================
+   SKELETON LOADING SYSTEM (Event Details, Participants & Transactions)
+   ========================================================================= */
+
+@keyframes skeletonWave {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes skeletonPulseGlow {
+  0%, 100% {
+    opacity: 0.95;
+  }
+  50% {
+    opacity: 0.55;
+  }
+}
+
+/* Base Shimmer Element */
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    rgba(226, 232, 240, 0.5) 0%,
+    rgba(241, 245, 249, 0.95) 50%,
+    rgba(226, 232, 240, 0.5) 100%
+  );
+  background-size: 250% 100%;
+  animation: skeletonWave 1.7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-radius: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Dark theme / Dark container variant */
+.skeleton-shimmer-dark {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.04) 0%,
+    rgba(255, 255, 255, 0.11) 50%,
+    rgba(255, 255, 255, 0.04) 100%
+  );
+  background-size: 250% 100%;
+  animation: skeletonWave 1.7s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  border-radius: 6px;
+}
+
+/* Primitives */
+.skeleton-circle {
+  border-radius: 50% !important;
+  flex-shrink: 0;
+}
+
+.skeleton-pill {
+  border-radius: 9999px !important;
+}
+
+/* =========================================================================
+   EVENT DETAILS PAGE FULL SKELETON
+   ========================================================================= */
+.event-details-skeleton-page {
+  padding: 24px;
+  max-width: 1380px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: skeletonPulseGlow 2.5s ease-in-out infinite;
+}
+
+/* Header & Breadcrumbs Skeleton */
+.skeleton-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.skeleton-breadcrumbs-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.skeleton-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Hero Banner Skeleton */
+.skeleton-banner-card {
+  width: 100%;
+  height: 290px;
+  border-radius: 18px;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 4px 18px -4px rgba(0, 0, 0, 0.04);
+}
+
+.skeleton-banner-overlay-bottom {
+  position: absolute;
+  bottom: 24px;
+  left: 24px;
+  right: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 16px;
+}
+
+.skeleton-banner-tags {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Meta Metrics Strip Skeleton */
+.skeleton-meta-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+}
+
+.skeleton-meta-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.skeleton-meta-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Quick Action Rail Skeleton */
+.skeleton-action-rail {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.skeleton-rail-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Tabs Bar Skeleton */
+.skeleton-tabs-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 6px;
+  margin-top: 6px;
+}
+
+/* Table Area Skeleton */
+.skeleton-table-frame {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.skeleton-table-toolbar {
+  padding: 16px 20px;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  background: #fafafa;
+}
+
+/* Table Row Skeleton (Used inside actual <tbody>) */
+.skeleton-table-row {
+  border-bottom: 1px solid #f1f5f9;
+  transition: background 0.15s ease;
+}
+
+.skeleton-table-row td {
+  padding: 13px 16px;
+  vertical-align: middle;
+}
+
+.skeleton-user-cell {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.skeleton-user-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.skeleton-tier-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.skeleton-action-cell {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .event-details-skeleton-page {
+    padding: 16px;
+  }
+  .skeleton-banner-card {
+    height: 200px;
+  }
+  .skeleton-meta-strip {
+    grid-template-columns: 1fr 1fr;
+  }
+}

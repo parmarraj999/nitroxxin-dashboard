@@ -19,7 +19,8 @@ import {
   ChevronDown,
   UploadCloud,
   AlertCircle,
-  Bike
+  Bike,
+  RotateCcw
 } from "lucide-react";
 import AppLayout from "../../components/AppLayout/AppLayout";
 import LoadingState from "../../components/States/LoadingState";
@@ -133,6 +134,10 @@ const initialForm = {
   bikeEngineCC: "",
   bikeType: "",
   bikeCriteria: "",
+  refundPolicyType: "no_refund",
+  refundLastDate: "",
+  refundPercentage: "100",
+  refundPolicyNotes: "",
 };
 
 const steps = [
@@ -322,6 +327,10 @@ const EventForm = () => {
           bikeEngineCC: bikeReq.engineCC || event.bikeEngineCC || "",
           bikeType: bikeReq.bikeType || event.bikeType || "",
           bikeCriteria: bikeReq.criteria || event.bikeCriteria || "",
+          refundPolicyType: event.refundPolicyType || "no_refund",
+          refundLastDate: event.refundLastDate || "",
+          refundPercentage: event.refundPercentage !== undefined ? String(event.refundPercentage) : "100",
+          refundPolicyNotes: event.refundPolicyNotes || "",
         });
       })
       .catch((err) => setError(err.message))
@@ -551,6 +560,16 @@ const EventForm = () => {
       if (!form.city?.trim()) throw new Error("City is required.");
       if (!form.state?.trim()) throw new Error("State is required.");
       if (!form.address?.trim()) throw new Error("Full street address is required.");
+
+      // Refund policy validation
+      if (form.refundPolicyType === "refundable") {
+        if (!form.refundLastDate) {
+          throw new Error("Please specify the Refund Last Date deadline, or select 'No Refund'.");
+        }
+        if (form.startDate && form.refundLastDate > form.startDate) {
+          throw new Error("Refund Last Date cannot be after the Event Start Date.");
+        }
+      }
     }
   };
 
@@ -683,6 +702,10 @@ const EventForm = () => {
           form.ticketType === "Paid"
             ? Math.min(...packages.map((item) => item.price))
             : 0,
+        refundPolicyType: form.refundPolicyType || "no_refund",
+        refundLastDate: form.refundPolicyType === "refundable" ? (form.refundLastDate || "") : "",
+        refundPercentage: form.refundPolicyType === "refundable" ? Number(form.refundPercentage || 100) : 0,
+        refundPolicyNotes: form.refundPolicyNotes?.trim() || "",
       };
       if (eventId) {
         await updateEvent(eventId, payload);
@@ -1238,6 +1261,9 @@ const EventForm = () => {
                   onChange={(e) => update("address", e.target.value)}
                 />
               </label>
+
+              {/* Cancellation & Refund Policy Section */}
+              <RefundPolicySection form={form} update={update} />
             </section>
           )}
 
@@ -2041,6 +2067,15 @@ const EventForm = () => {
                   onChange={(e) => update("termsAndConditions", e.target.value)}
                 />
               </label>
+
+              <div className="terms-refund-badge">
+                <span style={{ color: "#64748b", fontWeight: 500 }}>Active Event Refund Policy:</span>
+                <span className={`policy-pill ${form.refundPolicyType === 'refundable' ? 'refundable' : 'no-refund'}`}>
+                  {form.refundPolicyType === 'refundable'
+                    ? `Refundable until ${form.refundLastDate || 'specified date'} (${form.refundPercentage || 100}%)`
+                    : 'Strictly No Refund'}
+                </span>
+              </div>
             </section>
           )}
 
@@ -2627,6 +2662,139 @@ const CategoryDetailInput = ({ field, value, onChange }) => {
   );
 };
 
+const RefundPolicySection = ({ form, update }) => {
+  const isRefundable = form.refundPolicyType === "refundable";
+
+  return (
+    <div className="refund-policy-card">
+      <div className="refund-section-header">
+        <div className="refund-icon-badge">
+          <RotateCcw size={18} />
+        </div>
+        <div className="refund-header-text">
+          <h3 className="refund-title">Cancellation & Refund Policy</h3>
+          <p className="refund-subtitle">
+            Configure cancellation terms: declare strict non-refundable bookings or allow participants to claim refunds until a specified cutoff date.
+          </p>
+        </div>
+      </div>
+
+      <div className="refund-options-grid">
+        {/* Option 1: No Refund */}
+        <div
+          className={`refund-option-card ${!isRefundable ? "selected" : ""}`}
+          onClick={() => update("refundPolicyType", "no_refund")}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="refund-option-radio">
+            <div className={`refund-radio-circle ${!isRefundable ? "active" : ""}`}>
+              {!isRefundable && <div className="refund-radio-dot" />}
+            </div>
+          </div>
+          <div className="refund-option-content">
+            <div className="refund-option-title-row">
+              <strong className="refund-option-title">No Refund</strong>
+              <span className="refund-badge no-refund">Strict</span>
+            </div>
+            <p className="refund-option-desc">
+              All ticket bookings are final. No cancellations or refunds will be issued once confirmed.
+            </p>
+          </div>
+        </div>
+
+        {/* Option 2: Refundable with Last Date Deadline */}
+        <div
+          className={`refund-option-card ${isRefundable ? "selected" : ""}`}
+          onClick={() => update("refundPolicyType", "refundable")}
+          role="button"
+          tabIndex={0}
+        >
+          <div className="refund-option-radio">
+            <div className={`refund-radio-circle ${isRefundable ? "active" : ""}`}>
+              {isRefundable && <div className="refund-radio-dot" />}
+            </div>
+          </div>
+          <div className="refund-option-content">
+            <div className="refund-option-title-row">
+              <strong className="refund-option-title">Refundable with Deadline</strong>
+              <span className="refund-badge refundable">Flexible</span>
+            </div>
+            <p className="refund-option-desc">
+              Allow participants to cancel and receive refunds up until a specified last date before the event.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {isRefundable ? (
+        <div className="refund-details-panel">
+          <div className="form-grid two">
+            <label className="form-field">
+              <span className="field-label-text">
+                Refund Last Date <em className="required-star">*</em>
+              </span>
+              <input
+                type="date"
+                required
+                className="form-input"
+                value={form.refundLastDate || ""}
+                max={form.startDate || undefined}
+                onChange={(e) => update("refundLastDate", e.target.value)}
+              />
+              <span className="field-helper-text">
+                Deadline cutoff date after which refunds cannot be requested.
+              </span>
+            </label>
+
+            <label className="form-field">
+              <span className="field-label-text">Refund Payout Percentage</span>
+              <div className="select-dropdown-wrapper">
+                <select
+                  className="form-input select-dropdown"
+                  value={form.refundPercentage || "100"}
+                  onChange={(e) => update("refundPercentage", e.target.value)}
+                >
+                  <option value="100">100% (Full Refund)</option>
+                  <option value="90">90% (10% Cancellation Fee)</option>
+                  <option value="80">80% (20% Cancellation Fee)</option>
+                  <option value="75">75% (25% Cancellation Fee)</option>
+                  <option value="50">50% Half Refund</option>
+                  <option value="25">25% Partial Refund</option>
+                </select>
+                <ChevronDown size={14} className="select-dropdown-chevron" />
+              </div>
+              <span className="field-helper-text">
+                Portion of the ticket price returned upon cancellation.
+              </span>
+            </label>
+          </div>
+
+          <label className="form-field" style={{ marginTop: "12px" }}>
+            <span className="field-label-text">
+              Refund Policy Notes / Guidelines (Optional)
+            </span>
+            <input
+              type="text"
+              className="form-input"
+              placeholder="e.g. 5% payment gateway deduction applies. Processed within 5-7 business days."
+              value={form.refundPolicyNotes || ""}
+              onChange={(e) => update("refundPolicyNotes", e.target.value)}
+            />
+          </label>
+        </div>
+      ) : (
+        <div className="refund-no-refund-notice">
+          <AlertCircle size={16} />
+          <span>
+            <strong>Strict Non-Refundable Notice:</strong> All ticket bookings are final. Participants will be notified before payment that tickets are non-refundable.
+          </span>
+        </div>
+      )}
+    </div>
+  );
+};
+
 const Review = ({ label, value }) => (
   <div className="review-pill-card">
     <span className="review-label">{label}</span>
@@ -2715,7 +2883,21 @@ const EventPreview = ({ form, files, progress }) => (
             : `${form.packages.length} tier packages`
         }
       />
+      <Review
+        label="Refund Policy"
+        value={
+          form.refundPolicyType === "refundable"
+            ? `Refundable till ${form.refundLastDate || "Date not set"} (${form.refundPercentage || 100}%)`
+            : "Strictly Non-Refundable"
+        }
+      />
     </div>
+
+    {form.refundPolicyType === "refundable" && form.refundPolicyNotes && (
+      <div style={{ marginTop: "12px", padding: "10px 14px", background: "#f0fdf4", border: "1px solid #bbf7d0", borderRadius: "10px", fontSize: "13px", color: "#166534" }}>
+        <strong>Refund Policy Note:</strong> {form.refundPolicyNotes}
+      </div>
+    )}
 
     {/* Specific Bike Requirement Summary in Preview */}
     {form.specificBikeRequired && (
