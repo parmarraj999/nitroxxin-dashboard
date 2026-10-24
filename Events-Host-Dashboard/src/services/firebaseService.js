@@ -723,9 +723,14 @@ export const subscribeToRegistrations = ({ hostId, eventId, userId } = {}, callb
   if (hostId) constraints.push(where('hostId', '==', hostId));
   if (eventId) constraints.push(where('eventId', '==', eventId));
   if (userId) constraints.push(where('userId', '==', userId));
-  constraints.push(orderBy('registrationDate', 'desc'));
   return onSnapshot(query(collection(db, collections.registrations), ...constraints), (snapshot) => {
-    callback(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })));
+    const list = snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() }));
+    list.sort((a, b) => {
+      const aTime = a.registrationDate?.seconds || (a.registrationDate && typeof a.registrationDate.toMillis === 'function' ? a.registrationDate.toMillis() / 1000 : 0);
+      const bTime = b.registrationDate?.seconds || (b.registrationDate && typeof b.registrationDate.toMillis === 'function' ? b.registrationDate.toMillis() / 1000 : 0);
+      return bTime - aTime;
+    });
+    callback(list);
   }, onError);
 };
 

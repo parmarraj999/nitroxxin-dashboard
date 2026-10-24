@@ -16,7 +16,7 @@ export const useRegistrations = (filters = {}) => {
     regCtx.hostId &&
     (
       (hostId && hostId === regCtx.hostId) ||
-      (eventId && eventsCtx?.events?.some((e) => e.id === eventId || e.eventId === eventId))
+      (eventId && eventsCtx?.events?.some((e) => String(e.id || e.eventId).trim() === String(eventId).trim()))
     )
   );
 
@@ -49,10 +49,15 @@ export const useRegistrations = (filters = {}) => {
 
     let result = regCtx.registrations;
     if (eventId) {
-      result = result.filter((r) => r.eventId === eventId);
+      const targetId = String(eventId).trim();
+      result = result.filter((r) => {
+        const rEvId = String(r.eventId || r.event_id || r.event?.id || '').trim();
+        return rEvId === targetId;
+      });
     }
     if (userId) {
-      result = result.filter((r) => r.userId === userId);
+      const targetUid = String(userId).trim();
+      result = result.filter((r) => String(r.userId || r.user_id || '').trim() === targetUid);
     }
     return result;
   }, [canUseContext, regCtx?.registrations, eventId, userId]);

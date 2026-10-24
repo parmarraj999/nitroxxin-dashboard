@@ -45,6 +45,9 @@ const DataConsumerBridge = ({ children }) => {
 
       // Read helpers (0 Firestore reads from memory)
       getEventById: eventsCtx.getEventById,
+      getEventSummary: eventsCtx.getEventSummary,
+      getFullEvent: eventsCtx.getFullEvent,
+      subscribeToLiveEvent: eventsCtx.subscribeToLiveEvent,
       getEventRegistrations: registrationsCtx.getEventRegistrations,
       subscribeToEventBookingsCached: registrationsCtx.subscribeToEventBookingsCached,
 

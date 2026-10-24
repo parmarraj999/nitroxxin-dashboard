@@ -10,6 +10,7 @@ import React, {
 import { useAuth } from './AuthContext';
 import {
   subscribeToEvents,
+  subscribeToEvent,
   createEvent as apiCreateEvent,
   updateEvent as apiUpdateEvent,
   deleteEvent as apiDeleteEvent,
@@ -20,6 +21,44 @@ import {
 const EventsContext = createContext(null);
 
 const CACHE_KEY_EVENTS = 'nitroxx_cached_events';
+
+/**
+ * Extracts only lightweight listing summary fields necessary for tables and cards.
+ * Strips heavy data (gallery, itinerary, package descriptions, bank details, guidelines)
+ * so listing queries and localStorage load in 0ms with minimal memory footprint.
+ */
+export const toEventListingSummary = (doc) => {
+  if (!doc) return null;
+  return {
+    id: doc.id,
+    eventId: doc.eventId || doc.id,
+    hostId: doc.hostId,
+    title: doc.title || 'Untitled Event',
+    subtitle: doc.subtitle || '',
+    description: doc.description ? doc.description.slice(0, 300) : '',
+    category: doc.category || 'General',
+    city: doc.city || '',
+    venue: doc.venue || '',
+    startDate: doc.startDate || null,
+    endDate: doc.endDate || null,
+    startTime: doc.startTime || '',
+    endTime: doc.endTime || '',
+    status: doc.status || 'Draft',
+    capacity: Number(doc.capacity || 0),
+    registeredCount: Number(doc.registeredCount || 0),
+    views: Number(doc.views || 0),
+    revenue: Number(doc.revenue || 0),
+    gross: Number(doc.gross || doc.revenue || 0),
+    ticketPrice: Number(doc.ticketPrice || doc.price || 0),
+    price: Number(doc.price || doc.ticketPrice || 0),
+    ticketType: doc.ticketType || 'Free',
+    bannerImage: doc.bannerImage || '',
+    thumbnailImage: doc.thumbnailImage || '',
+    logoType: doc.logoType || '',
+    createdAt: doc.createdAt || null,
+    updatedAt: doc.updatedAt || null,
+  };
+};
 
 export const EventsProvider = ({ children }) => {
   const { user } = useAuth();
@@ -38,11 +77,11 @@ export const EventsProvider = ({ children }) => {
   const [eventsLoading, setEventsLoading] = useState(() => !events.length);
   const [eventsError, setEventsError] = useState('');
 
-  // In-memory per-event deep detail cache
-  const eventDetailsCache = useRef(new Map());
+  // Cache for complete full event documents
+  const fullEventDetailsCache = useRef(new Map());
 
   // ---------------------------------------------------------------------------
-  // SINGLE CENTRAL REAL-TIME SUBSCRIPTION FOR HOST'S EVENTS
+  // 1. LIGHTWEIGHT REAL-TIME SUBSCRIPTION FOR HOST'S EVENT LISTINGS
   // ---------------------------------------------------------------------------
   useEffect(() => {
     if (!hostId) {
@@ -58,10 +97,12 @@ export const EventsProvider = ({ children }) => {
     const unsubscribe = subscribeToEvents(
       { hostId },
       (items) => {
-        setEvents(items);
+        // Only keep necessary listing fields for fast rendering & compact storage
+        const summaries = items.map(toEventListingSummary);
+        setEvents(summaries);
         setEventsLoading(false);
         try {
-          localStorage.setItem(CACHE_KEY_EVENTS, JSON.stringify(items));
+          localStorage.setItem(CACHE_KEY_EVENTS, JSON.stringify(summaries));
         } catch (e) {
           console.warn('Could not cache events locally:', e);
         }
@@ -77,45 +118,112 @@ export const EventsProvider = ({ children }) => {
   }, [hostId]);
 
   // ---------------------------------------------------------------------------
-  // CACHED READ HELPER (0 FIRESTORE READS)
+  // 2. FULL LIVE EVENT SUBSCRIPTION (WHEN HOST OPENS ANY EVENT DETAIL PAGE)
   // ---------------------------------------------------------------------------
-  const getEventById = useCallback(
+  /**
+   * Fetches and streams full event live data in real-time.
+   * Includes gallery, itinerary, packages, bank details, guidelines, etc.
+   */
+  const subscribeToLiveEvent = useCallback((eventId, callback, onError) => {
+    if (!eventId) return () => {};
+
+    // 1. Immediately provide cached full event if already present
+    const cachedFull = fullEventDetailsCache.current.get(eventId);
+    if (cachedFull && callback) {
+      callback(cachedFull);
+    }
+
+    // 2. Open live Firestore document subscription for complete event data
+    return subscribeToEvent(
+      eventId,
+      (fullDoc) => {
+        if (!fullDoc) {
+          if (callback) callback(null);
+          return;
+        }
+
+        fullEventDetailsCache.current.set(eventId, fullDoc);
+
+        // Sync live counters back to event summary list
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === eventId || e.eventId === eventId
+              ? { ...e, ...toEventListingSummary(fullDoc) }
+              : e
+          )
+        );
+
+        if (callback) callback(fullDoc);
+      },
+      onError
+    );
+  }, []);
+
+  /**
+   * Fetches full event document once (used for EventForm and editing).
+   */
+  const getFullEvent = useCallback(
     async (eventId, forceRefresh = false) => {
       if (!eventId) return null;
 
-      // 1. Check in memory events array first (0 reads)
-      if (!forceRefresh) {
-        const found = events.find((e) => e.id === eventId || e.eventId === eventId);
-        if (found) return found;
-
-        if (eventDetailsCache.current.has(eventId)) {
-          return eventDetailsCache.current.get(eventId);
-        }
+      if (!forceRefresh && fullEventDetailsCache.current.has(eventId)) {
+        return fullEventDetailsCache.current.get(eventId);
       }
 
-      // 2. Fallback single doc read
       try {
-        const fetched = await apiGetEvent(eventId);
-        if (fetched) {
-          eventDetailsCache.current.set(eventId, fetched);
+        const fullDoc = await apiGetEvent(eventId);
+        if (fullDoc) {
+          fullEventDetailsCache.current.set(eventId, fullDoc);
         }
-        return fetched;
+        return fullDoc;
       } catch (err) {
-        console.warn('getEventById error:', err);
+        console.warn('getFullEvent error:', err);
         return null;
       }
+    },
+    []
+  );
+
+  /**
+   * Fast in-memory summary resolver for listing headers and instant navigation.
+   */
+  const getEventSummary = useCallback(
+    (eventId) => {
+      if (!eventId) return null;
+      return events.find((e) => e.id === eventId || e.eventId === eventId) || null;
     },
     [events]
   );
 
+  /**
+   * Universal resolver: returns full cached event if available, otherwise summary or fetches full doc.
+   */
+  const getEventById = useCallback(
+    async (eventId, forceRefresh = false) => {
+      if (!eventId) return null;
+
+      if (!forceRefresh) {
+        if (fullEventDetailsCache.current.has(eventId)) {
+          return fullEventDetailsCache.current.get(eventId);
+        }
+        const foundSummary = events.find((e) => e.id === eventId || e.eventId === eventId);
+        if (foundSummary) return foundSummary;
+      }
+
+      return getFullEvent(eventId, forceRefresh);
+    },
+    [events, getFullEvent]
+  );
+
   // ---------------------------------------------------------------------------
-  // WRITE HELPERS (DIFF CHECKING & OPTIMISTIC UPDATES TO SAVE WRITES)
+  // 3. WRITE HELPERS (DIFF CHECKING & OPTIMISTIC UPDATES TO SAVE WRITES)
   // ---------------------------------------------------------------------------
   const updateEvent = useCallback(
     async (eventId, payload) => {
       if (!eventId || !payload) return;
 
-      const current = events.find((e) => e.id === eventId || e.eventId === eventId);
+      const current = fullEventDetailsCache.current.get(eventId) ||
+        events.find((e) => e.id === eventId || e.eventId === eventId);
 
       // Calculate diff to avoid writing unchanged fields to Firestore
       const diff = {};
@@ -137,9 +245,10 @@ export const EventsProvider = ({ children }) => {
       }
 
       // Optimistic state update (0ms UI latency)
-      const updatedEvent = { ...(current || {}), ...payload, id: eventId };
-      setEvents((prev) => prev.map((e) => (e.id === eventId ? updatedEvent : e)));
-      eventDetailsCache.current.set(eventId, updatedEvent);
+      const updatedFull = { ...(current || {}), ...payload, id: eventId };
+      fullEventDetailsCache.current.set(eventId, updatedFull);
+      const updatedSummary = toEventListingSummary(updatedFull);
+      setEvents((prev) => prev.map((e) => (e.id === eventId ? updatedSummary : e)));
 
       const fieldsToWrite = hasChanges ? diff : payload;
       await apiUpdateEvent(eventId, fieldsToWrite);
@@ -149,15 +258,16 @@ export const EventsProvider = ({ children }) => {
 
   const createEvent = useCallback(async (payload) => {
     const newId = await apiCreateEvent(payload);
-    const newEvent = { ...payload, id: newId, eventId: newId };
-    setEvents((prev) => [newEvent, ...prev]);
-    eventDetailsCache.current.set(newId, newEvent);
+    const newFullEvent = { ...payload, id: newId, eventId: newId };
+    fullEventDetailsCache.current.set(newId, newFullEvent);
+    const newSummary = toEventListingSummary(newFullEvent);
+    setEvents((prev) => [newSummary, ...prev]);
     return newId;
   }, []);
 
   const deleteEvent = useCallback(async (eventId) => {
     setEvents((prev) => prev.filter((e) => e.id !== eventId && e.eventId !== eventId));
-    eventDetailsCache.current.delete(eventId);
+    fullEventDetailsCache.current.delete(eventId);
     await apiDeleteEvent(eventId);
   }, []);
 
@@ -188,6 +298,9 @@ export const EventsProvider = ({ children }) => {
       eventsLoading,
       eventsError,
       getEventById,
+      getEventSummary,
+      getFullEvent,
+      subscribeToLiveEvent,
       updateEvent,
       createEvent,
       deleteEvent,
@@ -200,6 +313,9 @@ export const EventsProvider = ({ children }) => {
       eventsLoading,
       eventsError,
       getEventById,
+      getEventSummary,
+      getFullEvent,
+      subscribeToLiveEvent,
       updateEvent,
       createEvent,
       deleteEvent,

@@ -56,6 +56,7 @@ import AppLayout from '../../components/AppLayout/AppLayout';
 import EmptyState from '../../components/States/EmptyState';
 import EventDetailsSkeleton, { ParticipantTableSkeleton, TransactionTableSkeleton } from '../../components/States/SkeletonLoading';
 import { useAuth } from '../../context/AuthContext';
+import { useEventsContext } from '../../context/EventsContext';
 import { TicketPassView } from './ticketDesigns';
 import './TicketDesigns.css';
 import { useRegistrations } from '../../hooks/useRegistrations';
@@ -219,9 +220,12 @@ const EventDetailsPage = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
-  const [event, setEvent] = useState(null);
+  const { getEventSummary, subscribeToLiveEvent } = useEventsContext();
+  const [event, setEvent] = useState(() => {
+    return getEventSummary ? getEventSummary(eventId) : null;
+  });
   const [participant, setParticipant] = useState({ fullName: '', email: '', phone: '', age: '', gender: '', city: '' });
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !event);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
@@ -356,10 +360,20 @@ const EventDetailsPage = () => {
   useEffect(() => {
     if (!eventId) return undefined;
     incrementEventView(eventId).catch(() => { });
-    return subscribeToEvent(
+
+    const summary = getEventSummary ? getEventSummary(eventId) : null;
+    if (summary) {
+      setEvent((prev) => prev || summary);
+      setLoading(false);
+    }
+
+    const subscriber = subscribeToLiveEvent || subscribeToEvent;
+    return subscriber(
       eventId,
       (item) => {
-        setEvent(item);
+        if (item) {
+          setEvent(item);
+        }
         setLoading(false);
       },
       (err) => {
@@ -367,7 +381,7 @@ const EventDetailsPage = () => {
         setLoading(false);
       }
     );
-  }, [eventId]);
+  }, [eventId, getEventSummary, subscribeToLiveEvent]);
 
   useEffect(() => {
     if (!eventId) return undefined;
@@ -387,38 +401,330 @@ const EventDetailsPage = () => {
 
   const isHost = !event?.hostId || event?.hostId === user?.uid || profile?.role === 'Host';
 
+  // =========================================================================
+  // PARTICIPANTS DATA & DEDUPLICATION ENGINE
+  // =========================================================================
+  const allParticipantsList = useMemo(() => {
+    const list = [];
+    const seenBookingKeys = new Set();
+    const linkedBookingRefIds = new Set();
+    const linkedTicketNumbers = new Set();
+    const linkedEmails = new Set();
+    const linkedPhones = new Set();
+    const linkedUserIds = new Set();
+
+    const currentEventId = String(event?.id || eventId || event?.eventId || '').trim();
+
+    // 1. Process Bookings (Primary financial and ticket-holding attendee entities)
+    (bookings || []).forEach((b, idx) => {
+      // Must match current event
+      const bEvId = String(b.eventId || b.event_id || b.event?.id || '').trim();
+      if (currentEventId && bEvId && bEvId !== currentEventId) return;
+
+      // Skip cancelled or rejected bookings
+      const bStatus = String(b.status || '').toLowerCase().trim();
+      if (['cancelled', 'rejected'].includes(bStatus)) return;
+
+      // Unique booking key
+      const primaryBookingKey = String(b.id || b.bookingId || b.orderId || `booking-${idx}`);
+      if (seenBookingKeys.has(primaryBookingKey)) return;
+      seenBookingKeys.add(primaryBookingKey);
+
+      // Match with registration document if exists
+      const matchedReg = (registrations || []).find((r) => {
+        if (!r) return false;
+        if (b.registrationId && (r.id === b.registrationId || r.registrationId === b.registrationId)) return true;
+        if (r.bookingId && (b.bookingId === r.bookingId || b.id === r.bookingId || b.orderId === r.bookingId)) return true;
+        if (r.id && (r.id.endsWith(`_${b.id}`) || r.id === `${b.eventId}_${b.userId}_${b.id}`)) return true;
+        if (r.ticketNumber && (b.ticketNumber === r.ticketNumber || b.ticketCode === r.ticketNumber)) return true;
+        if (r.ticketCode && (b.ticketNumber === r.ticketCode || b.ticketCode === r.ticketCode)) return true;
+        const bEmail = (b.bookingContact?.email || b.attendee?.email || b.email || '').toLowerCase().trim();
+        const rEmail = (r.participantEmail || r.participant?.email || r.email || '').toLowerCase().trim();
+        if (bEmail && rEmail && bEmail === rEmail) return true;
+        return false;
+      });
+
+      // Record linkages so corresponding registration docs are not duplicated
+      if (b.id) linkedBookingRefIds.add(String(b.id).trim());
+      if (b.bookingId) linkedBookingRefIds.add(String(b.bookingId).trim());
+      if (b.orderId) linkedBookingRefIds.add(String(b.orderId).trim());
+      if (b.registrationId) linkedBookingRefIds.add(String(b.registrationId).trim());
+      if (matchedReg?.id) linkedBookingRefIds.add(String(matchedReg.id).trim());
+      if (matchedReg?.registrationId) linkedBookingRefIds.add(String(matchedReg.registrationId).trim());
+      if (b.ticketNumber) linkedTicketNumbers.add(String(b.ticketNumber).trim().toUpperCase());
+      if (b.ticketCode) linkedTicketNumbers.add(String(b.ticketCode).trim().toUpperCase());
+      if (matchedReg?.ticketNumber) linkedTicketNumbers.add(String(matchedReg.ticketNumber).trim().toUpperCase());
+      if (matchedReg?.ticketCode) linkedTicketNumbers.add(String(matchedReg.ticketCode).trim().toUpperCase());
+      if (b.userId) linkedUserIds.add(String(b.userId).trim());
+
+      const bEmail = (b.bookingContact?.email || b.attendee?.email || b.email || matchedReg?.participantEmail || matchedReg?.participant?.email || matchedReg?.email || '').toLowerCase().trim();
+      if (bEmail) linkedEmails.add(bEmail);
+
+      const bPhone = (b.bookingContact?.phone || b.attendee?.phone || b.phone || matchedReg?.participantPhone || matchedReg?.participant?.phone || matchedReg?.phone || '').trim();
+      if (bPhone) linkedPhones.add(bPhone);
+
+      const isCheckedIn = (
+        b.attendanceStatus === 'Checked In' ||
+        b.status === 'Checked In' ||
+        b.gateStatus === 'Done' ||
+        matchedReg?.attendanceStatus === 'Checked In' ||
+        matchedReg?.status === 'Checked In' ||
+        matchedReg?.gateStatus === 'Done'
+      );
+      const gateStatus = isCheckedIn ? 'Done' : 'Pending Gate';
+
+      const att0 = (b.attendees && b.attendees[0]) || null;
+      const name = b.bookingContact?.name || att0?.name || b.attendee?.name || b.name || matchedReg?.participantName || matchedReg?.participant?.fullName || matchedReg?.fullName || 'Participant';
+      const email = bEmail || 'N/A';
+      const phone = bPhone || 'N/A';
+
+      const rawTier = att0?.ticketTier || b.tierName || b.packageName || b.joinAs || matchedReg?.tierName || matchedReg?.ticketType || 'Standard';
+      let tierName = rawTier;
+      if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
+      else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
+      else if (rawTier.toLowerCase().includes('gold')) tierName = 'Gold';
+      else if (rawTier.toLowerCase().includes('silver')) tierName = 'Silver';
+      else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
+      else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
+
+      const ticketNumber = b.ticketNumber || b.ticketCode || matchedReg?.ticketNumber || matchedReg?.ticketCode || `NX-${(b.id || String(idx)).slice(0, 6).toUpperCase()}`;
+      const bibNumber = b.bibNumber || matchedReg?.bibNumber || (ticketNumber ? `BIB-${ticketNumber.slice(-4)}` : `BIB-${101 + idx}`);
+      const priceNumeric = getBookingAmount(b) || (matchedReg ? getRegistrationAmount(matchedReg) : 0);
+      const ticketPrice = priceNumeric > 0 ? currency(priceNumeric) : 'Free';
+      const dateObj = asDate(b.createdAt || matchedReg?.registrationDate || matchedReg?.createdAt) || new Date();
+      const bookedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const bookedMinutes = dateObj.getTime();
+      const isPaid = (b.paymentStatus === 'paid' || b.status === 'paid' || b.status === 'approved' || b.status === 'confirmed' || priceNumeric === 0 || matchedReg?.paymentStatus === 'Paid');
+      const paymentStatus = isPaid ? 'Paid' : 'Pending';
+
+      const bookingId = b.bookingId || b.id || b.orderId || matchedReg?.bookingId || `BK-${idx}`;
+      const orderId = b.orderId || b.bookingId || b.id || matchedReg?.orderId || `ORD-${idx}`;
+      const age = att0?.age || b.attendee?.age || matchedReg?.participant?.age || matchedReg?.age || 'N/A';
+      const gender = att0?.gender || b.attendee?.gender || matchedReg?.participant?.gender || matchedReg?.gender || 'N/A';
+      const idType = att0?.idType || b.attendee?.idType || matchedReg?.participant?.idType || matchedReg?.idType || 'Govt ID';
+      const idNumber = att0?.idNumber || b.attendee?.idNumber || matchedReg?.participant?.idNumber || matchedReg?.idNumber || 'Verified';
+      const emergencyContact = b.emergencyContact || matchedReg?.emergencyContact || (b.emergencyPhone ? { name: b.emergencyName || 'Emergency Contact', phone: b.emergencyPhone, relation: b.emergencyRelation || 'Contact' } : null);
+      const bikeDetails = b.bikeDetails || matchedReg?.bikeDetails || null;
+      const paymentMethod = b.paymentMethod || b.payment?.method || matchedReg?.paymentMethod || (priceNumeric > 0 ? 'Razorpay / Online' : 'Complimentary Pass');
+      const paymentId = b.paymentId || b.razorpay_payment_id || matchedReg?.paymentId || 'N/A';
+      const attendeesList = (b.attendees && b.attendees.length > 0)
+        ? b.attendees
+        : (matchedReg?.attendees && matchedReg.attendees.length > 0
+          ? matchedReg.attendees
+          : [{ name, email: email || 'N/A', phone, role: tierName, idType }]);
+      const preferences = b.preferences || matchedReg?.preferences || null;
+      const fees = b.fees || matchedReg?.fees || null;
+      const qrPayload = b.qrPayload || matchedReg?.qrPayload || JSON.stringify({ ticketNumber, bookingId, eventId: currentEventId, name, bibNumber });
+
+      list.push({
+        id: b.id || (matchedReg?.id ? `reg-${matchedReg.id}` : `bk-${idx}`),
+        registrationId: matchedReg?.id || b.registrationId || b.id,
+        bookingId,
+        orderId,
+        name,
+        participantName: name,
+        email: email || 'N/A',
+        participantEmail: email || 'N/A',
+        phone,
+        participantPhone: phone,
+        avatar: b.userPhoto || b.photoURL || matchedReg?.participantPhoto || matchedReg?.avatar || null,
+        avatarInitial: name.charAt(0).toUpperCase(),
+        eventTitle: event?.title || 'Current Event',
+        tierName,
+        ticketFor: b.ticketFor || att0?.joinAs || (b.vehicle ? 'Rider' : 'Attendee'),
+        ticketTier: `${tierName} · ${b.ticketFor || att0?.joinAs || (b.vehicle ? 'Rider' : 'Attendee')}`,
+        ticketNumber,
+        bibNumber,
+        ticketPrice,
+        priceNumeric,
+        bookedDate,
+        bookedMinutes,
+        paymentStatus,
+        paymentMethod,
+        paymentId,
+        gateStatus,
+        attendanceStatus: isCheckedIn ? 'Checked In' : 'Not Checked In',
+        isCheckedIn,
+        checkInTime: b.checkInTime || matchedReg?.checkInTime || null,
+        ticketCode: ticketNumber,
+        vehicle: b.vehicle || matchedReg?.vehicle || 'Motorcycle',
+        vehiclePlate: b.vehiclePlate || matchedReg?.vehiclePlate || 'N/A',
+        city: b.city || event?.city || 'India',
+        ticketsCount: Number(b.totalTickets || ((b.attendeeCounts?.adults || 0) + (b.attendeeCounts?.children || 0)) || 1),
+        status: isPaid ? 'Confirmed' : (b.status || 'Confirmed'),
+        age,
+        gender,
+        idType,
+        idNumber,
+        emergencyContact,
+        bikeDetails,
+        attendeesList,
+        preferences,
+        fees,
+        qrPayload,
+        isFromBooking: true,
+        rawBooking: b,
+        rawRegistration: matchedReg || null,
+      });
+    });
+
+    // 2. Process Standalone Registrations (Only direct confirmed host entries not originating from bookings)
+    (registrations || []).forEach((r, idx) => {
+      // Must match current event
+      const rEvId = String(r.eventId || r.event_id || r.event?.id || '').trim();
+      if (currentEventId && rEvId && rEvId !== currentEventId) return;
+
+      const rId = String(r.id || '').trim();
+      const rRegId = String(r.registrationId || '').trim();
+      const rBookingId = String(r.bookingId || '').trim();
+      const rTicketNum = String(r.ticketNumber || r.ticketCode || '').trim().toUpperCase();
+      const rEmail = (r.participantEmail || r.participant?.email || r.email || '').toLowerCase().trim();
+      const rPhone = (r.participantPhone || r.participant?.phone || r.phone || '').trim();
+
+      // Check if already linked to any processed booking
+      const isLinkedToBooking =
+        (rId && linkedBookingRefIds.has(rId)) ||
+        (rRegId && linkedBookingRefIds.has(rRegId)) ||
+        (rBookingId && linkedBookingRefIds.has(rBookingId)) ||
+        (rTicketNum && linkedTicketNumbers.has(rTicketNum)) ||
+        Array.from(linkedBookingRefIds).some((bId) => rId.endsWith(`_${bId}`) || rRegId.endsWith(`_${bId}`));
+
+      if (isLinkedToBooking) return;
+
+      // Exclude abandoned checkout attempts (must be confirmed / paid / complimentary)
+      const isConfirmed =
+        r.status === 'Confirmed' ||
+        r.status === 'approved' ||
+        r.paymentStatus === 'Paid' ||
+        r.paymentStatus === 'paid' ||
+        (getRegistrationAmount(r) === 0 && r.status !== 'Pending' && r.status !== 'Cancelled' && r.status !== 'rejected');
+
+      if (!isConfirmed) return;
+
+      const id = r.registrationId || r.id || `reg-${idx}`;
+      const name = r.participantName || r.participant?.fullName || r.fullName || r.name || 'Participant';
+      const rawTier = r.tierName || r.ticketType || 'Standard';
+      let tierName = rawTier;
+      if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
+      else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
+      else if (rawTier.toLowerCase().includes('gold')) tierName = 'Gold';
+      else if (rawTier.toLowerCase().includes('silver')) tierName = 'Silver';
+      else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
+      else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
+
+      const ticketNumber = r.ticketNumber || r.ticketCode || `NX-${(r.id || String(idx)).slice(0, 6).toUpperCase()}`;
+      const bibNumber = r.bibNumber || (ticketNumber ? `BIB-${ticketNumber.slice(-4)}` : `BIB-${201 + idx}`);
+      const priceNumeric = getRegistrationAmount(r);
+      const ticketPrice = priceNumeric > 0 ? currency(priceNumeric) : 'Free';
+      const dateObj = asDate(r.registrationDate || r.createdAt) || new Date();
+      const bookedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+      const bookedMinutes = dateObj.getTime();
+      const isCheckedIn = (r.attendanceStatus === 'Checked In' || r.status === 'Checked In' || r.gateStatus === 'Done');
+      const gateStatus = isCheckedIn ? 'Done' : 'Pending Gate';
+      const paymentStatus = (r.paymentStatus === 'Paid' || priceNumeric === 0 || r.status === 'Confirmed') ? 'Paid' : (r.paymentStatus || 'Pending');
+
+      const bookingId = r.bookingId || id;
+      const orderId = r.orderId || r.bookingId || id;
+      const phone = rPhone || 'N/A';
+      const age = r.participant?.age || r.age || 'N/A';
+      const gender = r.participant?.gender || r.gender || 'N/A';
+      const idType = r.participant?.idType || r.idType || 'Govt ID';
+      const idNumber = r.participant?.idNumber || r.idNumber || 'Verified';
+      const emergencyContact = r.participant?.emergencyContact || r.emergencyContact || (r.emergencyPhone ? { name: r.emergencyName || 'Emergency Contact', phone: r.emergencyPhone, relation: r.emergencyRelation || 'Contact' } : null);
+      const bikeDetails = r.participant?.bikeDetails || r.bikeDetails || null;
+      const paymentMethod = r.paymentMethod || (priceNumeric > 0 ? 'Razorpay / Online' : 'Complimentary Pass');
+      const paymentId = r.paymentId || 'N/A';
+      const attendeesList = (r.attendees && r.attendees.length > 0)
+        ? r.attendees
+        : [{ name, email: rEmail || 'N/A', phone, role: tierName, idType }];
+      const preferences = r.preferences || null;
+      const fees = r.fees || null;
+      const qrPayload = r.qrPayload || JSON.stringify({ ticketNumber, bookingId, eventId: currentEventId, name, bibNumber });
+
+      list.push({
+        id,
+        registrationId: id,
+        bookingId,
+        orderId,
+        name,
+        participantName: name,
+        email: rEmail || 'N/A',
+        participantEmail: rEmail || 'N/A',
+        phone,
+        participantPhone: phone,
+        avatar: r.participantPhoto || r.avatar || null,
+        avatarInitial: name.charAt(0).toUpperCase(),
+        eventTitle: event?.title || 'Current Event',
+        tierName,
+        ticketFor: r.ticketFor || (r.participant?.vehicleNumber || r.vehicle ? 'Rider' : 'Attendee'),
+        ticketTier: `${tierName} · ${r.ticketFor || (r.participant?.vehicleNumber || r.vehicle ? 'Rider' : 'Attendee')}`,
+        ticketNumber,
+        bibNumber,
+        ticketPrice,
+        priceNumeric,
+        bookedDate,
+        bookedMinutes,
+        paymentStatus,
+        paymentMethod,
+        paymentId,
+        gateStatus,
+        attendanceStatus: isCheckedIn ? 'Checked In' : 'Not Checked In',
+        isCheckedIn,
+        checkInTime: r.checkInTime || r.checkedInAt || null,
+        ticketCode: ticketNumber,
+        vehicle: r.participant?.vehicleNumber || r.vehicle || 'Motorcycle',
+        vehiclePlate: r.participant?.vehicleNumber || r.vehiclePlate || 'N/A',
+        city: r.participant?.city || r.city || event?.city || 'India',
+        ticketsCount: Number(r.ticketsCount || r.tickets || 1),
+        status: r.status || 'Confirmed',
+        age,
+        gender,
+        idType,
+        idNumber,
+        emergencyContact,
+        bikeDetails,
+        attendeesList,
+        preferences,
+        fees,
+        qrPayload,
+        isFromBooking: false,
+        rawRegistration: r,
+        rawBooking: null,
+      });
+    });
+
+    return list;
+  }, [registrations, bookings, event?.city, event?.title, event?.id, event?.eventId, eventId]);
+
+  // Auto-sync event registeredCount in Firestore if it was inflated or out of sync
+  useEffect(() => {
+    if (event && !loading && !loadingBookings && !loadingRegistrations) {
+      const trueCount = allParticipantsList.length;
+      if (event.registeredCount !== undefined && event.registeredCount !== trueCount && trueCount > 0) {
+        updateEvent(event.id || eventId, { registeredCount: trueCount }).catch(() => {});
+      }
+    }
+  }, [event, allParticipantsList.length, loading, loadingBookings, loadingRegistrations, eventId]);
+
   const analytics = useMemo(() => {
     const activeBookings = bookings.filter((booking) => !['cancelled', 'rejected'].includes(String(booking.status || '').toLowerCase().trim()));
     const confirmedBookings = activeBookings.filter((booking) => ['approved', 'confirmed', 'paid'].includes(String(booking.status || '').toLowerCase().trim())).length;
     const pendingBookings = activeBookings.filter((booking) => ['pending', 'created'].includes(String(booking.status || '').toLowerCase().trim())).length;
     const cancelledBookings = bookings.filter((booking) => ['cancelled', 'rejected'].includes(String(booking.status || '').toLowerCase().trim())).length;
-    const checkedIn = registrations.filter((entry) => entry.attendanceStatus === 'Checked In').length +
-      bookings.filter((b) => b.attendanceStatus === 'Checked In').length;
-    const revenueFromBookings = bookings.reduce((sum, booking) => sum + getBookingAmount(booking), 0);
-    const revenueFromRegistrations = registrations.reduce((sum, entry) => sum + getRegistrationAmount(entry), 0);
-    const revenue = Math.max(Number(event?.revenue || 0), revenueFromBookings, revenueFromRegistrations);
+
+    const checkedIn = allParticipantsList.filter((p) => p.isCheckedIn || p.gateStatus === 'Done').length;
+    const revenueFromParticipants = allParticipantsList.reduce((sum, p) => sum + (p.priceNumeric || 0), 0);
+    const revenue = Math.max(Number(event?.revenue || 0), revenueFromParticipants);
     const capacity = Number(event?.capacity || 0);
 
-    const totalBookingTickets = activeBookings.reduce((sum, b) => {
-      const adult = Number(b.attendeeCounts?.adults || 0);
-      const child = Number(b.attendeeCounts?.children || 0);
-      return sum + (adult + child || Number(b.totalTickets || 1));
-    }, 0);
-    const totalRegTickets = registrations.reduce((sum, r) => sum + Number(r.ticketsCount || r.tickets || 1), 0);
-    const sold = Math.max(
-      Number(event?.registeredCount || 0),
-      totalBookingTickets,
-      totalRegTickets,
-      activeBookings.length,
-      registrations.length
-    );
+    const sold = allParticipantsList.length;
 
     const platformFees = Math.round(revenue * 0.08);
     const taxes = Math.round(revenue * 0.18);
     const sourceData = [
       { name: 'Direct', value: Number(event?.views || 0) },
-      { name: 'Bookings', value: bookings.length },
-      { name: 'Registrations', value: registrations.length },
+      { name: 'Bookings', value: allParticipantsList.filter((p) => p.isFromBooking).length },
+      { name: 'Registrations', value: allParticipantsList.filter((p) => !p.isFromBooking).length },
     ].filter((item) => item.value > 0);
 
     return {
@@ -441,7 +747,7 @@ const EventDetailsPage = () => {
         { name: event?.ticketType || 'General', sold, remaining: Math.max(0, capacity - sold), revenue },
       ],
     };
-  }, [bookings, event, registrations]);
+  }, [allParticipantsList, bookings, event]);
 
   const registrationClosed = useMemo(() => {
     if (!event) return true;
@@ -912,7 +1218,7 @@ const EventDetailsPage = () => {
         }).reduce((sum, r) => sum + Number(r.ticketsCount || r.tickets || 1), 0);
 
         const explicitSoldCount = Number(pkg.soldCount || pkg.sold || 0);
-        const eventCountFallback = rawPkgs.length === 1 ? Number(event?.registeredCount || 0) : 0;
+        const eventCountFallback = rawPkgs.length === 1 ? allParticipantsList.length : 0;
         const sold = Math.max(explicitSoldCount, soldFromBookings, soldFromRegistrations, eventCountFallback);
         const remaining = capacity > 0 ? Math.max(0, capacity - sold) : 0;
 
@@ -945,10 +1251,9 @@ const EventDetailsPage = () => {
       const totalBookingTickets = activeBookings.reduce((sum, b) => sum + getBookingTickets(b), 0);
       const totalRegTickets = registrations.reduce((sum, r) => sum + Number(r.ticketsCount || r.tickets || 1), 0);
 
-      const sold = Math.max(
+      const sold = allParticipantsList.length || Math.max(
         totalBookingTickets,
-        totalRegTickets,
-        Number(event?.registeredCount || 0)
+        totalRegTickets
       );
 
       const remaining = capacity > 0 ? Math.max(0, capacity - sold) : 0;
@@ -991,7 +1296,7 @@ const EventDetailsPage = () => {
     }
 
     return pkgs;
-  }, [bookings, event, registrations]);
+  }, [allParticipantsList, bookings, event, registrations]);
 
   const renderTicketMeterSection = () => {
     const meterColors = ['#10b981', '#3b82f6', '#f97316', '#8b5cf6', '#06b6d4', '#ec4899'];
@@ -1067,227 +1372,8 @@ const EventDetailsPage = () => {
   };
 
   // =========================================================================
-  // PARTICIPANTS DATA & TABLE ENGINE (Matching Participants.js)
+  // PARTICIPANTS TABLE ENGINE (allParticipantsList defined above for analytics)
   // =========================================================================
-  const allParticipantsList = useMemo(() => {
-    const list = [];
-    const existingEmails = new Set();
-    const existingIds = new Set();
-
-    // 1. Live Firebase Registrations
-    registrations.forEach((r, idx) => {
-      const id = r.registrationId || r.id || `reg-${idx}`;
-      const email = (r.participantEmail || r.participant?.email || r.email || '').toLowerCase().trim();
-      if (email) existingEmails.add(email);
-      existingIds.add(id);
-
-      const name = r.participantName || r.participant?.fullName || r.fullName || r.name || 'Participant';
-      const rawTier = r.tierName || r.ticketType || 'Standard';
-      let tierName = rawTier;
-      if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
-      else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
-      else if (rawTier.toLowerCase().includes('gold')) tierName = 'Gold';
-      else if (rawTier.toLowerCase().includes('silver')) tierName = 'Silver';
-      else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
-      else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
-
-      const ticketNumber = r.ticketNumber || `NX-${(r.id || String(idx)).slice(0, 6).toUpperCase()}`;
-      const bibNumber = r.bibNumber || (r.ticketNumber ? `${r.ticketNumber.slice(-3)}` : `${101 + idx}`);
-      const priceNumeric = getRegistrationAmount(r);
-      const ticketPrice = priceNumeric > 0 ? currency(priceNumeric) : 'Free';
-      const dateObj = asDate(r.registrationDate || r.createdAt) || new Date();
-      const bookedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-      const bookedMinutes = dateObj.getTime();
-      const isCheckedIn = (r.attendanceStatus === 'Checked In' || r.status === 'Checked In' || r.gateStatus === 'Done');
-      const gateStatus = isCheckedIn ? 'Done' : 'Pending Gate';
-      const paymentStatus = (r.paymentStatus === 'Paid' || priceNumeric === 0 || r.status === 'Confirmed') ? 'Paid' : (r.paymentStatus || 'Pending');
-
-      // Match with booking document if exists to extract extended details
-      const matchedBooking = (bookings || []).find((b) => {
-        if (!b) return false;
-        if (r.bookingId && (b.id === r.bookingId || b.bookingId === r.bookingId || b.orderId === r.bookingId)) return true;
-        if (b.registrationId && (b.registrationId === id || b.registrationId === r.id)) return true;
-        if (b.ticketNumber && (b.ticketNumber === r.ticketNumber || b.ticketNumber === r.ticketCode)) return true;
-        const bEmail = (b.bookingContact?.email || b.attendee?.email || b.email || '').toLowerCase().trim();
-        if (email && bEmail && email === bEmail) return true;
-        return false;
-      });
-
-      const bookingId = r.bookingId || matchedBooking?.bookingId || matchedBooking?.id || matchedBooking?.orderId || id;
-      const orderId = matchedBooking?.orderId || matchedBooking?.bookingId || r.orderId || r.bookingId || id;
-      const phone = r.participantPhone || r.participant?.phone || r.phone || matchedBooking?.bookingContact?.phone || matchedBooking?.attendee?.phone || matchedBooking?.phone || 'N/A';
-      const age = r.participant?.age || r.age || matchedBooking?.attendee?.age || 'N/A';
-      const gender = r.participant?.gender || r.gender || matchedBooking?.attendee?.gender || 'N/A';
-      const idType = r.participant?.idType || r.idType || matchedBooking?.attendee?.idType || 'Govt ID';
-      const idNumber = r.participant?.idNumber || r.idNumber || matchedBooking?.attendee?.idNumber || 'Verified';
-      const emergencyContact = r.participant?.emergencyContact || r.emergencyContact || matchedBooking?.emergencyContact || (r.emergencyPhone ? { name: r.emergencyName || 'Emergency Contact', phone: r.emergencyPhone, relation: r.emergencyRelation || 'Contact' } : null);
-      const bikeDetails = r.participant?.bikeDetails || r.bikeDetails || matchedBooking?.bikeDetails || null;
-      const paymentMethod = matchedBooking?.paymentMethod || matchedBooking?.payment?.method || r.paymentMethod || (priceNumeric > 0 ? 'Razorpay / Online' : 'Complimentary Pass');
-      const paymentId = matchedBooking?.paymentId || matchedBooking?.razorpay_payment_id || r.paymentId || 'N/A';
-      const attendeesList = (matchedBooking?.attendees && matchedBooking.attendees.length > 0)
-        ? matchedBooking.attendees
-        : (r.attendees && r.attendees.length > 0
-          ? r.attendees
-          : [{ name, email: email || 'N/A', phone, role: tierName, idType }]);
-      const preferences = matchedBooking?.preferences || r.preferences || null;
-      const fees = matchedBooking?.fees || null;
-      const qrPayload = r.qrPayload || matchedBooking?.qrPayload || JSON.stringify({ ticketNumber, bookingId, eventId: event?.id, name, bibNumber });
-
-      list.push({
-        id,
-        registrationId: id,
-        bookingId,
-        orderId,
-        name,
-        participantName: name,
-        email: email || 'N/A',
-        participantEmail: email || 'N/A',
-        phone,
-        participantPhone: phone,
-        avatar: r.participantPhoto || r.avatar || null,
-        avatarInitial: name.charAt(0).toUpperCase(),
-        eventTitle: event?.title || 'Current Event',
-        tierName,
-        ticketFor: r.ticketFor || (r.participant?.vehicleNumber || r.vehicle ? 'Rider' : 'Attendee'),
-        ticketTier: `${tierName} · ${r.ticketFor || (r.participant?.vehicleNumber || r.vehicle ? 'Rider' : 'Attendee')}`,
-        ticketNumber,
-        bibNumber,
-        ticketPrice,
-        priceNumeric,
-        bookedDate,
-        bookedMinutes,
-        paymentStatus,
-        paymentMethod,
-        paymentId,
-        gateStatus,
-        attendanceStatus: isCheckedIn ? 'Checked In' : 'Not Checked In',
-        isCheckedIn,
-        checkInTime: r.checkInTime || r.checkedInAt || null,
-        ticketCode: r.ticketCode || r.ticketNumber || ticketNumber,
-        vehicle: r.participant?.vehicleNumber || r.vehicle || 'Motorcycle',
-        vehiclePlate: r.participant?.vehicleNumber || r.vehiclePlate || 'N/A',
-        city: r.participant?.city || r.city || event?.city || 'India',
-        ticketsCount: Number(r.ticketsCount || r.tickets || 1),
-        status: r.status || 'Confirmed',
-        age,
-        gender,
-        idType,
-        idNumber,
-        emergencyContact,
-        bikeDetails,
-        attendeesList,
-        preferences,
-        fees,
-        qrPayload,
-        isFromBooking: false,
-        rawRegistration: r,
-        rawBooking: matchedBooking || null,
-      });
-    });
-
-    // 2. Active Event Bookings
-    bookings.forEach((b, idx) => {
-      const regId = b.registrationId || `${b.eventId}_${b.userId}_${b.id}`;
-      const email = (b.bookingContact?.email || b.attendee?.email || b.email || '').toLowerCase().trim();
-      if (!existingIds.has(regId) && (!email || !existingEmails.has(email))) {
-        if (email) existingEmails.add(email);
-        existingIds.add(regId);
-
-        const name = b.bookingContact?.name || b.attendee?.name || b.name || 'Attendee';
-        const rawTier = b.tierName || b.packageName || b.joinAs || 'Confirmed Pass';
-        let tierName = rawTier;
-        if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
-        else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
-        else if (rawTier.toLowerCase().includes('gold')) tierName = 'Gold';
-        else if (rawTier.toLowerCase().includes('silver')) tierName = 'Silver';
-        else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
-        else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
-
-        const ticketNumber = b.ticketNumber || `NX-${(b.id || String(idx)).slice(0, 6).toUpperCase()}`;
-        const bibNumber = b.bibNumber || (b.ticketNumber ? `BIB-${b.ticketNumber.slice(-3)}` : `BIB-${201 + idx}`);
-        const priceNumeric = getBookingAmount(b);
-        const ticketPrice = priceNumeric > 0 ? currency(priceNumeric) : 'Free';
-        const dateObj = asDate(b.createdAt) || new Date();
-        const bookedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
-        const bookedMinutes = dateObj.getTime();
-        const isCheckedIn = (b.attendanceStatus === 'Checked In' || b.status === 'Checked In' || b.gateStatus === 'Done');
-        const gateStatus = isCheckedIn ? 'Done' : 'Pending Gate';
-        const isPaid = (b.paymentStatus === 'paid' || b.status === 'paid' || b.status === 'approved' || b.status === 'confirmed');
-        const paymentStatus = isPaid ? 'Paid' : 'Pending';
-
-        const bookingId = b.bookingId || b.id || b.orderId;
-        const orderId = b.orderId || b.bookingId || b.id;
-        const phone = b.bookingContact?.phone || b.attendee?.phone || b.phone || 'N/A';
-        const age = b.attendee?.age || 'N/A';
-        const gender = b.attendee?.gender || 'N/A';
-        const idType = b.attendee?.idType || 'Govt ID';
-        const idNumber = b.attendee?.idNumber || 'Verified';
-        const emergencyContact = b.emergencyContact || (b.emergencyPhone ? { name: b.emergencyName || 'Emergency Contact', phone: b.emergencyPhone, relation: b.emergencyRelation || 'Contact' } : null);
-        const bikeDetails = b.bikeDetails || null;
-        const paymentMethod = b.paymentMethod || b.payment?.method || (priceNumeric > 0 ? 'Razorpay / Online' : 'Complimentary Pass');
-        const paymentId = b.paymentId || b.razorpay_payment_id || 'N/A';
-        const attendeesList = (b.attendees && b.attendees.length > 0)
-          ? b.attendees
-          : [{ name, email: email || 'N/A', phone, role: tierName, idType }];
-        const preferences = b.preferences || null;
-        const fees = b.fees || null;
-        const qrPayload = b.qrPayload || JSON.stringify({ ticketNumber, bookingId, eventId: event?.id, name, bibNumber });
-
-        list.push({
-          id: b.id || regId,
-          registrationId: regId,
-          bookingId,
-          orderId,
-          name,
-          participantName: name,
-          email: email || 'N/A',
-          participantEmail: email || 'N/A',
-          phone,
-          participantPhone: phone,
-          avatar: b.userPhoto || b.photoURL || null,
-          avatarInitial: name.charAt(0).toUpperCase(),
-          eventTitle: event?.title || 'Current Event',
-          tierName,
-          ticketFor: b.ticketFor || (b.vehicle ? 'Rider' : 'Attendee'),
-          ticketTier: `${tierName} · ${b.ticketFor || (b.vehicle ? 'Rider' : 'Attendee')}`,
-          ticketNumber,
-          bibNumber,
-          ticketPrice,
-          priceNumeric,
-          bookedDate,
-          bookedMinutes,
-          paymentStatus,
-          paymentMethod,
-          paymentId,
-          gateStatus,
-          attendanceStatus: isCheckedIn ? 'Checked In' : 'Not Checked In',
-          isCheckedIn,
-          checkInTime: b.checkInTime || null,
-          ticketCode: b.ticketCode || b.ticketNumber || ticketNumber,
-          vehicle: b.vehicle || 'Motorcycle',
-          vehiclePlate: b.vehiclePlate || 'N/A',
-          city: b.city || event?.city || 'India',
-          ticketsCount: Number(b.totalTickets || ((b.attendeeCounts?.adults || 0) + (b.attendeeCounts?.children || 0)) || 1),
-          status: isPaid ? 'Confirmed' : (b.status || 'Confirmed'),
-          age,
-          gender,
-          idType,
-          idNumber,
-          emergencyContact,
-          bikeDetails,
-          attendeesList,
-          preferences,
-          fees,
-          qrPayload,
-          isFromBooking: true,
-          rawBooking: b,
-          rawRegistration: null,
-        });
-      }
-    });
-
-    return list;
-  }, [registrations, bookings, event?.city, event?.title]);
 
   // Distinct Filter Options for Participants
   const participantTierOptions = useMemo(() => {

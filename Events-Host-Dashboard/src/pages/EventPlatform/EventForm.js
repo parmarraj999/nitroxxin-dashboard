@@ -260,6 +260,7 @@ const EventForm = () => {
   const { user, profile } = useAuth();
   const {
     ticketTemplates: cachedTemplates,
+    getFullEvent,
     getEventById,
     updateEvent: updateEventOpt,
     createEvent: createEventOpt,
@@ -298,7 +299,7 @@ const EventForm = () => {
 
   useEffect(() => {
     if (!eventId) return;
-    const fetcher = getEventById ? getEventById(eventId) : getEvent(eventId);
+    const fetcher = getFullEvent ? getFullEvent(eventId) : (getEventById ? getEventById(eventId) : getEvent(eventId));
     Promise.resolve(fetcher)
       .then((event) => {
         if (!event) return;
@@ -348,7 +349,7 @@ const EventForm = () => {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [eventId, getEventById]);
+  }, [eventId, getFullEvent, getEventById]);
 
   // Only show fetched data from Firestore `ticket_tamplate` collection
   const availableTemplates = useMemo(() => {
