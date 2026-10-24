@@ -645,11 +645,24 @@ export const duplicateEvent = async (event) => {
   });
 };
 
-export const incrementEventView = (eventId) =>
-  updateDoc(doc(db, collections.events, eventId), {
+export const incrementEventView = async (eventId) => {
+  if (!eventId) return;
+  try {
+    const sessionKey = `nitroxx_viewed_ev_${eventId}`;
+    if (typeof sessionStorage !== 'undefined' && sessionStorage.getItem(sessionKey)) {
+      return; // Skip write if already viewed in this session
+    }
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.setItem(sessionKey, '1');
+    }
+  } catch (e) {
+    // Proceed safely if sessionStorage is restricted
+  }
+  return updateDoc(doc(db, collections.events, eventId), {
     views: increment(1),
     updatedAt: serverTimestamp(),
   });
+};
 
 export const registerForEvent = async ({ eventId, hostId, userId, participant, ticketPrice = 0 }) => {
   const eventRef = doc(db, collections.events, eventId);

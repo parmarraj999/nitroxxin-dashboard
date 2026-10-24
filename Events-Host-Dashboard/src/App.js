@@ -1,6 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { DataProvider } from './context/DataContext';
 import ErrorBoundary from './components/States/ErrorBoundary';
 import LoadingState from './components/States/LoadingState';
 import ProtectedRoute from './components/RouteGuards/ProtectedRoute';
@@ -49,44 +50,46 @@ function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
-        <Router>
-          <div className="app">
-            <Routes>
-              <Route path="/" element={<RootRedirect />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/approval-pending" element={<ApprovalPending />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/unauthorized" element={<Unauthorized />} />
-              <Route path="/events-preview" element={<EventList />} />
-              <Route path="/participants-preview" element={<Participants />} />
-              <Route path="/dashboard-preview" element={<Dashboard />} />
-              <Route path="/transactions-preview" element={<Transactions />} />
-              <Route path="/profile-preview" element={<Profile />} />
-              <Route path="/events/:eventId/checkin" element={<EventCheckInMobile />} />
-              <Route path="/checkin/:eventId" element={<EventCheckInMobile />} />
+        <DataProvider>
+          <Router>
+            <div className="app">
+              <Routes>
+                <Route path="/" element={<RootRedirect />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/approval-pending" element={<ApprovalPending />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/unauthorized" element={<Unauthorized />} />
+                <Route path="/events-preview" element={<EventList />} />
+                <Route path="/participants-preview" element={<Participants />} />
+                <Route path="/dashboard-preview" element={<Dashboard />} />
+                <Route path="/transactions-preview" element={<Transactions />} />
+                <Route path="/profile-preview" element={<Profile />} />
+                <Route path="/events/:eventId/checkin" element={<EventCheckInMobile />} />
+                <Route path="/checkin/:eventId" element={<EventCheckInMobile />} />
 
-              <Route element={<ProtectedRoute />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/explore" element={<PublicEvents />} />
-                <Route path="/explore/:eventId" element={<EventDetailsPage />} />
-                <Route path="/events/:eventId" element={<EventDetailsPage />} />
-                <Route path="/transactions" element={<Transactions />} />
-                <Route path="/profile" element={<Profile />} />
-              </Route>
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/explore" element={<PublicEvents />} />
+                  <Route path="/explore/:eventId" element={<EventDetailsPage />} />
+                  <Route path="/events/:eventId" element={<EventDetailsPage />} />
+                  <Route path="/transactions" element={<Transactions />} />
+                  <Route path="/profile" element={<Profile />} />
+                </Route>
 
-              <Route element={<ProtectedRoute roles={['Host']} />}>
-                <Route path="/events" element={<EventList />} />
-                <Route path="/events/new" element={<EventForm />} />
-                <Route path="/events/:eventId/edit" element={<EventForm />} />
-                <Route path="/participants" element={<Participants />} />
-                <Route path="/analytics" element={<Analytics />} />
-              </Route>
+                <Route element={<ProtectedRoute roles={['Host']} />}>
+                  <Route path="/events" element={<EventList />} />
+                  <Route path="/events/new" element={<EventForm />} />
+                  <Route path="/events/:eventId/edit" element={<EventForm />} />
+                  <Route path="/participants" element={<Participants />} />
+                  <Route path="/analytics" element={<Analytics />} />
+                </Route>
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </div>
-        </Router>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </div>
+          </Router>
+        </DataProvider>
       </AuthProvider>
     </ErrorBoundary>
   );

@@ -25,6 +25,7 @@ import {
 import AppLayout from "../../components/AppLayout/AppLayout";
 import LoadingState from "../../components/States/LoadingState";
 import { useAuth } from "../../context/AuthContext";
+import { useData } from "../../context/DataContext";
 import {
   createEvent,
   getEvent,
@@ -257,6 +258,12 @@ const EventForm = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
   const { user, profile } = useAuth();
+  const {
+    ticketTemplates: cachedTemplates,
+    getEventById,
+    updateEvent: updateEventOpt,
+    createEvent: createEventOpt,
+  } = useData();
   const [form, setForm] = useState(initialForm);
   const [files, setFiles] = useState({
     banner: null,
@@ -272,8 +279,12 @@ const EventForm = () => {
   const [progress, setProgress] = useState(0);
   const [firestoreTemplates, setFirestoreTemplates] = useState([]);
 
-  // Subscribe to Firestore collection `ticket_tamplate` in real-time
+  // Use cached ticket templates from DataContext (saves Firestore reads)
   useEffect(() => {
+    if (cachedTemplates && cachedTemplates.length > 0) {
+      setFirestoreTemplates(cachedTemplates);
+      return undefined;
+    }
     const unsub = subscribeToTicketTemplates(
       (templates) => {
         setFirestoreTemplates(templates);
@@ -283,12 +294,14 @@ const EventForm = () => {
       }
     );
     return () => unsub();
-  }, []);
+  }, [cachedTemplates]);
 
   useEffect(() => {
     if (!eventId) return;
-    getEvent(eventId)
+    const fetcher = getEventById ? getEventById(eventId) : getEvent(eventId);
+    Promise.resolve(fetcher)
       .then((event) => {
+        if (!event) return;
         const bikeReq = event.bikeRequirements || {};
         const {
           banner: _legacyBanner,
@@ -335,7 +348,7 @@ const EventForm = () => {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [eventId]);
+  }, [eventId, getEventById]);
 
   // Only show fetched data from Firestore `ticket_tamplate` collection
   const availableTemplates = useMemo(() => {
@@ -708,10 +721,14 @@ const EventForm = () => {
         refundPolicyNotes: form.refundPolicyNotes?.trim() || "",
       };
       if (eventId) {
-        await updateEvent(eventId, payload);
+        if (updateEventOpt) {
+          await updateEventOpt(eventId, payload);
+        } else {
+          await updateEvent(eventId, payload);
+        }
         navigate(`/events/${eventId}`);
       } else {
-        const id = await createEvent(payload);
+        const id = createEventOpt ? await createEventOpt(payload) : await createEvent(payload);
         navigate(`/events/${id}`);
       }
     } catch (err) {
