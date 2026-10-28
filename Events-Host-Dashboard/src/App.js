@@ -60,29 +60,33 @@ function App() {
                 <Route path="/approval-pending" element={<ApprovalPending />} />
                 <Route path="/forgot-password" element={<ForgotPassword />} />
                 <Route path="/unauthorized" element={<Unauthorized />} />
-                <Route path="/events-preview" element={<EventList />} />
-                <Route path="/participants-preview" element={<Participants />} />
+                {/* Preview routes for previewing without auth */}
                 <Route path="/dashboard-preview" element={<Dashboard />} />
+                <Route path="/events-preview" element={<EventList />} />
+                <Route path="/events-new-preview" element={<EventForm />} />
+                <Route path="/events-preview/:eventId" element={<EventDetailsPage />} />
+                <Route path="/participants-preview" element={<Participants />} />
                 <Route path="/transactions-preview" element={<Transactions />} />
+                <Route path="/analytics-preview" element={<Analytics />} />
                 <Route path="/profile-preview" element={<Profile />} />
+
+                {/* Mobile check-in routes */}
                 <Route path="/events/:eventId/checkin" element={<EventCheckInMobile />} />
                 <Route path="/checkin/:eventId" element={<EventCheckInMobile />} />
 
+                {/* Protected Host Workspace routes */}
                 <Route element={<ProtectedRoute />}>
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/explore" element={<PublicEvents />} />
-                  <Route path="/explore/:eventId" element={<EventDetailsPage />} />
-                  <Route path="/events/:eventId" element={<EventDetailsPage />} />
-                  <Route path="/transactions" element={<Transactions />} />
-                  <Route path="/profile" element={<Profile />} />
-                </Route>
-
-                <Route element={<ProtectedRoute roles={['Host']} />}>
                   <Route path="/events" element={<EventList />} />
                   <Route path="/events/new" element={<EventForm />} />
                   <Route path="/events/:eventId/edit" element={<EventForm />} />
+                  <Route path="/events/:eventId" element={<EventDetailsPage />} />
                   <Route path="/participants" element={<Participants />} />
+                  <Route path="/transactions" element={<Transactions />} />
                   <Route path="/analytics" element={<Analytics />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/explore" element={<PublicEvents />} />
+                  <Route path="/explore/:eventId" element={<EventDetailsPage />} />
                 </Route>
 
                 <Route path="*" element={<NotFound />} />

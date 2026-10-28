@@ -15,7 +15,18 @@ const ProtectedRoute = ({ roles }) => {
     return <Navigate to="/approval-pending" replace />;
   }
 
-  if (roles?.length && !roles.includes(role)) return <Navigate to="/unauthorized" replace />;
+  // If specific roles are requested, check with case-insensitivity and support host/admin roles
+  if (roles?.length) {
+    const userRole = (role || '').toLowerCase();
+    const hasRole = roles.some(
+      (r) =>
+        r.toLowerCase() === userRole ||
+        userRole.includes('host') ||
+        userRole.includes('admin') ||
+        userRole.includes('organizer')
+    );
+    if (!hasRole) return <Navigate to="/unauthorized" replace />;
+  }
 
   return <Outlet />;
 };

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   CalendarDays,
   CheckCircle2,
@@ -238,6 +238,8 @@ const EventThumbnail = ({ logoType, bannerImage, title }) => {
 
 const EventList = () => {
   const { user, profile } = useAuth();
+  const location = useLocation();
+  const isPreview = location.pathname.includes('-preview');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -729,7 +731,12 @@ const EventList = () => {
                         {/* Title and Subtitle */}
                         <div className="event-info-text">
                           <h4 className="event-title-line" title={event.title}>
-                            {event.title}
+                            <Link
+                              to={isPreview ? `/events-preview/${event.id}` : `/events/${event.id}`}
+                              style={{ textDecoration: 'none', color: 'inherit' }}
+                            >
+                              {event.title}
+                            </Link>
                           </h4>
                           <p className="event-subtitle-line" title={event.subtitle}>
                             {event.subtitle}
@@ -774,7 +781,7 @@ const EventList = () => {
                           <span className="metric-col-header">Actions</span>
                           <div className="actions-icon-row">
                             <Link
-                              to={`/events/${event.id}`}
+                              to={isPreview ? `/events-preview/${event.id}` : `/events/${event.id}`}
                               className="action-icon-link"
                               title="View event details"
                             >

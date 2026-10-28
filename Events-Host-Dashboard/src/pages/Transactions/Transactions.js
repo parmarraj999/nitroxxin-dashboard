@@ -26,12 +26,18 @@ import {
   Trash2
 } from 'lucide-react';
 import AppLayout from '../../components/AppLayout/AppLayout';
+import { useAuth } from '../../context/AuthContext';
+import { useBookingsAndPayments } from '../../hooks/useBookingsAndPayments';
 import { INITIAL_TRANSACTIONS } from './transactionsData';
 import TransactionDetailDrawer from './TransactionDetailDrawer';
 import { TransactionTableSkeleton } from '../../components/States/SkeletonLoading';
 import './Transactions.css';
 
 const Transactions = () => {
+  const { user } = useAuth();
+  const hostId = user?.uid;
+  const { bookings, payments, loading: liveLoading } = useBookingsAndPayments({ hostId });
+
   const [loading, setLoading] = useState(true);
   const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
   const [searchQuery, setSearchQuery] = useState('');
@@ -73,13 +79,155 @@ const Transactions = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Initial smooth skeleton loading transition
+  // Sync live bookings and payments queried by hostId
   useEffect(() => {
-    const timer = setTimeout(() => {
+    const asDate = (val) => {
+      if (!val) return new Date();
+      if (typeof val?.toDate === 'function') return val.toDate();
+      if (val.seconds) return new Date(val.seconds * 1000);
+      if (val instanceof Date) return val;
+      const parsed = new Date(val);
+      return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+    };
+
+    const liveTxList = [];
+    const seenTxIds = new Set();
+
+    // 1. Map bookings (queried by hostId)
+    if (Array.isArray(bookings) && bookings.length > 0) {
+      bookings.forEach((b, idx) => {
+        const dateObj = asDate(b.createdAt || b.bookingDate);
+        const amountNum = Number(b.amount || b.totalAmount || b.pricing?.finalAmount || b.ticketPrice || b.priceNumeric || 0);
+        const amount = amountNum > 0 ? `₹${amountNum.toLocaleString('en-IN')}` : '₹0.00';
+        const isSuccess =
+          b.paymentStatus === 'paid' ||
+          b.paymentStatus === 'Success' ||
+          b.status === 'confirmed' ||
+          b.status === 'approved' ||
+          b.status === 'paid' ||
+          (amountNum === 0 && Boolean(b.status));
+        const status = isSuccess
+          ? 'Success'
+          : b.paymentStatus === 'failed' || b.status === 'cancelled' || b.status === 'rejected'
+          ? 'Failed'
+          : 'In progress';
+
+        const eventTitle = b.eventTitle || b.eventName || b.event?.title || 'Confirmed Host Event';
+        const tier = b.packageName || b.tierName || b.ticketType || 'Standard Entry';
+        const ticketsCount = Number(b.totalTickets || ((b.attendeeCounts?.adults || 0) + (b.attendeeCounts?.children || 0)) || 1);
+        const invoice = b.invoiceNumber || b.orderId || b.ticketNumber || b.bookingId || `INV-${String(b.id).slice(0, 6).toUpperCase()}`;
+        const customerName = b.bookingContact?.name || b.attendee?.name || b.name || b.participantName || b.user?.fullName || 'Registered Attendee';
+        const customerEmail = b.bookingContact?.email || b.attendee?.email || b.email || b.userEmail || b.user?.email || 'N/A';
+        const feeNum = Math.round(amountNum * 0.02);
+        const netNum = amountNum - feeNum;
+        const txId = b.paymentId || b.transactionId || b.id || `TX-BKG-${b.id}`;
+
+        if (!seenTxIds.has(txId)) {
+          seenTxIds.add(txId);
+          liveTxList.push({
+            id: txId,
+            customerId: b.userId || b.bookingContact?.phone?.slice(-6) || String(b.id).slice(0, 6),
+            invoice,
+            name: customerName,
+            avatar: b.userPhoto || b.photoURL || `https://images.unsplash.com/photo-${1535713875002 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
+            description: `${tier} · ${ticketsCount} Pass${ticketsCount > 1 ? 'es' : ''}`,
+            bookingEvent: `${eventTitle} - ${tier}`,
+            category: 'Request Money',
+            date: dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            time: dateObj.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+            dateTimeFull: `${dateObj.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} ${dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`,
+            email: customerEmail,
+            status,
+            transactionType: 'Sale',
+            accountData: b.paymentMethod ? `${b.paymentMethod}` : 'Online UPI / Card',
+            cardBrand: (b.paymentMethod || '').toLowerCase().includes('visa') ? 'visa' : 'mastercard',
+            amount,
+            amountNum,
+            fee: `₹${feeNum.toLocaleString('en-IN')}`,
+            net: `₹${netNum.toLocaleString('en-IN')}`,
+            billing: {
+              streetAddress: b.billing?.streetAddress || b.billing?.address || b.city || 'India',
+              city: b.city || b.bookingContact?.city || 'Mumbai',
+              state: b.state || b.bookingContact?.state || 'Maharashtra',
+              zipcode: b.zipcode || '400001',
+              mobileNumber: b.bookingContact?.phone || b.phone || '+91 98000 00000',
+            },
+            shipping: {
+              streetAddress: b.shipping?.address || 'Digital Delivery (E-Ticket)',
+              city: b.city || 'Digital Gate',
+              state: b.state || 'Online',
+              zipcode: '000000',
+              mobileNumber: b.bookingContact?.phone || b.phone || '+91 98000 00000',
+            },
+            rawBooking: b,
+            isLive: true,
+          });
+        }
+      });
+    }
+
+    // 2. Map dedicated payments (queried by hostId)
+    if (Array.isArray(payments) && payments.length > 0) {
+      payments.forEach((p, idx) => {
+        const pDate = asDate(p.createdAt || p.date || p.timestamp);
+        const pAmt = Number(p.amount || p.amountNum || 0);
+        const pStatus = (p.status === 'captured' || p.status === 'success' || p.status === 'Success') ? 'Success' : (p.status === 'failed' || p.status === 'Failed') ? 'Failed' : 'In progress';
+        const feeNum = Math.round(pAmt * 0.02);
+        const netNum = pAmt - feeNum;
+        const txId = p.id || p.paymentId || p.transactionId || `TX-PMT-${p.id}`;
+
+        if (!seenTxIds.has(txId)) {
+          seenTxIds.add(txId);
+          liveTxList.push({
+            id: txId,
+            customerId: p.customerId || p.userId || 'CUST',
+            invoice: p.invoice || p.orderId || `INV-${String(p.id).slice(0, 6).toUpperCase()}`,
+            name: p.customerName || p.name || p.userName || 'Attendee Payment',
+            avatar: p.userPhoto || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+            description: p.description || p.notes || 'Event Registration Payment',
+            bookingEvent: p.eventTitle || p.bookingEvent || 'Nitroxx Host Event',
+            category: p.type === 'payout' || p.category === 'Send Money' ? 'Send Money' : 'Request Money',
+            date: pDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+            time: pDate.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true }),
+            dateTimeFull: `${pDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })} ${pDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true })}`,
+            email: p.email || p.userEmail || 'N/A',
+            status: pStatus,
+            transactionType: p.transactionType || (p.type === 'payout' ? 'Payout' : 'Sale'),
+            accountData: p.cardLast4 ? `•••• ${p.cardLast4}` : (p.paymentMethod || '•••• 5943'),
+            cardBrand: (p.cardBrand || 'mastercard').toLowerCase(),
+            amount: `₹${pAmt.toLocaleString('en-IN')}`,
+            amountNum: pAmt,
+            fee: `₹${feeNum.toLocaleString('en-IN')}`,
+            net: `₹${netNum.toLocaleString('en-IN')}`,
+            billing: p.billing || { streetAddress: 'Billing Address', city: 'Mumbai', state: 'MH', zipcode: '400001', mobileNumber: 'N/A' },
+            shipping: p.shipping || { streetAddress: 'E-Ticket Pass', city: 'Gate clearance', state: 'Online', zipcode: '000000', mobileNumber: 'N/A' },
+            rawPayment: p,
+            isLive: true,
+          });
+        }
+      });
+    }
+
+    if (liveTxList.length > 0) {
+      setTransactions((prev) => {
+        const liveSet = new Set(liveTxList.map((t) => t.id));
+        const kept = prev.filter((t) => !liveSet.has(t.id) && !t.isLive);
+        return [...liveTxList, ...kept];
+      });
+    }
+  }, [bookings, payments]);
+
+  // Skeleton loading indicator synced with live subscription
+  useEffect(() => {
+    if (!liveLoading) {
       setLoading(false);
-    }, 400);
-    return () => clearTimeout(timer);
-  }, []);
+    } else {
+      const timer = setTimeout(() => {
+        setLoading(false);
+      }, 600);
+      return () => clearTimeout(timer);
+    }
+  }, [liveLoading]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -228,7 +376,7 @@ const Transactions = () => {
   // Quick stats
   const totalVolumeFormatted = useMemo(() => {
     const total = transactions.reduce((acc, tx) => acc + (tx.amountNum || 0), 0);
-    return `$${total.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${total.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   }, [transactions]);
 
   const totalSuccess = useMemo(() => transactions.filter(tx => tx.status === 'Success').length, [transactions]);

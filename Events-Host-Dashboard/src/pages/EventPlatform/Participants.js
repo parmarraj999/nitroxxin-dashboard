@@ -33,6 +33,7 @@ import './TicketDesigns.css';
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import { useRegistrations } from '../../hooks/useRegistrations';
+import { useBookingsAndPayments } from '../../hooks/useBookingsAndPayments';
 import { EVENT_PARTICIPANTS_DATA } from './participantsData';
 import { downloadCsv, formatDateTime } from '../../utils/formatters';
 import { ParticipantTableSkeleton } from '../../components/States/SkeletonLoading';
@@ -41,6 +42,7 @@ import './Participants.css';
 const Participants = () => {
   const { user } = useAuth();
   const { registrations, loading: registrationsLoading } = useRegistrations({ hostId: user?.uid });
+  const { bookings, loading: bookingsLoading } = useBookingsAndPayments({ hostId: user?.uid });
 
   // Master Participants List initialized with event booking participants
   const [participants, setParticipants] = useState(() => {
@@ -145,6 +147,127 @@ const Participants = () => {
       });
     }
   }, [registrations]);
+
+  // Merge live Firebase bookings (queried by hostId) into the participants list
+  useEffect(() => {
+    if (bookings && bookings.length > 0) {
+      const asDate = (val) => {
+        if (!val) return new Date();
+        if (typeof val?.toDate === 'function') return val.toDate();
+        if (val.seconds) return new Date(val.seconds * 1000);
+        if (val instanceof Date) return val;
+        const parsed = new Date(val);
+        return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+      };
+
+      const bookingParticipants = [];
+
+      bookings.forEach((b, idx) => {
+        const rawTier = b.packageName || b.tierName || b.ticketType || 'Standard';
+        let tierName = 'Standard';
+        if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
+        else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
+        else if (rawTier.toLowerCase().includes('gold')) tierName = 'Gold';
+        else if (rawTier.toLowerCase().includes('silver')) tierName = 'Silver';
+        else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
+        else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
+        else if (rawTier.toLowerCase().includes('explorer')) tierName = 'Explorer';
+
+        const priceNumeric = Number(b.amount || b.totalAmount || b.pricing?.finalAmount || b.ticketPrice || b.priceNumeric || 0);
+        const ticketPrice = priceNumeric > 0 ? `₹${priceNumeric.toLocaleString('en-IN')}` : '₹4,999';
+        const dateObj = asDate(b.createdAt || b.bookingDate);
+        const bookedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const bookedMinutes = dateObj.getTime();
+        const isPaid = (b.paymentStatus === 'paid' || b.paymentStatus === 'Success' || b.status === 'confirmed' || b.status === 'approved' || b.status === 'paid' || priceNumeric === 0);
+        const paymentStatus = isPaid ? 'Paid' : (b.paymentStatus || 'Pending');
+        const isDone = b.attendanceStatus === 'Checked In' || b.status === 'Checked In' || b.gateStatus === 'Done';
+        const gateStatus = isDone ? 'Done' : (b.status === 'Confirmed' || isPaid ? 'On Progress' : 'Pending Gate');
+
+        // If booking document has attendees array, create an attendee entry for each attendee
+        if (Array.isArray(b.attendees) && b.attendees.length > 0) {
+          b.attendees.forEach((att, attIdx) => {
+            const attName = att.name || att.fullName || b.bookingContact?.name || b.name || `Attendee ${attIdx + 1}`;
+            const attEmail = att.email || b.bookingContact?.email || b.email || 'N/A';
+            const attPhone = att.phone || b.bookingContact?.phone || b.phone || '+91 98000 00000';
+            const attTicketNum = att.ticketNumber || att.ticketCode || b.ticketNumber || b.ticketCode || `NX-BKG-${String(b.id).slice(0, 5).toUpperCase()}-${attIdx + 1}`;
+            const attBib = att.bibNumber || (attTicketNum ? `BIB-${attTicketNum.slice(-3)}` : `BIB-${400 + attIdx}`);
+
+            bookingParticipants.push({
+              id: `${b.id}-att-${attIdx}`,
+              bookingId: b.id,
+              name: attName,
+              email: attEmail,
+              phone: attPhone,
+              avatar: b.userPhoto || b.photoURL || `https://images.unsplash.com/photo-${1535713875002 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
+              avatarInitial: attName.charAt(0).toUpperCase(),
+              eventTitle: b.eventTitle || b.eventName || b.event?.title || 'Confirmed Nitroxx Event',
+              tierName,
+              ticketFor: att.joinAs || (b.vehicle ? 'Rider' : 'Participant'),
+              ticketTier: `${tierName} · ${att.joinAs || (b.vehicle ? 'Rider' : 'Participant')}`,
+              ticketNumber: attTicketNum,
+              bibNumber: attBib,
+              ticketPrice,
+              priceNumeric,
+              bookedDate,
+              bookedMinutes,
+              paymentStatus,
+              gateStatus,
+              vehicle: att.vehicle || b.vehicle || 'Motorcycle',
+              vehiclePlate: att.vehiclePlate || b.vehiclePlate || 'N/A',
+              city: att.city || b.city || b.bookingContact?.city || 'India',
+              bloodGroup: att.bloodGroup || b.bloodGroup || 'O+',
+              emergencyContact: att.emergencyContact || b.emergencyContact || 'Listed with Team',
+              wave: b.wave || 'General Wave (08:00 AM)',
+              rawBooking: b,
+              isFromBooking: true,
+            });
+          });
+        } else {
+          const name = b.bookingContact?.name || b.attendee?.name || b.name || b.participantName || b.user?.fullName || 'Registered Participant';
+          const email = b.bookingContact?.email || b.attendee?.email || b.email || b.userEmail || b.user?.email || 'N/A';
+          const phone = b.bookingContact?.phone || b.attendee?.phone || b.phone || b.userPhone || '+91 98000 00000';
+          const ticketNumber = b.ticketNumber || b.ticketCode || `NX-BKG-${String(b.id).slice(0, 6).toUpperCase()}`;
+          const bibNumber = b.bibNumber || (ticketNumber ? `BIB-${ticketNumber.slice(-3)}` : `BIB-${350 + idx}`);
+
+          bookingParticipants.push({
+            id: `bkg-${b.id}`,
+            bookingId: b.id,
+            name,
+            email,
+            phone,
+            avatar: b.userPhoto || b.photoURL || `https://images.unsplash.com/photo-${1535713875002 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
+            avatarInitial: name.charAt(0).toUpperCase(),
+            eventTitle: b.eventTitle || b.eventName || b.event?.title || 'Confirmed Nitroxx Event',
+            tierName,
+            ticketFor: b.ticketFor || (b.vehicle ? 'Rider' : 'Participant'),
+            ticketTier: `${tierName} · ${b.ticketFor || (b.vehicle ? 'Rider' : 'Participant')}`,
+            ticketNumber,
+            bibNumber,
+            ticketPrice,
+            priceNumeric,
+            bookedDate,
+            bookedMinutes,
+            paymentStatus,
+            gateStatus,
+            vehicle: b.vehicle || 'Motorcycle',
+            vehiclePlate: b.vehiclePlate || 'N/A',
+            city: b.city || b.bookingContact?.city || 'India',
+            bloodGroup: b.bloodGroup || 'O+',
+            emergencyContact: b.emergencyContact || 'Listed with Team',
+            wave: b.wave || 'General Wave (08:00 AM)',
+            rawBooking: b,
+            isFromBooking: true,
+          });
+        }
+      });
+
+      setParticipants(prev => {
+        const liveBookingIds = new Set(bookingParticipants.map(p => p.id));
+        const filteredPrev = prev.filter(p => !liveBookingIds.has(p.id) && !p.isFromBooking);
+        return [...bookingParticipants, ...filteredPrev];
+      });
+    }
+  }, [bookings]);
 
   // Keyboard shortcut (⌘K or Ctrl+K) to focus search
   useEffect(() => {
@@ -878,7 +1001,7 @@ const Participants = () => {
               </thead>
 
               <tbody>
-                {registrationsLoading && (!participants || participants.length === 0) ? (
+                {(registrationsLoading || bookingsLoading) && (!participants || participants.length === 0) ? (
                   <ParticipantTableSkeleton rows={pageSize || 10} />
                 ) : paginatedRows.length === 0 ? (
                   <tr>

@@ -8,30 +8,22 @@ import {
   BarChart3,
   UserCircle,
   LayoutDashboard,
-  Search,
   LogOut,
   X,
   Send,
   Bot,
-  Check,
-  CheckCircle2,
   ReceiptText
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
-import { useNotifications } from '../../hooks/useNotifications';
 import './Sidebar.css';
 
 const Sidebar = () => {
-  const { user, profile, logout } = useAuth();
-  const { notifications } = useNotifications(user?.uid);
+  const { profile, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState('');
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
-  const [inboxOpen, setInboxOpen] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiMessages, setAiMessages] = useState([
     {
@@ -41,39 +33,61 @@ const Sidebar = () => {
   ]);
   const [isGenerating, setIsGenerating] = useState(false);
 
-  const searchInputRef = useRef(null);
   const workspaceRef = useRef(null);
-  const inboxRef = useRef(null);
 
-  const unreadCount = (notifications || []).filter((item) => !item.isRead).length;
+  const isPreview =
+    location.pathname.includes('-preview') ||
+    !isAuthenticated ||
+    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nitroxx_preview_mode') === 'true');
 
   useEffect(() => {
-    if (searchOpen && searchInputRef.current) {
-      searchInputRef.current.focus();
+    if (location.pathname.includes('-preview')) {
+      try { sessionStorage.setItem('nitroxx_preview_mode', 'true'); } catch (e) {}
+    } else if (isAuthenticated && !location.pathname.includes('-preview')) {
+      try { sessionStorage.removeItem('nitroxx_preview_mode'); } catch (e) {}
     }
-  }, [searchOpen]);
+  }, [location.pathname, isAuthenticated]);
 
-  // Close dropdowns on outside click
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (workspaceRef.current && !workspaceRef.current.contains(e.target)) {
-        setWorkspaceMenuOpen(false);
-      }
-      if (inboxRef.current && !inboxRef.current.contains(e.target)) {
-        setInboxOpen(false);
-      }
+  // Preview path mapping ensures that navigation in preview mode keeps users on preview pages
+  const getNavPath = (basePath) => {
+    if (!isPreview) return basePath;
+    const previewMap = {
+      '/dashboard': '/dashboard-preview',
+      '/events': '/events-preview',
+      '/events/new': '/events-new-preview',
+      '/participants': '/participants-preview',
+      '/transactions': '/transactions-preview',
+      '/analytics': '/analytics-preview',
+      '/profile': '/profile-preview',
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+    return previewMap[basePath] || basePath;
+  };
 
-  const handleSearchSubmit = (e) => {
-    e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/explore?search=${encodeURIComponent(searchQuery.trim())}`);
-      setSearchOpen(false);
-      setSearchQuery('');
+  // Precise active check preventing overlapping matches (e.g. /events vs /events/new)
+  const checkIsActive = (targetPath) => {
+    const cur = location.pathname;
+    if (targetPath === '/dashboard') {
+      return cur === '/dashboard' || cur === '/' || cur === '/dashboard-preview';
     }
+    if (targetPath === '/events') {
+      return cur === '/events' || cur === '/events-preview';
+    }
+    if (targetPath === '/events/new') {
+      return cur === '/events/new' || cur === '/events-new-preview';
+    }
+    if (targetPath === '/participants') {
+      return cur === '/participants' || cur === '/participants-preview';
+    }
+    if (targetPath === '/transactions') {
+      return cur === '/transactions' || cur === '/transactions-preview';
+    }
+    if (targetPath === '/analytics') {
+      return cur === '/analytics' || cur === '/analytics-preview';
+    }
+    if (targetPath === '/profile') {
+      return cur === '/profile' || cur === '/profile-preview';
+    }
+    return cur === targetPath || (targetPath !== '/' && cur.startsWith(targetPath + '/'));
   };
 
   const handleAiSend = (e) => {
@@ -101,15 +115,10 @@ const Sidebar = () => {
     { icon: CalendarDays, label: 'My Events', path: '/events' },
     { icon: Users, label: 'Participants', path: '/participants' },
     { icon: ReceiptText, label: 'Transactions', path: '/transactions' },
-    // { icon: Globe2, label: 'Public Events', path: '/explore' },
     { icon: Plus, label: 'Add Event', path: '/events/new' },
     { icon: BarChart3, label: 'Analytics', path: '/analytics' },
     { icon: UserCircle, label: 'Profile', path: '/profile' },
   ];
-
-  const filteredItems = searchQuery
-    ? workspaceItems.filter(item => item.label.toLowerCase().includes(searchQuery.toLowerCase()))
-    : workspaceItems;
 
   return (
     <>
@@ -118,8 +127,11 @@ const Sidebar = () => {
         <div className="sidebar-top-bar" ref={workspaceRef}>
           <button
             className={`workspace-trigger ${workspaceMenuOpen ? 'active' : ''}`}
-            onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
-            title="Switch Workspace"
+            onClick={() => {
+              setWorkspaceMenuOpen(!workspaceMenuOpen);
+              navigate(isPreview ? '/dashboard-preview' : '/dashboard');
+            }}
+            title="Go to Dashboard"
           >
             <div className="workspace-badge">
               <svg
@@ -131,28 +143,31 @@ const Sidebar = () => {
                 strokeLinecap="round"
                 strokeLinejoin="round"
               >
-                <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
+                <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0 3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
               </svg>
             </div>
             <span className="workspace-name">{profile?.organization || 'Nitroxx Inc'}</span>
-            {/* <ChevronDown size={14} className="workspace-chevron" /> */}
           </button>
         </div>
 
         {/* Workspaces Section */}
         <div className="sidebar-section-container">
           <div style={{ width: '100%', height: '2px', backgroundColor: '#ebebea', margin: '0 0px' }}></div>
-          {/* <div className="sidebar-section-header">Workspaces</div> */}
           <nav className="sidebar-nav-list">
-            {filteredItems.map((item, index) => {
+            {workspaceItems.map((item, index) => {
               const Icon = item.icon;
-              const isActive = location.pathname === item.path || (item.path !== '/' && location.pathname.startsWith(item.path + '/'));
+              const active = checkIsActive(item.path);
+              const destination = getNavPath(item.path);
               return (
                 <NavLink
                   key={index}
-                  to={item.path}
+                  to={destination}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    navigate(destination);
+                  }}
                   className={({ isActive: linkActive }) =>
-                    `sidebar-nav-item ${linkActive || isActive ? 'active' : ''}`
+                    `sidebar-nav-item ${active || linkActive ? 'active' : ''}`
                   }
                 >
                   <Icon className="item-icon" size={16} strokeWidth={1.75} />
@@ -165,7 +180,12 @@ const Sidebar = () => {
 
         {/* User Profile at Bottom (Minimal, Notion / Linear styled) */}
         <div className="sidebar-bottom-bar">
-          <div className="sidebar-user-pill">
+          <div 
+            className="sidebar-user-pill"
+            onClick={() => navigate(isPreview ? '/profile-preview' : '/profile')}
+            title="View Profile"
+            style={{ cursor: 'pointer' }}
+          >
             <img
               src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx'}
               alt={profile?.fullName || 'User'}
@@ -178,7 +198,10 @@ const Sidebar = () => {
             <button
               className="user-logout-btn"
               title="Sign Out"
-              onClick={logout}
+              onClick={(e) => {
+                e.stopPropagation();
+                logout();
+              }}
             >
               <LogOut size={15} strokeWidth={1.8} />
             </button>

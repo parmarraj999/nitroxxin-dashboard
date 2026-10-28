@@ -46,6 +46,8 @@ export const collections = {
   bookmarks: 'eventBookmarks',
   bookings: 'bookings',
   ticket_tamplate: 'ticket_tamplate',
+  payments: 'payments',
+  payment: 'payment',
 };
 
 const cleanObject = (value) =>
@@ -745,6 +747,216 @@ export const subscribeToEventBookings = (eventId, callback, onError) => {
     });
     callback(list);
   }, onError);
+};
+
+/**
+ * Subscribe in real-time to all event bookings for a specific host.
+ * Queries `bookings` collection with `where('hostId', '==', hostId)`.
+ * Also supports querying by `eventHostId` or host's event IDs for 100% data coverage.
+ */
+export const subscribeToHostBookings = ({ hostId, eventIds = [] } = {}, callback, onError) => {
+  if (!hostId) {
+    if (callback) callback([]);
+    return () => {};
+  }
+
+  const bookingsMap = new Map();
+
+  const handleUpdate = () => {
+    const list = Array.from(bookingsMap.values());
+    list.sort((a, b) => {
+      const aTime =
+        a.createdAt?.seconds ||
+        (a.createdAt && typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() / 1000 : 0) ||
+        (a.bookingDate ? new Date(a.bookingDate).getTime() / 1000 : 0);
+      const bTime =
+        b.createdAt?.seconds ||
+        (b.createdAt && typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() / 1000 : 0) ||
+        (b.bookingDate ? new Date(b.bookingDate).getTime() / 1000 : 0);
+      return bTime - aTime;
+    });
+    if (callback) callback(list);
+  };
+
+  const unsubs = [];
+
+  // 1. Primary query by hostId as requested
+  try {
+    const qHost = query(collection(db, collections.bookings), where('hostId', '==', hostId));
+    const unsub1 = onSnapshot(
+      qHost,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'removed') {
+            bookingsMap.delete(change.doc.id);
+          } else {
+            bookingsMap.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+          }
+        });
+        handleUpdate();
+      },
+      (err) => {
+        console.warn('subscribeToHostBookings notice (hostId):', err);
+        if (onError) onError(err);
+      }
+    );
+    unsubs.push(unsub1);
+  } catch (err) {
+    console.warn('qHost query error:', err);
+  }
+
+  // 2. Query by eventHostId (common variant in Firestore event schemas)
+  try {
+    const qEventHost = query(collection(db, collections.bookings), where('eventHostId', '==', hostId));
+    const unsub2 = onSnapshot(
+      qEventHost,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'removed') {
+            bookingsMap.delete(change.doc.id);
+          } else {
+            bookingsMap.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+          }
+        });
+        handleUpdate();
+      },
+      () => {}
+    );
+    unsubs.push(unsub2);
+  } catch (e) {}
+
+  // 3. If host has eventIds, also query by eventId to ensure complete coverage
+  if (Array.isArray(eventIds) && eventIds.length > 0) {
+    for (let i = 0; i < eventIds.length; i += 30) {
+      const chunk = eventIds.slice(i, i + 30).filter(Boolean);
+      if (!chunk.length) continue;
+      try {
+        const qEvents = query(collection(db, collections.bookings), where('eventId', 'in', chunk));
+        const unsubEv = onSnapshot(
+          qEvents,
+          (snapshot) => {
+            snapshot.docChanges().forEach((change) => {
+              if (change.type === 'removed') {
+                bookingsMap.delete(change.doc.id);
+              } else {
+                bookingsMap.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+              }
+            });
+            handleUpdate();
+          },
+          () => {}
+        );
+        unsubs.push(unsubEv);
+      } catch (e) {}
+    }
+  }
+
+  return () => {
+    unsubs.forEach((unsub) => {
+      try {
+        if (typeof unsub === 'function') unsub();
+      } catch (e) {}
+    });
+  };
+};
+
+/**
+ * Subscribe in real-time to all payments for a specific host.
+ * Queries `payments` and `payment` collections with `where('hostId', '==', hostId)`.
+ */
+export const subscribeToHostPayments = ({ hostId, eventIds = [] } = {}, callback, onError) => {
+  if (!hostId) {
+    if (callback) callback([]);
+    return () => {};
+  }
+
+  const paymentsMap = new Map();
+
+  const handleUpdate = () => {
+    const list = Array.from(paymentsMap.values());
+    list.sort((a, b) => {
+      const aTime =
+        a.createdAt?.seconds ||
+        (a.createdAt && typeof a.createdAt.toMillis === 'function' ? a.createdAt.toMillis() / 1000 : 0) ||
+        (a.date ? new Date(a.date).getTime() / 1000 : 0);
+      const bTime =
+        b.createdAt?.seconds ||
+        (b.createdAt && typeof b.createdAt.toMillis === 'function' ? b.createdAt.toMillis() / 1000 : 0) ||
+        (b.date ? new Date(b.date).getTime() / 1000 : 0);
+      return bTime - aTime;
+    });
+    if (callback) callback(list);
+  };
+
+  const unsubs = [];
+
+  // 1. Primary query on 'payments' by hostId
+  try {
+    const qPayments = query(collection(db, collections.payments), where('hostId', '==', hostId));
+    const unsub1 = onSnapshot(
+      qPayments,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'removed') {
+            paymentsMap.delete(change.doc.id);
+          } else {
+            paymentsMap.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+          }
+        });
+        handleUpdate();
+      },
+      () => {}
+    );
+    unsubs.push(unsub1);
+  } catch (e) {}
+
+  // 2. Query on 'payment' by hostId
+  try {
+    const qPayment = query(collection(db, collections.payment), where('hostId', '==', hostId));
+    const unsub2 = onSnapshot(
+      qPayment,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'removed') {
+            paymentsMap.delete(change.doc.id);
+          } else {
+            paymentsMap.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+          }
+        });
+        handleUpdate();
+      },
+      () => {}
+    );
+    unsubs.push(unsub2);
+  } catch (e) {}
+
+  // 3. Query on 'payments' by eventHostId
+  try {
+    const qEvHost = query(collection(db, collections.payments), where('eventHostId', '==', hostId));
+    const unsub3 = onSnapshot(
+      qEvHost,
+      (snapshot) => {
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === 'removed') {
+            paymentsMap.delete(change.doc.id);
+          } else {
+            paymentsMap.set(change.doc.id, { id: change.doc.id, ...change.doc.data() });
+          }
+        });
+        handleUpdate();
+      },
+      () => {}
+    );
+    unsubs.push(unsub3);
+  } catch (e) {}
+
+  return () => {
+    unsubs.forEach((unsub) => {
+      try {
+        if (typeof unsub === 'function') unsub();
+      } catch (e) {}
+    });
+  };
 };
 
 export const updateEventBookingStatus = async ({ bookingId, registrationId, status, approvalStatus, attendanceStatus }) => {

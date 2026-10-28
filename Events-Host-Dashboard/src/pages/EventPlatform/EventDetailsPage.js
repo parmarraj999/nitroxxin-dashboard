@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
 import {
   Check,
   CheckCircle2,
@@ -11,6 +11,7 @@ import {
   PauseCircle,
   PlayCircle,
   Share2,
+  Sparkles,
   Ticket,
   Trash2,
   Users,
@@ -219,8 +220,23 @@ const formatEventUpdatedTime = (value) => {
 const EventDetailsPage = () => {
   const { eventId } = useParams();
   const navigate = useNavigate();
-  const { user, profile } = useAuth();
+  const location = useLocation();
+  const { user, profile, isAuthenticated } = useAuth();
   const { getEventSummary, subscribeToLiveEvent } = useEventsContext();
+
+  const isPreview =
+    location.pathname.includes('-preview') ||
+    !isAuthenticated ||
+    (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nitroxx_preview_mode') === 'true');
+
+  const goToDashboard = useCallback(() => {
+    navigate(isPreview ? '/dashboard-preview' : '/dashboard');
+  }, [navigate, isPreview]);
+
+  const goToEvents = useCallback(() => {
+    navigate(isPreview ? '/events-preview' : '/events');
+  }, [navigate, isPreview]);
+
   const [event, setEvent] = useState(() => {
     return getEventSummary ? getEventSummary(eventId) : null;
   });
@@ -3509,6 +3525,37 @@ const EventDetailsPage = () => {
         {error && <div className="alert error">{error}</div>}
         {message && <div className="alert success">{message}</div>}
 
+        {/* Sleek Apple Vision Pro Breadcrumb Navigation */}
+        <nav className="event-details-breadcrumbs" aria-label="Breadcrumb">
+          <button
+            type="button"
+            className="breadcrumb-crumb-btn"
+            onClick={goToDashboard}
+            title="Return to Dashboard"
+          >
+            <LayoutDashboard size={14} className="crumb-icon" />
+            <span>Dashboard</span>
+          </button>
+
+          <ChevronRight size={13} className="breadcrumb-arrow" />
+
+          <button
+            type="button"
+            className="breadcrumb-crumb-btn"
+            onClick={goToEvents}
+            title="View All Events"
+          >
+            <CalendarDays size={14} className="crumb-icon" />
+            <span>Events</span>
+          </button>
+
+          <ChevronRight size={13} className="breadcrumb-arrow" />
+
+          <span className="breadcrumb-current-text" title={event.title}>
+            {event.title}
+          </span>
+        </nav>
+
         {/* Apple Vision Pro Style Hero Banner Card */}
         <section className="apple-hero-card">
           {/* Banner Background Image */}
@@ -3522,12 +3569,29 @@ const EventDetailsPage = () => {
           <div className="apple-hero-overlay" />
           <div className="apple-hero-mist-blur" />
 
-          {/* Top Bar: Brand Badge (Left) & Status / Category / Share (Right) */}
+          {/* Top Bar: Brand Badge & Back Button (Left) & Status / Category / Share (Right) */}
           <div className="apple-hero-top-bar">
-            <div className="apple-hero-brand-badge">
-              <span className="apple-hero-brand-dot" />
-              <Zap size={14} className="apple-hero-brand-icon" />
-              <span className="apple-hero-brand-name">NITROXX</span>
+            <div className="apple-hero-top-left-actions">
+              <button
+                type="button"
+                className="apple-hero-back-pill"
+                onClick={goToDashboard}
+                title="Return to Dashboard"
+              >
+                <ChevronLeft size={15} />
+                <span>Dashboard</span>
+              </button>
+
+              <div
+                className="apple-hero-brand-badge clickable"
+                onClick={goToDashboard}
+                title="Go to Nitroxx Dashboard"
+                style={{ cursor: 'pointer' }}
+              >
+                <span className="apple-hero-brand-dot" />
+                <Zap size={14} className="apple-hero-brand-icon" />
+                <span className="apple-hero-brand-name">NITROXX</span>
+              </div>
             </div>
 
             <div className="apple-hero-top-right">
@@ -3776,10 +3840,22 @@ const EventDetailsPage = () => {
             <div className="event-horizontal-tabs-nav">
               <button
                 type="button"
+                className="event-tab-btn back-dash-tab"
+                onClick={goToDashboard}
+                title="Return to Host Dashboard"
+              >
+                <ChevronLeft size={15} />
+                <span>Dashboard</span>
+              </button>
+
+              <div className="event-tab-divider" />
+
+              <button
+                type="button"
                 className={`event-tab-btn ${subTab === 'Overview' ? 'active' : ''}`}
                 onClick={() => setSubTab('Overview')}
               >
-                <LayoutDashboard size={16} />
+                <Sparkles size={16} />
                 <span>Overview</span>
               </button>
 
