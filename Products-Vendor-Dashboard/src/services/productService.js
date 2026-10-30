@@ -4,41 +4,69 @@ import {
   deleteDoc,
   doc,
   getDoc,
+  getDocs,
   increment,
+  query,
   runTransaction,
   serverTimestamp,
   updateDoc,
+  where,
   writeBatch
 } from 'firebase/firestore';
 import { db } from '../firebase/firebase.config';
 import { COLLECTIONS, PRODUCT_STATUSES, emptyProduct } from '../schemas/firestoreSchema';
-import { addTimestamps, cleanObject, docRef, fetchVendorPage, getVendorId, touch, withVendor } from './firebaseUtils';
+import { addTimestamps, cleanObject, docRef, fetchVendorPage, fromSnapshot, getVendorId, toDate, touch, withVendor } from './firebaseUtils';
 import { validateProductPayload } from './validationService';
 
-const normalizeProduct = (data, vendorId = getVendorId()) => cleanObject(withVendor({
-  ...emptyProduct,
-  ...data,
-  pricing: { ...emptyProduct.pricing, ...(data.pricing || {}) },
-  inventory: { ...emptyProduct.inventory, ...(data.inventory || {}) },
-  shipping: { ...emptyProduct.shipping, ...(data.shipping || {}) },
-  seo: { ...emptyProduct.seo, ...(data.seo || {}) },
-  safety: { ...emptyProduct.safety, ...(data.safety || {}) },
-  media: { ...emptyProduct.media, ...(data.media || {}) }
-}, vendorId));
+const normalizeProduct = (data, vendorId) => {
+  const resolvedVendorId = data?.vendorId || vendorId || getVendorId();
+  return cleanObject(withVendor({
+    ...emptyProduct,
+    ...data,
+    vendorId: resolvedVendorId,
+    pricing: { ...emptyProduct.pricing, ...(data.pricing || {}) },
+    inventory: { ...emptyProduct.inventory, ...(data.inventory || {}) },
+    shipping: { ...emptyProduct.shipping, ...(data.shipping || {}) },
+    seo: { ...emptyProduct.seo, ...(data.seo || {}) },
+    safety: { ...emptyProduct.safety, ...(data.safety || {}) },
+    media: { ...emptyProduct.media, ...(data.media || {}) }
+  }, resolvedVendorId));
+};
 
-export const listProducts = (options = {}) => fetchVendorPage({
-  collectionName: COLLECTIONS.products,
-  sort: ['updatedAt', 'desc'],
-  ...options
-});
+export const listProducts = async (options = {}) => {
+  const resolvedVendorId = options.vendorId || getVendorId();
+  try {
+    const q = query(
+      collection(db, COLLECTIONS.products),
+      where('vendorId', '==', resolvedVendorId)
+    );
+    const snapshot = await getDocs(q);
+    const data = snapshot.docs.map(fromSnapshot);
+    data.sort((a, b) => {
+      const aTime = toDate(a.updatedAt || a.createdAt)?.getTime() || 0;
+      const bTime = toDate(b.updatedAt || b.createdAt)?.getTime() || 0;
+      return bTime - aTime;
+    });
+    return {
+      data,
+      cursor: snapshot.docs[snapshot.docs.length - 1] || null,
+      hasMore: false
+    };
+  } catch (err) {
+    console.error('[productService] Error querying products by vendorId:', resolvedVendorId, err);
+    throw err;
+  }
+};
+
 
 export const getProduct = async (productId) => {
   const snapshot = await getDoc(docRef(COLLECTIONS.products, productId));
   return snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null;
 };
 
-export const createProduct = async (data, { status = PRODUCT_STATUSES.draft, vendorId = getVendorId() } = {}) => {
-  const product = addTimestamps(normalizeProduct({ ...data, status }, vendorId));
+export const createProduct = async (data, { status = PRODUCT_STATUSES.draft, vendorId } = {}) => {
+  const resolvedVendorId = data?.vendorId || vendorId || getVendorId();
+  const product = addTimestamps(normalizeProduct({ ...data, status, vendorId: resolvedVendorId }, resolvedVendorId));
   validateProductPayload(product, { publish: status === PRODUCT_STATUSES.published });
   const productRef = await addDoc(collection(db, COLLECTIONS.products), product);
   const inventoryRef = doc(db, COLLECTIONS.inventory, productRef.id);
@@ -46,7 +74,7 @@ export const createProduct = async (data, { status = PRODUCT_STATUSES.draft, ven
   await updateDoc(productRef, { productId: productRef.id });
   await runTransaction(db, async (transaction) => {
     transaction.set(inventoryRef, {
-      vendorId,
+      vendorId: resolvedVendorId,
       productId: productRef.id,
       stock: Number(product.inventory?.stockQuantity || 0),
       reservedStock: 0,
@@ -69,7 +97,8 @@ export const updateProduct = async (productId, data) => {
   if (data.inventory) {
     await updateInventoryForProduct(productId, {
       stock: Number(data.inventory.stockQuantity || 0),
-      lowStockThreshold: Number(data.inventory.lowStockThreshold || 5)
+      lowStockThreshold: Number(data.inventory.lowStockThreshold || 5),
+      vendorId: data.vendorId
     });
   }
 };
@@ -89,7 +118,7 @@ export const publishProduct = async (productId) => {
 export const draftProduct = (productId) => updateProduct(productId, { status: PRODUCT_STATUSES.draft });
 export const archiveProduct = (productId) => updateProduct(productId, { status: PRODUCT_STATUSES.archived });
 
-export const updateInventoryForProduct = async (productId, { stock, reservedStock, lowStockThreshold, warehouseId }) => {
+export const updateInventoryForProduct = async (productId, { stock, reservedStock, lowStockThreshold, warehouseId, vendorId }) => {
   await runTransaction(db, async (transaction) => {
     const ref = docRef(COLLECTIONS.inventory, productId);
     const snapshot = await transaction.get(ref);
@@ -99,7 +128,7 @@ export const updateInventoryForProduct = async (productId, { stock, reservedStoc
 
     transaction.set(ref, {
       ...existing,
-      vendorId: existing.vendorId || getVendorId(),
+      vendorId: vendorId || existing.vendorId || getVendorId(),
       productId,
       stock: nextStock,
       reservedStock: nextReserved,

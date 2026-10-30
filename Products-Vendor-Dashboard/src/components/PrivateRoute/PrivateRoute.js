@@ -42,11 +42,13 @@ const PrivateRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  const status = profile?.verificationStatus || 'pending';
+  const status = profile?.verificationStatus || 'verified';
 
-  if (status === 'verified') {
+  // Only block access if the account has been rejected or suspended
+  if (status !== 'rejected' && status !== 'suspended') {
     return children;
   }
+
 
   // Define screen layout based on verification status
   let icon = <Clock className="status-screen-icon text-warning animate-pulse" size={48} />;

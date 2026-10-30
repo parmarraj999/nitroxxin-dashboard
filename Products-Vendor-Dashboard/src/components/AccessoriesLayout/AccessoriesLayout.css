@@ -9,11 +9,13 @@
   display: flex;
   flex-direction: column;
   overflow-x: hidden;
+  min-width: 0;
 }
 
 .dashboard-content {
-  padding: 32px;
-  max-width: 1600px;
+  padding: 20px 24px;
+  max-width: 1440px;
   margin: 0 auto;
   width: 100%;
+  box-sizing: border-box;
 }

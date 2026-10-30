@@ -16,8 +16,7 @@ import {
   Truck
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { useProduct } from '../../hooks/useProducts';
-import { deleteProduct } from '../../services/productService';
+import { useProduct, useProducts } from '../../hooks/useProducts';
 import './ProductDetails.css';
 
 const formatLabel = (value = '') => value.replace(/([A-Z])/g, ' $1').replace(/_/g, ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()).trim();
@@ -32,6 +31,8 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const { productId } = useParams();
   const { product, loading } = useProduct(productId);
+  const { deleteProduct } = useProducts();
+
 
   if (loading) {
     return <div className="product-details-page"><div className="enterprise-state card">Loading product...</div></div>;

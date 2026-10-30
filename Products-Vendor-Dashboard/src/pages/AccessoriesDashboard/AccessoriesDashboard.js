@@ -1,6 +1,7 @@
 import React from 'react';
 import StatCards from '../../components/StatCards/StatCards';
-import Charts from '../../components/Charts/Charts';
+import RevenueSection from '../../components/RevenueSection/RevenueSection';
+import OrdersCalendar from '../../components/OrdersCalendar/OrdersCalendar';
 import MiddleRow from '../../components/MiddleRow/MiddleRow';
 import BottomRow from '../../components/BottomRow/BottomRow';
 import { useDashboardAnalytics } from '../../hooks/useDashboardAnalytics';
@@ -35,8 +36,12 @@ const AccessoriesDashboard = () => {
             <StatCards analytics={analytics} />
           </div>
 
-          <div className="charts-row">
-            <Charts analytics={analytics} />
+          <div className="revenue-row">
+            <RevenueSection analytics={analytics} />
+          </div>
+
+          <div className="calendar-row">
+            <OrdersCalendar analytics={analytics} />
           </div>
 
           <div className="middle-row">

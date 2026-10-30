@@ -1,7 +1,7 @@
 .product-management-page {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 18px;
 }
 
 .page-header {
@@ -74,7 +74,7 @@
 .product-filters {
   display: flex;
   align-items: flex-end;
-  gap: 24px;
+  gap: 18px;
   padding: 24px;
 }
 
@@ -366,3 +366,4 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+

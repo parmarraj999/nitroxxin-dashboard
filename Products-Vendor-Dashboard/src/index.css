@@ -1,5 +1,16 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
+html {
+  font-size: 14px;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (min-width: 1920px) {
+  html {
+    font-size: 15px;
+  }
+}
+
 :root {
   --bg-body: #f9fafb;
   --bg-sidebar: #ffffff;

@@ -2,19 +2,32 @@ import React from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
+  BarChart3,
+  Box,
+  Check,
   CheckCircle2,
+  Cpu,
   Eye,
+  FileText,
   ImagePlus,
+  Layers,
+  Package,
   Plus,
   Save,
+  ShieldCheck,
   Sparkles,
+  Tag,
   Trash2,
-  Upload
+  Truck,
+  Upload,
+  User
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useAuthVendor } from '../../hooks/useAuthVendor';
 import { useProduct } from '../../hooks/useProducts';
+import { getVendorId } from '../../services/firebaseUtils';
 import { uploadVendorAsset } from '../../services/mediaService';
-import { createProduct, updateProduct } from '../../services/productService';
+import { useProductsContext } from '../../context/ProductsContext';
 import { bikeBrands, brands, categoryCatalog, getVariantTemplate, getFormConfig } from './productFormConfig';
 import './AddProduct.css';
 
@@ -37,12 +50,13 @@ const initialProduct = {
   barcode: '',
   qrCode: '',
   brand: brands[0],
-  vendorName: 'Nitroxx Moto Gear',
+  vendorName: '',
   manufacturer: '',
   countryOfManufacture: 'India',
   category: 'Rider Wear',
   subCategory: 'Riding Jackets',
-  childCategory: 'Mesh',
+  gender: 'Unisex',
+  childCategory: '',
   productType: 'Jacket',
   collection: 'Riders Accessories',
   tags: '',
@@ -123,18 +137,44 @@ const AddProduct = () => {
   const navigate = useNavigate();
   const { productId } = useParams();
   const { product } = useProduct(productId);
+  const { createProduct, updateProduct } = useProductsContext();
+
+
+  const { vendorId: authVendorId, user, profile, loading: authLoading } = useAuthVendor();
+  const activeVendorId = authVendorId || user?.uid || getVendorId();
+  const activeVendorName = profile?.businessDetails?.businessName || profile?.brandInformation?.brandName || profile?.displayName || user?.displayName || 'Nitroxx Moto Gear';
+  const activeVendorEmail = profile?.businessDetails?.supportEmail || user?.email || '';
+  const activeVendorPhone = profile?.businessDetails?.supportPhone || user?.phoneNumber || '';
+
   const fileInputRef = React.useRef(null);
+  const primaryFileInputRef = React.useRef(null);
+  const gallerySlotInputRef = React.useRef(null);
+  const galleryBulkInputRef = React.useRef(null);
+  const [activeSlotTarget, setActiveSlotTarget] = React.useState(null);
+  const [uploadingSlot, setUploadingSlot] = React.useState(null);
   const [activeStep, setActiveStep] = React.useState('category');
   const [saving, setSaving] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [error, setError] = React.useState('');
   const [lastSaved, setLastSaved] = React.useState('');
+  const [previewSelectedImg, setPreviewSelectedImg] = React.useState('');
   const [form, setForm] = React.useState(initialProduct);
 
   const config = getFormConfig(form.category, form.subCategory);
   const variantFields = getVariantTemplate(form.category);
 
   const DRAFT_KEY = 'nitroxx_add_product_draft';
+
+  // Sync vendor store name from profile/auth for new products
+  React.useEffect(() => {
+    if (productId) return;
+    if (activeVendorName && !form.vendorName) {
+      setForm((current) => ({
+        ...current,
+        vendorName: current.vendorName || activeVendorName
+      }));
+    }
+  }, [activeVendorName, productId, form.vendorName]);
 
   // Load saved draft on mount if not editing an existing product
   React.useEffect(() => {
@@ -203,9 +243,10 @@ const AddProduct = () => {
       subtitle: product.subtitle || '',
       category: product.category || current.category,
       subCategory: product.subCategory || current.subCategory,
+      gender: product.gender || product.attributes?.gender || current.gender || 'Unisex',
       childCategory: product.childCategory || current.childCategory,
       productType: product.productType || current.productType,
-      vendorName: product.vendorName || current.vendorName,
+      vendorName: product.vendorName || current.vendorName || activeVendorName,
       countryOfManufacture: product.countryOfManufacture || current.countryOfManufacture,
       tags: Array.isArray(product.seo?.tags) ? product.seo.tags.join(', ') : product.tags || '',
       seoTitle: product.seo?.seoTitle || product.seoTitle || '',
@@ -325,23 +366,47 @@ const AddProduct = () => {
   }, [form, config.required]);
 
   const payload = (status) => {
+    const isRiderWear = form.category === 'Rider Wear';
     const customAttributes = form.customAttributes.filter((item) => item.key && item.value);
-    const attributeMap = customAttributes.reduce((acc, item) => ({ ...acc, [item.key]: item.value }), form.attributes);
+    const attributeMap = customAttributes.reduce((acc, item) => ({ ...acc, [item.key]: item.value }), {
+      ...form.attributes,
+      ...(isRiderWear ? { gender: form.gender || form.attributes.gender || 'Unisex' } : {})
+    });
     const primaryCertification = Array.isArray(attributeMap.certification) ? attributeMap.certification.join(', ') : attributeMap.certification;
+    const finalVendorId = product?.vendorId || activeVendorId;
+    const finalVendorName = form.vendorName || activeVendorName;
+
     return {
+      vendorId: finalVendorId,
+      vendorName: finalVendorName,
+      vendorEmail: activeVendorEmail,
+      vendorPhone: activeVendorPhone,
+      vendorDetails: {
+        vendorId: finalVendorId,
+        vendorName: finalVendorName,
+        storeName: profile?.brandInformation?.brandName || profile?.businessDetails?.businessName || finalVendorName,
+        businessName: profile?.businessDetails?.businessName || finalVendorName,
+        displayName: profile?.displayName || user?.displayName || '',
+        email: activeVendorEmail,
+        phone: activeVendorPhone,
+        gstNumber: profile?.gstDetails?.gstNumber || '',
+        pan: profile?.businessDetails?.pan || '',
+        warehouseAddress: profile?.warehouseAddress || null,
+        returnAddress: profile?.returnAddress || null
+      },
       title: form.title,
       subtitle: form.subtitle,
       brand: form.brand,
-      vendorName: form.vendorName,
+      gender: isRiderWear ? (form.gender || form.attributes.gender || 'Unisex') : '',
       manufacturer: form.manufacturer,
       countryOfManufacture: form.countryOfManufacture,
       category: form.category,
       subCategory: form.subCategory,
-      childCategory: form.childCategory,
+      childCategory: form.childCategory || '',
       productType: form.productType,
       collection: form.collection,
       sku: form.sku,
-      barcode: form.barcode,
+      barcode: form.barcode || '',
       qrCode: form.qrCode,
       shortDescription: form.shortDescription || form.fullDescription.slice(0, 180),
       fullDescription: form.fullDescription,
@@ -447,7 +512,7 @@ const AddProduct = () => {
         navigate(`/products/details/${productId}`);
         return;
       }
-      const id = await createProduct(payload(status), { status });
+      const id = await createProduct(payload(status), { status, vendorId: activeVendorId });
       try {
         localStorage.removeItem(DRAFT_KEY);
       } catch (e) {
@@ -461,33 +526,177 @@ const AddProduct = () => {
     }
   };
 
-  const uploadImages = async (event) => {
-    const files = Array.from(event.target.files || []);
-    if (!files.length) return;
+  const handlePrimaryImageUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
     setUploading(true);
+    setUploadingSlot('primary');
     setError('');
     try {
-      const uploadPromises = files.map(file => uploadVendorAsset({ file, type: 'galleryImage', productId: productId || 'draft' }));
-      const uploadedAssets = await Promise.all(uploadPromises);
-      const newImages = uploadedAssets.map(asset => asset.downloadUrl);
-      
+      const asset = await uploadVendorAsset({
+        file,
+        type: 'primaryImage',
+        productId: productId || 'draft',
+        vendorId: activeVendorId
+      });
+      setForm((current) => ({
+        ...current,
+        media: {
+          ...current.media,
+          primaryImage: asset.downloadUrl
+        }
+      }));
+    } catch (uploadError) {
+      setError(uploadError.message || 'Failed to upload primary image');
+    } finally {
+      setUploading(false);
+      setUploadingSlot(null);
+      if (event.target) event.target.value = '';
+    }
+  };
+
+  const deletePrimaryImage = (e) => {
+    if (e) e.stopPropagation();
+    const oldPrimary = form.media.primaryImage;
+    setForm((current) => ({
+      ...current,
+      media: {
+        ...current.media,
+        primaryImage: ''
+      }
+    }));
+    if (previewSelectedImg === oldPrimary) {
+      setPreviewSelectedImg('');
+    }
+  };
+
+  const handleGallerySlotClick = (slotIndex) => {
+    setActiveSlotTarget(slotIndex);
+    gallerySlotInputRef.current?.click();
+  };
+
+  const handleGallerySlotUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file || activeSlotTarget === null) return;
+    const targetIdx = activeSlotTarget;
+    setUploading(true);
+    setUploadingSlot(targetIdx);
+    setError('');
+    try {
+      const asset = await uploadVendorAsset({
+        file,
+        type: 'galleryImage',
+        productId: productId || 'draft',
+        vendorId: activeVendorId
+      });
       setForm((current) => {
-        const isFirstUpload = !current.media.primaryImage;
+        const currentGallery = [...(current.media.galleryImages || [])];
+        if (targetIdx < currentGallery.length) {
+          currentGallery[targetIdx] = asset.downloadUrl;
+        } else {
+          currentGallery.push(asset.downloadUrl);
+        }
         return {
           ...current,
-          media: { 
-            ...current.media, 
-            primaryImage: isFirstUpload ? newImages[0] : current.media.primaryImage,
-            galleryImages: [...(current.media.galleryImages || []), ...newImages]
+          media: {
+            ...current.media,
+            galleryImages: currentGallery.slice(0, 5)
           }
         };
       });
     } catch (uploadError) {
-      setError(uploadError.message);
+      setError(uploadError.message || 'Failed to upload gallery image');
     } finally {
       setUploading(false);
+      setUploadingSlot(null);
+      setActiveSlotTarget(null);
+      if (event.target) event.target.value = '';
     }
   };
+
+  const handleGalleryBulkUpload = async (event) => {
+    const files = Array.from(event.target.files || []);
+    if (!files.length) return;
+    const currentCount = (form.media.galleryImages || []).length;
+    const remaining = Math.max(0, 5 - currentCount);
+    if (remaining <= 0) {
+      setError('Maximum 5 additional product images allowed.');
+      if (event.target) event.target.value = '';
+      return;
+    }
+    const filesToUpload = files.slice(0, remaining);
+    setUploading(true);
+    setUploadingSlot('bulk');
+    setError('');
+    try {
+      const uploadPromises = filesToUpload.map((file) =>
+        uploadVendorAsset({
+          file,
+          type: 'galleryImage',
+          productId: productId || 'draft',
+          vendorId: activeVendorId
+        })
+      );
+      const uploadedAssets = await Promise.all(uploadPromises);
+      const newUrls = uploadedAssets.map((a) => a.downloadUrl);
+      setForm((current) => ({
+        ...current,
+        media: {
+          ...current.media,
+          galleryImages: [...(current.media.galleryImages || []), ...newUrls].slice(0, 5)
+        }
+      }));
+    } catch (uploadError) {
+      setError(uploadError.message || 'Failed to upload images');
+    } finally {
+      setUploading(false);
+      setUploadingSlot(null);
+      if (event.target) event.target.value = '';
+    }
+  };
+
+  const deleteGalleryImage = (indexToDelete, e) => {
+    if (e) e.stopPropagation();
+    const deletedUrl = (form.media.galleryImages || [])[indexToDelete];
+    setForm((current) => {
+      const currentGallery = current.media.galleryImages || [];
+      const updated = currentGallery.filter((_, idx) => idx !== indexToDelete);
+      return {
+        ...current,
+        media: {
+          ...current.media,
+          galleryImages: updated
+        }
+      };
+    });
+    if (previewSelectedImg === deletedUrl) {
+      setPreviewSelectedImg('');
+    }
+  };
+
+  const makeGalleryImagePrimary = (galleryIndex, e) => {
+    if (e) e.stopPropagation();
+    setForm((current) => {
+      const currentGallery = [...(current.media.galleryImages || [])];
+      const selectedImg = currentGallery[galleryIndex];
+      const oldPrimary = current.media.primaryImage;
+      if (oldPrimary) {
+        currentGallery[galleryIndex] = oldPrimary;
+      } else {
+        currentGallery.splice(galleryIndex, 1);
+      }
+      return {
+        ...current,
+        media: {
+          ...current.media,
+          primaryImage: selectedImg,
+          galleryImages: currentGallery
+        }
+      };
+    });
+  };
+
+  const uploadImages = handleGalleryBulkUpload;
 
   const renderField = (field) => {
     const value = form.attributes[field.key];
@@ -518,9 +727,10 @@ const AddProduct = () => {
     }
     if (field.type === 'boolean') {
       return (
-        <label className="toggle-field">
+        <label className="custom-toggle-switch">
           <input type="checkbox" checked={Boolean(value)} onChange={(event) => setAttribute(field.key, event.target.checked)} />
-          <span>{value ? 'Enabled' : 'Disabled'}</span>
+          <span className="toggle-slider"></span>
+          <span className="toggle-label">{value ? 'Enabled' : 'Disabled'}</span>
         </label>
       );
     }
@@ -566,7 +776,7 @@ const AddProduct = () => {
               {!form.media.primaryImage && <ImagePlus size={28} />}
             </div>
             <h3>{form.title || 'Untitled accessory'}</h3>
-            <p>{form.brand} / {form.category}</p>
+            <p>{form.brand} / {form.category} • {form.vendorName || activeVendorName}</p>
             <div className="preview-price">Rs. {money(form.pricing.sellingPrice).toLocaleString()}</div>
             <span className={`readiness ${validation.length ? 'pending' : 'ready'}`}>{validation.length ? `${validation.length} issues` : 'Ready to publish'}</span>
           </div>
@@ -583,7 +793,6 @@ const AddProduct = () => {
               <div className="form-grid three">
                 <div className="form-group"><label>Category *</label><select value={form.category} onChange={(event) => setField('category', event.target.value)}>{Object.keys(categoryCatalog).map((category) => <option key={category}>{category}</option>)}</select></div>
                 <div className="form-group"><label>Sub Category *</label><select value={form.subCategory} onChange={(event) => setField('subCategory', event.target.value)}>{config.subcategories.map((category) => <option key={category}>{category}</option>)}</select></div>
-                <div className="form-group"><label>Child Category</label><input value={form.childCategory} onChange={(event) => setField('childCategory', event.target.value)} placeholder="Racing, Touring, Urban" /></div>
                 <div className="form-group"><label>Product Type *</label><select value={form.productType} onChange={(event) => setField('productType', event.target.value)}>{config.productTypes.map((type) => <option key={type}>{type}</option>)}</select></div>
                 <div className="form-group">
                   <label>Brand *</label>
@@ -610,7 +819,59 @@ const AddProduct = () => {
                     />
                   )}
                 </div>
-                <div className="form-group"><label>Compatible Vehicle</label><select value={form.compatibility.bikeBrand} onChange={(event) => setNested('compatibility', 'bikeBrand', event.target.value)}>{bikeBrands.map((brand) => <option key={brand}>{brand}</option>)}</select></div>
+
+                {/* Conditional Compatibility / Gender depending on category */}
+                {(form.category === 'Bike Accessories' || form.category === 'Bike Customization & Performance') && (
+                  <div className="form-group">
+                    <label>Compatible Vehicle</label>
+                    <select value={form.compatibility.bikeBrand} onChange={(event) => setNested('compatibility', 'bikeBrand', event.target.value)}>
+                      {bikeBrands.map((brand) => <option key={brand} value={brand}>{brand}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {form.category === 'Rider Wear' && (
+                  <div className="form-group">
+                    <label>Gender *</label>
+                    <select
+                      value={form.gender || form.attributes.gender || 'Unisex'}
+                      onChange={(event) => {
+                        setField('gender', event.target.value);
+                        setAttribute('gender', event.target.value);
+                      }}
+                    >
+                      <option value="Unisex">Unisex</option>
+                      <option value="Men">Men</option>
+                      <option value="Women">Women</option>
+                      <option value="Kids">Kids</option>
+                    </select>
+                  </div>
+                )}
+
+                {form.category === 'Tech & Gadgets' && (
+                  <div className="form-group">
+                    <label>Compatibility</label>
+                    <input
+                      value={form.compatibility.compatibleAccessories || ''}
+                      onChange={(event) => setNested('compatibility', 'compatibleAccessories', event.target.value)}
+                      placeholder="e.g. Universal, Android & iOS, Action Cam Mount, Type-C"
+                    />
+                  </div>
+                )}
+
+                <div className="form-group">
+                  <label>Vendor / Seller</label>
+                  <input
+                    value={form.vendorName}
+                    onChange={(event) => setField('vendorName', event.target.value)}
+                    placeholder="Seller / Store Name"
+                  />
+                  {activeVendorId && (
+                    <small style={{ color: '#94a3b8', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                      Vendor ID: {activeVendorId}
+                    </small>
+                  )}
+                </div>
               </div>
             </section>
           )}
@@ -622,10 +883,19 @@ const AddProduct = () => {
                 <div className="form-group"><label>Product Name *</label><input value={form.title} onChange={(event) => setField('title', event.target.value)} placeholder="Axor Apex Carbon Full Face Helmet" /></div>
                 <div className="form-group"><label>Product Subtitle</label><input value={form.subtitle} onChange={(event) => setField('subtitle', event.target.value)} placeholder="ECE certified lightweight touring helmet" /></div>
                 <div className="form-group"><label>SKU *</label><input value={form.sku} onChange={(event) => setField('sku', event.target.value)} placeholder="NX-HEL-APX-BLK-L" /></div>
-                <div className="form-group"><label>Barcode</label><input value={form.barcode} onChange={(event) => setField('barcode', event.target.value)} /></div>
                 <div className="form-group"><label>Manufacturer</label><input value={form.manufacturer} onChange={(event) => setField('manufacturer', event.target.value)} /></div>
                 <div className="form-group"><label>Country of Origin</label><input value={form.countryOfManufacture} onChange={(event) => setField('countryOfManufacture', event.target.value)} /></div>
-                <div className="form-group full"><label>Tags</label><input value={form.tags} onChange={(event) => setField('tags', event.target.value)} placeholder="helmet, ece, touring, waterproof" /></div>
+                <div className="form-group full">
+                  <label>Product Related Keywords</label>
+                  <input
+                    value={form.tags}
+                    onChange={(event) => setField('tags', event.target.value)}
+                    placeholder="e.g. riding jacket, waterproof jacket, ce level 2, touring gear (comma-separated)"
+                  />
+                  <small style={{ color: '#94a3b8', fontSize: '11px', marginTop: '4px', display: 'block' }}>
+                    Keywords help riders discover your listing in marketplace searches
+                  </small>
+                </div>
                 <div className="form-group full"><label>Short Description</label><textarea value={form.shortDescription} onChange={(event) => setField('shortDescription', event.target.value)} /></div>
                 <div className="form-group full"><label>Long Description *</label><textarea value={form.fullDescription} onChange={(event) => setField('fullDescription', event.target.value)} /></div>
                 <div className="form-group"><label>Highlights</label><textarea value={form.highlights} onChange={(event) => setField('highlights', event.target.value)} placeholder="One per line" /></div>
@@ -667,19 +937,27 @@ const AddProduct = () => {
               <div className="section-header"><h3>Pricing, Inventory & Variants</h3><span className="required-text">Marketplace commerce controls</span></div>
               <div className="subsection-title">Pricing</div>
               <div className="form-grid four">
-                {['mrp', 'sellingPrice', 'offerPrice', 'costPrice', 'dealerPrice', 'wholesalePrice', 'gstRate', 'platformFee', 'shippingFee', 'codCharges'].map((field) => (
+                {['mrp', 'sellingPrice', 'offerPrice', 'costPrice', 'dealerPrice', 'wholesalePrice', 'gstRate', 'shippingFee', 'codCharges'].map((field) => (
                   <div className="form-group" key={field}><label>{titleCase(field)}{field === 'sellingPrice' ? ' *' : ''}</label><input type="number" value={form.pricing[field]} onChange={(event) => setNested('pricing', field, event.target.value)} /></div>
                 ))}
               </div>
-              <div className="form-grid three">
-                <div className="form-group"><label>Bulk Discount</label><input value={form.pricing.bulkDiscount} onChange={(event) => setNested('pricing', 'bulkDiscount', event.target.value)} /></div>
+              <div className="form-grid two">
                 <div className="form-group"><label>Flash Sale</label><select value={form.pricing.flashSale} onChange={(event) => setNested('pricing', 'flashSale', event.target.value)}><option>Yes</option><option>No</option></select></div>
                 <div className="form-group"><label>Coupon Eligibility</label><select value={form.pricing.couponEligibility} onChange={(event) => setNested('pricing', 'couponEligibility', event.target.value)}><option>Yes</option><option>No</option></select></div>
               </div>
               <div className="subsection-title">Inventory</div>
               <div className="form-grid four">
-                {Object.keys(form.inventory).map((field) => (
-                  <div className="form-group" key={field}><label>{titleCase(field)}{field === 'stockQuantity' ? ' *' : ''}</label><input type={['stockQuantity', 'reservedStock', 'incomingStock', 'minimumStock', 'maximumStock', 'lowStockThreshold'].includes(field) ? 'number' : 'text'} value={form.inventory[field]} onChange={(event) => setNested('inventory', field, event.target.value)} /></div>
+                {Object.keys(form.inventory)
+                  .filter((field) => !['incomingStock', 'restockDate'].includes(field))
+                  .map((field) => (
+                    <div className="form-group" key={field}>
+                      <label>{titleCase(field)}{field === 'stockQuantity' ? ' *' : ''}</label>
+                      <input
+                        type={['stockQuantity', 'reservedStock', 'minimumStock', 'maximumStock', 'lowStockThreshold'].includes(field) ? 'number' : 'text'}
+                        value={form.inventory[field]}
+                        onChange={(event) => setNested('inventory', field, event.target.value)}
+                      />
+                    </div>
                 ))}
               </div>
               <div className="subsection-title">Unlimited Variants</div>
@@ -699,69 +977,558 @@ const AddProduct = () => {
           )}
 
           {activeStep === 'media' && (
-            <section className="form-section card">
-              <div className="section-header"><h3>Media & Documents</h3><span className="required-text">Gallery, 360, manual, certificate</span></div>
-              <div className="media-uploader">
-                <div className="upload-box large" onClick={() => fileInputRef.current?.click()}>
-                  <Upload size={28} />
-                  <strong>{uploading ? 'Uploading...' : 'Upload bulk images'}</strong>
-                  <span>Select multiple images. The first image will be used as the primary thumbnail.</span>
-                  <input ref={fileInputRef} type="file" accept="image/*,application/pdf" multiple style={{ display: 'none' }} onChange={uploadImages} />
+            <section className="form-section card media-management-section">
+              <div className="section-header">
+                <div>
+                  <h3>Media & Product Imagery</h3>
+                  <p className="media-section-subtitle">
+                    Provide 1 primary photo (main thumbnail) and up to 5 additional gallery angle shots.
+                  </p>
                 </div>
-                <div className="media-gallery-preview">
-                  {form.media.primaryImage ? (
-                    [form.media.primaryImage, ...(form.media.galleryImages || []).filter(img => img !== form.media.primaryImage)].map((imgUrl, idx) => (
-                      <div key={idx} className="media-preview small" style={{ backgroundImage: `url(${imgUrl})` }}>
-                        {idx === 0 && <span className="primary-badge">Primary</span>}
-                      </div>
-                    ))
-                  ) : (
-                    <div className="media-preview" style={{ backgroundImage: undefined }}>
-                      <ImagePlus size={40} />
-                    </div>
-                  )}
+                <div className="media-stats-badge">
+                  <span>{(form.media.primaryImage ? 1 : 0) + (form.media.galleryImages?.length || 0)} / 6 Photos Total</span>
                 </div>
               </div>
-              <div className="form-grid two">
-                <div className="form-group"><label>Cover Image URL</label><input value={form.media.coverImage} onChange={(event) => setNested('media', 'coverImage', event.target.value)} /></div>
-                <div className="form-group"><label>Installation Video URL</label><input value={form.media.installationVideo} onChange={(event) => setNested('media', 'installationVideo', event.target.value)} /></div>
-                <div className="form-group"><label>Manual PDF URL</label><input value={form.manualPdf} onChange={(event) => setField('manualPdf', event.target.value)} /></div>
-                <div className="form-group"><label>Certificates URL</label><input value={form.certificates} onChange={(event) => setField('certificates', event.target.value)} /></div>
-                <div className="form-group full"><label>Video Links</label><input value={form.videoLinks} onChange={(event) => setField('videoLinks', event.target.value)} placeholder="Comma-separated URLs" /></div>
+
+              {/* Hidden file inputs */}
+              <input
+                ref={primaryFileInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handlePrimaryImageUpload}
+              />
+              <input
+                ref={gallerySlotInputRef}
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={handleGallerySlotUpload}
+              />
+              <input
+                ref={galleryBulkInputRef}
+                type="file"
+                accept="image/*"
+                multiple
+                style={{ display: 'none' }}
+                onChange={handleGalleryBulkUpload}
+              />
+
+              {/* 1. PRIMARY PRODUCT IMAGE */}
+              <div className="primary-image-card">
+                <div className="media-card-title-row">
+                  <div className="media-title-group">
+                    <span className="media-type-badge primary">Primary Image</span>
+                    <h4>Main Product Photo (Required)</h4>
+                  </div>
+                  <span className="media-hint-text">1:1 Square recommended • Min 800×800px</span>
+                </div>
+
+                {form.media.primaryImage ? (
+                  <div className="primary-preview-container">
+                    <div
+                      className="primary-preview-img"
+                      style={{ backgroundImage: `url(${form.media.primaryImage})` }}
+                    >
+                      <span className="primary-corner-tag">Main Thumbnail</span>
+                      <button
+                        type="button"
+                        className="delete-img-btn"
+                        title="Delete primary image"
+                        onClick={deletePrimaryImage}
+                      >
+                        <Trash2 size={16} />
+                        <span>Delete Image</span>
+                      </button>
+                    </div>
+
+                    <div className="primary-image-details">
+                      <div className="primary-status-note">
+                        <CheckCircle2 size={16} className="text-success" />
+                        <span>Primary image uploaded and active as main product thumbnail.</span>
+                      </div>
+                      <div className="primary-action-buttons">
+                        <button
+                          type="button"
+                          className="action-btn-secondary"
+                          onClick={() => primaryFileInputRef.current?.click()}
+                          disabled={uploading}
+                        >
+                          <Upload size={14} />
+                          {uploadingSlot === 'primary' ? 'Uploading...' : 'Replace Image'}
+                        </button>
+                        <button
+                          type="button"
+                          className="action-btn-danger"
+                          onClick={deletePrimaryImage}
+                        >
+                          <Trash2 size={14} />
+                          Delete Image
+                        </button>
+                      </div>
+                      <div className="form-group url-fallback">
+                        <label>Or edit Image URL</label>
+                        <input
+                          value={form.media.primaryImage}
+                          onChange={(e) => setNested('media', 'primaryImage', e.target.value)}
+                          placeholder="https://..."
+                        />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div
+                    className="upload-dropzone primary-dropzone"
+                    onClick={() => primaryFileInputRef.current?.click()}
+                  >
+                    <div className="dropzone-icon-circle">
+                      <ImagePlus size={32} />
+                    </div>
+                    <strong>{uploadingSlot === 'primary' ? 'Uploading Primary Image...' : 'Click to Upload Primary Image'}</strong>
+                    <p>PNG, JPG, or WebP up to 5MB. This will be the main photo customers see.</p>
+                    <div className="dropzone-browse-pill">
+                      <Upload size={14} />
+                      Browse File
+                    </div>
+                    <div className="url-quick-input" onClick={(e) => e.stopPropagation()}>
+                      <span>or paste image URL:</span>
+                      <input
+                        value={form.media.primaryImage}
+                        onChange={(e) => setNested('media', 'primaryImage', e.target.value)}
+                        placeholder="https://example.com/primary-image.jpg"
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 2. FIVE OTHER PRODUCT IMAGES */}
+              <div className="gallery-images-section">
+                <div className="gallery-header-row">
+                  <div>
+                    <div className="media-title-group">
+                      <span className="media-type-badge gallery">Gallery</span>
+                      <h4>Additional Product Images (5 Images)</h4>
+                    </div>
+                    <p className="gallery-subtitle-text">
+                      Add up to 5 alternate angles, close-ups, packaging, or features.
+                    </p>
+                  </div>
+
+                  <div className="gallery-actions-right">
+                    <span className="gallery-count-chip">
+                      {(form.media.galleryImages || []).length} / 5 Slots Filled
+                    </span>
+                    {(form.media.galleryImages || []).length < 5 && (
+                      <button
+                        type="button"
+                        className="bulk-upload-btn"
+                        onClick={() => galleryBulkInputRef.current?.click()}
+                        disabled={uploading}
+                      >
+                        <Upload size={14} />
+                        {uploadingSlot === 'bulk' ? 'Uploading...' : 'Bulk Upload'}
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {/* 5-Slot Grid */}
+                <div className="gallery-five-grid">
+                  {[0, 1, 2, 3, 4].map((slotIdx) => {
+                    const imgUrl = (form.media.galleryImages || [])[slotIdx];
+                    const isUploadingThisSlot = uploadingSlot === slotIdx;
+
+                    return (
+                      <div key={slotIdx} className={`gallery-slot-card ${imgUrl ? 'has-image' : 'empty-slot'}`}>
+                        <div className="slot-header-pill">
+                          <span>Image {slotIdx + 1}</span>
+                          {imgUrl && <span className="slot-filled-indicator">✓</span>}
+                        </div>
+
+                        {imgUrl ? (
+                          <div className="slot-preview-wrapper">
+                            <div
+                              className="slot-img-preview"
+                              style={{ backgroundImage: `url(${imgUrl})` }}
+                            />
+                            <div className="slot-overlay-actions">
+                              <button
+                                type="button"
+                                className="slot-action-btn delete-btn"
+                                title="Delete this image"
+                                onClick={(e) => deleteGalleryImage(slotIdx, e)}
+                              >
+                                <Trash2 size={13} />
+                                <span>Delete</span>
+                              </button>
+                              <button
+                                type="button"
+                                className="slot-action-btn primary-btn"
+                                title="Set as primary image"
+                                onClick={(e) => makeGalleryImagePrimary(slotIdx, e)}
+                              >
+                                <Sparkles size={12} />
+                                <span>Make Primary</span>
+                              </button>
+                            </div>
+                            <button
+                              type="button"
+                              className="slot-replace-link"
+                              onClick={() => handleGallerySlotClick(slotIdx)}
+                            >
+                              Replace Photo
+                            </button>
+                          </div>
+                        ) : (
+                          <div
+                            className="slot-empty-dropzone"
+                            onClick={() => handleGallerySlotClick(slotIdx)}
+                          >
+                            <div className="slot-plus-circle">
+                              {isUploadingThisSlot ? <Upload size={18} className="animate-spin" /> : <Plus size={18} />}
+                            </div>
+                            <span className="slot-upload-label">
+                              {isUploadingThisSlot ? 'Uploading...' : `+ Add Image ${slotIdx + 1}`}
+                            </span>
+                            <span className="slot-upload-hint">Click to upload</span>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* 3. ADDITIONAL DOCUMENTS & VIDEOS */}
+              <div className="documents-section">
+                <div className="section-subheader">
+                  <h4>Documents, Manuals & Video URLs</h4>
+                  <span className="optional-text">Optional</span>
+                </div>
+                <div className="form-grid two">
+                  <div className="form-group">
+                    <label>Cover / Banner Image URL</label>
+                    <input
+                      value={form.media.coverImage}
+                      onChange={(event) => setNested('media', 'coverImage', event.target.value)}
+                      placeholder="https://..."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Installation Video URL</label>
+                    <input
+                      value={form.media.installationVideo}
+                      onChange={(event) => setNested('media', 'installationVideo', event.target.value)}
+                      placeholder="https://youtube.com/watch?v=..."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Manual PDF URL</label>
+                    <input
+                      value={form.manualPdf}
+                      onChange={(event) => setField('manualPdf', event.target.value)}
+                      placeholder="https://.../user-manual.pdf"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Certificates URL</label>
+                    <input
+                      value={form.certificates}
+                      onChange={(event) => setField('certificates', event.target.value)}
+                      placeholder="https://.../isi-ece-cert.pdf"
+                    />
+                  </div>
+                  <div className="form-group full">
+                    <label>Other Video Links</label>
+                    <input
+                      value={form.videoLinks}
+                      onChange={(event) => setField('videoLinks', event.target.value)}
+                      placeholder="Comma-separated URLs"
+                    />
+                  </div>
+                </div>
               </div>
             </section>
           )}
 
           {activeStep === 'preview' && (
-            <section className="form-section card">
-              <div className="section-header"><h3>Preview & Publish</h3><span className={validation.length ? 'required-text' : 'ready-text'}>{validation.length ? 'Needs attention' : 'Ready'}</span></div>
-              <div className="publish-preview">
-                <div className="preview-image wide" style={{ backgroundImage: form.media.primaryImage ? `url(${form.media.primaryImage})` : undefined }}></div>
+            <section className="form-section card real-preview-section">
+              <div className="section-header">
                 <div>
-                  <h2>{form.title || 'Untitled Product'}</h2>
-                  <p>{form.shortDescription || form.fullDescription || 'No description added yet.'}</p>
-                  <div className="preview-meta">
-                    <span>{form.category}</span>
-                    <span>{form.subCategory}</span>
-                    <span>{form.brand}</span>
-                    <span>Rs. {money(form.pricing.sellingPrice).toLocaleString()}</span>
-                    <span>{money(form.inventory.stockQuantity)} units</span>
+                  <h3>Product Listing Preview</h3>
+                  <p className="preview-subtitle-text">This is exactly how your listing will appear to buyers across the marketplace.</p>
+                </div>
+                <span className={validation.length ? 'required-text' : 'ready-text'}>
+                  {validation.length ? `${validation.length} Issues to Fix` : '✓ Ready to Publish'}
+                </span>
+              </div>
+
+              {/* 1. Hero Showcase */}
+              <div className="preview-hero-grid">
+                {/* Image Gallery */}
+                <div className="preview-gallery-col">
+                  <div
+                    className="preview-main-img"
+                    style={{
+                      backgroundImage: (previewSelectedImg || form.media.primaryImage || form.media.coverImage)
+                        ? `url(${previewSelectedImg || form.media.primaryImage || form.media.coverImage})`
+                        : undefined
+                    }}
+                  >
+                    {!(previewSelectedImg || form.media.primaryImage || form.media.coverImage) && (
+                      <div className="preview-no-img">
+                        <Package size={48} />
+                        <span>No image uploaded</span>
+                      </div>
+                    )}
+                  </div>
+                  {/* Thumbnails */}
+                  {([form.media.primaryImage, form.media.coverImage, ...(form.media.galleryImages || [])].filter(Boolean).length > 0) && (
+                    <div className="preview-thumbs-row">
+                      {[form.media.primaryImage, form.media.coverImage, ...(form.media.galleryImages || [])].filter(Boolean).map((imgUrl, i) => (
+                        <div
+                          key={i}
+                          className={`preview-thumb ${((previewSelectedImg || form.media.primaryImage || form.media.coverImage) === imgUrl) ? 'active' : ''}`}
+                          style={{ backgroundImage: `url(${imgUrl})` }}
+                          onClick={() => setPreviewSelectedImg(imgUrl)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Info & Pricing Column */}
+                <div className="preview-info-col">
+                  <div className="preview-badge-row">
+                    <span className="preview-chip status-chip">
+                      {form.pricing.sellingPrice ? 'Active Preview' : 'Draft'}
+                    </span>
+                    <span className="preview-chip category-chip">{form.category}</span>
+                    <span className="preview-chip subcat-chip">{form.subCategory}</span>
+                    {form.brand && <span className="preview-chip brand-chip">{form.brand}</span>}
+                    {form.sku && <span className="preview-chip sku-chip">SKU: {form.sku}</span>}
+                  </div>
+
+                  <h1 className="preview-title">{form.title || 'Untitled Product'}</h1>
+                  {form.subtitle && <p className="preview-subtitle">{form.subtitle}</p>}
+
+                  {/* Target / Category Specs */}
+                  <div className="preview-highlight-tags">
+                    {form.category === 'Rider Wear' && (
+                      <span className="preview-tag-pill"><User size={13} /> Gender: {form.gender || form.attributes.gender || 'Unisex'}</span>
+                    )}
+                    {(form.category === 'Bike Accessories' || form.category === 'Bike Customization & Performance') && (
+                      <span className="preview-tag-pill"><Truck size={13} /> Fit: {form.compatibility.bikeBrand || 'Universal'}</span>
+                    )}
+                    {form.category === 'Tech & Gadgets' && form.compatibility.compatibleAccessories && (
+                      <span className="preview-tag-pill"><Cpu size={13} /> Compatibility: {form.compatibility.compatibleAccessories}</span>
+                    )}
+                    <span className="preview-tag-pill"><Box size={13} /> Type: {form.productType}</span>
+                    <span className="preview-tag-pill"><Tag size={13} /> Origin: {form.countryOfManufacture || 'India'}</span>
+                  </div>
+
+                  {/* Pricing Box */}
+                  <div className="preview-price-box">
+                    <div className="preview-price-main">
+                      <span className="preview-selling-price">
+                        Rs. {money(form.pricing.sellingPrice).toLocaleString()}
+                      </span>
+                      {money(form.pricing.mrp) > money(form.pricing.sellingPrice) && (
+                        <>
+                          <span className="preview-mrp">Rs. {money(form.pricing.mrp).toLocaleString()}</span>
+                          <span className="preview-discount-badge">
+                            {Math.round(((money(form.pricing.mrp) - money(form.pricing.sellingPrice)) / money(form.pricing.mrp)) * 100)}% OFF
+                          </span>
+                        </>
+                      )}
+                    </div>
+                    <div className="preview-price-subnotes">
+                      <span>• {form.pricing.gstRate}% GST Inclusive</span>
+                      <span>• {money(form.pricing.shippingFee) === 0 ? 'Free Shipping' : `Shipping Rs. ${form.pricing.shippingFee}`}</span>
+                      <span>• {form.pricing.codCharges ? `COD Charges: Rs. ${form.pricing.codCharges}` : 'COD Available'}</span>
+                    </div>
+                  </div>
+
+                  {/* Stock & Fulfillment */}
+                  <div className="preview-stock-banner">
+                    <div>
+                      <strong>
+                        {money(form.inventory.stockQuantity) > 0
+                          ? `${money(form.inventory.stockQuantity)} units available in stock`
+                          : 'Out of Stock (Quantity is 0)'}
+                      </strong>
+                      <span>Warehouse: {form.inventory.warehouse || 'Mumbai FC'} | Dispatch: 24-48 hrs</span>
+                    </div>
+                    <span className={`preview-stock-badge ${money(form.inventory.stockQuantity) > money(form.inventory.lowStockThreshold) ? 'in-stock' : 'low-stock'}`}>
+                      {money(form.inventory.stockQuantity) > money(form.inventory.lowStockThreshold) ? 'In Stock' : 'Low Stock'}
+                    </span>
+                  </div>
+
+                  {/* Seller info */}
+                  <div className="preview-seller-strip">
+                    <span>Sold by: <strong>{form.vendorName || activeVendorName}</strong></span>
+                    {activeVendorId && <span className="preview-vendor-id">ID: {activeVendorId}</span>}
                   </div>
                 </div>
               </div>
-              <div className="subsection-title">Bike Compatibility</div>
-              <div className="form-grid three">
-                <div className="form-group"><label>Bike Brand</label><select value={form.compatibility.bikeBrand} onChange={(event) => setNested('compatibility', 'bikeBrand', event.target.value)}>{bikeBrands.map((brand) => <option key={brand}>{brand}</option>)}</select></div>
-                <div className="form-group"><label>Bike Model</label><input value={form.compatibility.bikeModel} onChange={(event) => setNested('compatibility', 'bikeModel', event.target.value)} /></div>
-                <div className="form-group"><label>Variant</label><input value={form.compatibility.variant} onChange={(event) => setNested('compatibility', 'variant', event.target.value)} /></div>
-                <div className="form-group"><label>Engine CC</label><input value={form.compatibility.engine} onChange={(event) => setNested('compatibility', 'engine', event.target.value)} /></div>
-                <div className="form-group"><label>Manufacturing Year</label><input value={form.compatibility.compatibleYear} onChange={(event) => setNested('compatibility', 'compatibleYear', event.target.value)} /></div>
-                <div className="form-group"><label>Compatible Accessories</label><input value={form.compatibility.compatibleAccessories} onChange={(event) => setNested('compatibility', 'compatibleAccessories', event.target.value)} /></div>
+
+              {/* 2. Key Metrics Grid */}
+              <div className="product-health-grid">
+                <div className="health-card card">
+                  <Tag size={18} />
+                  <span>Catalog Status</span>
+                  <strong>{validation.length ? `${validation.length} pending` : 'Ready to Publish'}</strong>
+                </div>
+                <div className="health-card card">
+                  <Package size={18} />
+                  <span>Available Stock</span>
+                  <strong className={money(form.inventory.stockQuantity) <= money(form.inventory.lowStockThreshold) ? 'risk' : ''}>
+                    {money(form.inventory.stockQuantity)} units
+                  </strong>
+                </div>
+                <div className="health-card card">
+                  <BarChart3 size={18} />
+                  <span>Profit Margin</span>
+                  <strong>
+                    {money(form.pricing.sellingPrice) && money(form.pricing.costPrice)
+                      ? `${Math.round(((money(form.pricing.sellingPrice) - money(form.pricing.costPrice)) / money(form.pricing.sellingPrice)) * 100)}%`
+                      : '-'}
+                  </strong>
+                </div>
+                <div className="health-card card">
+                  <ShieldCheck size={18} />
+                  <span>Safety Compliance</span>
+                  <strong>{form.attributes.certification || form.attributes.ceArmour ? 'Certified' : 'Standard'}</strong>
+                </div>
               </div>
+
+              {/* 3. Description & Highlights */}
+              <div className="preview-detail-card card">
+                <h4>Description & Highlights</h4>
+                {form.shortDescription && <p className="preview-short-desc">{form.shortDescription}</p>}
+                <div className="preview-full-desc">{form.fullDescription || 'No detailed description provided yet.'}</div>
+
+                {listFromText(form.highlights).length > 0 && (
+                  <div className="preview-highlights-section">
+                    <h5>Key Highlights</h5>
+                    <ul className="preview-bullet-list">
+                      {listFromText(form.highlights).map((item, idx) => (
+                        <li key={idx}><Check size={14} className="bullet-icon" /> {item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {listFromText(form.features).length > 0 && (
+                  <div className="preview-highlights-section">
+                    <h5>Features</h5>
+                    <ul className="preview-bullet-list">
+                      {listFromText(form.features).map((item, idx) => (
+                        <li key={idx}><Check size={14} className="bullet-icon" /> {item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
+                {listFromText(form.boxContents).length > 0 && (
+                  <div className="preview-highlights-section">
+                    <h5>Package Contents</h5>
+                    <ul className="preview-bullet-list">
+                      {listFromText(form.boxContents).map((item, idx) => (
+                        <li key={idx}><Box size={14} className="bullet-icon" /> {item}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </div>
+
+              {/* 4. Specifications & Attributes */}
+              <div className="preview-detail-card card">
+                <h4>Dynamic Specifications ({form.category})</h4>
+                <div className="preview-spec-grid">
+                  {form.category === 'Rider Wear' && (
+                    <div className="preview-spec-item">
+                      <span className="spec-label">Target Gender</span>
+                      <strong className="spec-value">{form.gender || form.attributes.gender || 'Unisex'}</strong>
+                    </div>
+                  )}
+                  {Object.entries(form.attributes)
+                    .filter(([key, val]) => val !== '' && val !== undefined && val !== null && key !== 'gender')
+                    .map(([key, val]) => (
+                      <div className="preview-spec-item" key={key}>
+                        <span className="spec-label">{titleCase(key)}</span>
+                        <strong className="spec-value">
+                          {Array.isArray(val) ? val.join(', ') : typeof val === 'boolean' ? (val ? 'Yes' : 'No') : String(val)}
+                        </strong>
+                      </div>
+                  ))}
+                  {form.customAttributes.filter(item => item.key && item.value).map((item, i) => (
+                    <div className="preview-spec-item" key={i}>
+                      <span className="spec-label">{item.key}</span>
+                      <strong className="spec-value">{item.value}</strong>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* 5. Variants (if added) */}
+              {form.variants.length > 0 && (
+                <div className="preview-detail-card card">
+                  <h4>Product Variants ({form.variants.length})</h4>
+                  <div className="seller-table-wrap">
+                    <table className="seller-table">
+                      <thead>
+                        <tr>
+                          <th>SKU</th>
+                          <th>Options</th>
+                          <th>Stock</th>
+                          <th>Price</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {form.variants.map((v) => (
+                          <tr key={v.id}>
+                            <td><strong>{v.sku || 'N/A'}</strong></td>
+                            <td>{Object.entries(v.options || {}).filter(([, val]) => val).map(([k, val]) => `${titleCase(k)}: ${val}`).join(' | ') || '-'}</td>
+                            <td>{v.stock} units</td>
+                            <td>Rs. {money(v.price).toLocaleString()}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. Policies & Delivery */}
+              <div className="preview-detail-card card">
+                <h4>Policies, Warranty & Support</h4>
+                <div className="policy-grid">
+                  <div>
+                    <h4>Return Policy</h4>
+                    <p>{form.returnPolicy || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <h4>Replacement Policy</h4>
+                    <p>{form.replacementPolicy || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <h4>Warranty</h4>
+                    <p>{form.warranty || 'Not specified'}</p>
+                  </div>
+                  <div>
+                    <h4>Care Instructions</h4>
+                    <p>{form.careInstructions || 'Standard care guidelines'}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* 7. Action Buttons */}
               <div className="form-actions-bottom">
-                <button className="export-btn" onClick={() => navigate('/products')}><Eye size={16} /> Product List</button>
-                <button className="export-btn" onClick={() => save('draft')} disabled={saving}><Save size={16} /> Save Draft</button>
-                <button className="quick-add-btn" onClick={() => save('published')} disabled={saving}><CheckCircle2 size={16} /> Publish Listing</button>
+                <button type="button" className="export-btn" onClick={() => setActiveStep('category')}>Edit Details</button>
+                <button type="button" className="export-btn" onClick={() => save('draft')} disabled={saving}><Save size={16} /> Save Draft</button>
+                <button type="button" className="quick-add-btn" onClick={() => save('published')} disabled={saving}><CheckCircle2 size={16} /> Publish Listing</button>
               </div>
             </section>
           )}

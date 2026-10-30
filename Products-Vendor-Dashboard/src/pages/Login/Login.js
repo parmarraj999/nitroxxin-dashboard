@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Zap, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuthVendor } from '../../hooks/useAuthVendor';
@@ -7,7 +7,14 @@ import './Login.css';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { signIn, signUp, refreshProfile } = useAuthVendor();
+  const { signIn, signUp, refreshProfile, isAuthenticated, loading: authLoading } = useAuthVendor();
+
+  useEffect(() => {
+    if (!authLoading && isAuthenticated) {
+      navigate('/dashboard', { replace: true });
+    }
+  }, [isAuthenticated, authLoading, navigate]);
+
 
   const [isSignUp, setIsSignUp] = useState(false);
   const [formData, setFormData] = useState({

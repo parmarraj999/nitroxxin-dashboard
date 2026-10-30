@@ -1,25 +1,26 @@
 .accessories-stats-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 24px;
+  gap: 16px;
 }
 
 .stat-card {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  min-height: 140px;
+  min-height: 118px;
+  padding: 16px 18px;
 }
 
 .stat-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .stat-title {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-muted);
   letter-spacing: 0.05em;
@@ -28,9 +29,9 @@
 }
 
 .badge {
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  padding: 4px 8px;
+  padding: 3px 7px;
   border-radius: 999px;
 }
 
@@ -40,7 +41,7 @@
 }
 
 .stat-value-large {
-  font-size: 2.25rem;
+  font-size: 1.85rem;
   font-weight: 800;
   color: var(--text-main);
   line-height: 1;
@@ -49,13 +50,13 @@
 .stat-value-with-icon {
   display: flex;
   align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
+  gap: 10px;
+  margin-bottom: 6px;
 }
 
 .icon-wrapper {
-  width: 28px;
-  height: 28px;
+  width: 26px;
+  height: 26px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -107,10 +108,10 @@
 }
 
 .progress-bar-container {
-  height: 6px;
+  height: 5px;
   background-color: #f3f4f6;
   border-radius: 999px;
-  margin-top: 16px;
+  margin-top: 10px;
   overflow: hidden;
 }
 

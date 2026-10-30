@@ -1,0 +1,186 @@
+/* Revenue Section Component Styles */
+
+.revenue-section-card {
+  background: #ffffff;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  padding: 18px 22px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  display: flex;
+  flex-direction: column;
+  transition: box-shadow 0.2s ease;
+  position: relative;
+}
+
+.revenue-section-card:hover {
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.07);
+}
+
+/* Header Row */
+.revenue-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.revenue-balance-block {
+  display: flex;
+  flex-direction: column;
+}
+
+.revenue-balance-amount {
+  font-size: 1.55rem;
+  font-weight: 800;
+  color: #111827;
+  letter-spacing: -0.02em;
+  line-height: 1.15;
+}
+
+.revenue-balance-subtitle {
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: #6b7280;
+  margin-top: 3px;
+}
+
+/* Header Controls: Timeframe filter + View Mode toggle */
+.revenue-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Time Range Filter (Day, Weekly, Monthly) */
+.timeframe-segmented-control {
+  background: #f4f5f7;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 3px;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.timeframe-tab-btn {
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  border-radius: 9px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.timeframe-tab-btn:hover:not(.active) {
+  color: #111827;
+}
+
+.timeframe-tab-btn.active {
+  background: #ffffff;
+  color: #111827;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
+/* View Mode Switcher (Line View | Bar View) */
+.viewmode-segmented-control {
+  background: #f4f5f7;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 3px;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.viewmode-tab-btn {
+  padding: 5px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #6b7280;
+  border-radius: 9px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+.viewmode-tab-btn:hover:not(.active) {
+  color: #111827;
+}
+
+.viewmode-tab-btn.active {
+  background: #ffffff;
+  color: #111827;
+  font-weight: 700;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+/* Chart Canvas Wrapper */
+.revenue-chart-canvas {
+  width: 100%;
+  height: 265px;
+  margin-top: 6px;
+}
+
+/* Custom Tooltip */
+.revenue-custom-tooltip {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  padding: 10px 14px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  pointer-events: none;
+}
+
+.tooltip-period-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tooltip-value-amount {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.tooltip-orders-count {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  margin-top: 2px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .revenue-section-card {
+    padding: 18px;
+  }
+
+  .revenue-header-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .revenue-controls-group {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .revenue-balance-amount {
+    font-size: 1.5rem;
+  }
+
+  .revenue-chart-canvas {
+    height: 260px;
+  }
+}

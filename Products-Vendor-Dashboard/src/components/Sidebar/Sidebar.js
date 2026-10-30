@@ -7,7 +7,6 @@ import {
   ClipboardList,
   Truck,
   BarChart2,
-  BadgeIndianRupee,
   Plus,
   Settings,
   UserCircle2,
@@ -24,11 +23,10 @@ const Sidebar = () => {
 
   const mainNav = [
     { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
-    { icon: Package, label: 'Products', path: '/products' },
     { icon: ShoppingCart, label: 'Orders', path: '/orders' },
-    { icon: ClipboardList, label: 'Inventory', path: '/inventory' },
-    { icon: BadgeIndianRupee, label: 'Pricing', path: '/pricing' },
+    { icon: Package, label: 'Products', path: '/products' },
     { icon: Truck, label: 'Shipping', path: '/shipping' },
+    { icon: ClipboardList, label: 'Inventory', path: '/inventory' },
     { icon: BarChart2, label: 'Analytics', path: '/analytics' },
   ];
 

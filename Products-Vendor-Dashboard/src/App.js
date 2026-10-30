@@ -1,5 +1,6 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import AppProviders from './context';
 import AccessoriesLayout from './components/AccessoriesLayout/AccessoriesLayout';
 import PrivateRoute from './components/PrivateRoute/PrivateRoute';
 import Login from './pages/Login/Login';
@@ -14,9 +15,10 @@ import './App.css';
 
 function App() {
   return (
-    <Router>
-      <div className="app">
-        <Routes>
+    <AppProviders>
+      <Router>
+        <div className="app">
+          <Routes>
           {/* Public route */}
           <Route path="/login" element={<Login />} />
 
@@ -47,7 +49,6 @@ function App() {
 
             {/* Sidebar links not yet built — redirect to dashboard */}
             <Route path="inventory" element={<Navigate to="/dashboard" replace />} />
-            <Route path="pricing" element={<Navigate to="/dashboard" replace />} />
             <Route path="shipping" element={<Navigate to="/dashboard" replace />} />
             <Route path="analytics" element={<Navigate to="/dashboard" replace />} />
             <Route path="settings" element={<Navigate to="/dashboard" replace />} />
@@ -58,6 +59,7 @@ function App() {
         </Routes>
       </div>
     </Router>
+  </AppProviders>
   );
 }
 

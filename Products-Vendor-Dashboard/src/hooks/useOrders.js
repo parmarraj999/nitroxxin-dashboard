@@ -1,71 +1,65 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { collection, doc, limit, onSnapshot, orderBy, query, where } from 'firebase/firestore';
-import { db } from '../firebase/firebase.config';
-import { COLLECTIONS } from '../schemas/firestoreSchema';
-import { updateOrderStatus } from '../services/orderService';
-import { useAuthVendor } from './useAuthVendor';
+import { useEffect, useMemo, useState } from 'react';
+import { useOrdersContext } from '../context/OrdersContext';
 
 export const useOrders = (options = {}) => {
-  const { loading: authLoading, vendorId } = useAuthVendor();
-  const optionsKey = JSON.stringify(options);
-  const queryOptions = useMemo(() => options, [optionsKey]);
-  const [orders, setOrders] = useState([]);
-  const [hasMore, setHasMore] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { orders: allOrders, loading, error, changeOrderStatus } = useOrdersContext();
 
-  const subscribe = useCallback(() => {
-    if (authLoading || !vendorId) return;
-    setLoading(true);
-    setError(null);
-    const constraints = [where('vendorId', '==', vendorId), orderBy('createdAt', 'desc'), limit(queryOptions.pageSize || 50)];
-    if (queryOptions.status) constraints.splice(1, 0, where('status', '==', queryOptions.status));
-    return onSnapshot(
-      query(collection(db, COLLECTIONS.orders), ...constraints),
-      (snapshot) => {
-        setOrders(snapshot.docs.map((entry) => ({ id: entry.id, ...entry.data() })));
-        setHasMore(snapshot.docs.length === (queryOptions.pageSize || 50));
-        setLoading(false);
-      },
-      (err) => {
-        setError(err);
-        setLoading(false);
-      }
-    );
-  }, [authLoading, queryOptions, vendorId]);
+  const filteredOrders = useMemo(() => {
+    if (!options?.status) return allOrders;
+    return allOrders.filter((order) => order.status === options.status);
+  }, [allOrders, options?.status]);
 
-  useEffect(() => {
-    if (authLoading) return;
-    const unsubscribe = subscribe();
-    return () => {
-      if (typeof unsubscribe === 'function') unsubscribe();
-    };
-  }, [authLoading, subscribe]);
-
-  return { orders, loading, error, hasMore, reload: subscribe, loadMore: subscribe, updateOrderStatus };
+  return {
+    orders: filteredOrders,
+    loading,
+    error,
+    hasMore: false,
+    reload: () => {},
+    loadMore: () => {},
+    updateOrderStatus: changeOrderStatus
+  };
 };
 
 export const useOrder = (orderId) => {
-  const { loading: authLoading } = useAuthVendor();
-  const [order, setOrder] = useState(null);
-  const [loading, setLoading] = useState(Boolean(orderId));
+  const { ordersMap, getOrderById } = useOrdersContext();
+  const [order, setOrder] = useState(() => (orderId ? ordersMap[orderId] || null : null));
+  const [loading, setLoading] = useState(() => !ordersMap[orderId] && Boolean(orderId));
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!orderId || authLoading) return;
+    if (!orderId) {
+      setOrder(null);
+      setLoading(false);
+      return;
+    }
+
+    if (ordersMap[orderId]) {
+      setOrder(ordersMap[orderId]);
+      setLoading(false);
+      return;
+    }
+
+    let active = true;
     setLoading(true);
-    return onSnapshot(
-      doc(db, COLLECTIONS.orders, orderId),
-      (snapshot) => {
-        setOrder(snapshot.exists() ? { id: snapshot.id, ...snapshot.data() } : null);
-        setLoading(false);
-      },
-      (err) => {
-        setError(err);
-        setLoading(false);
-      }
-    );
-  }, [authLoading, orderId]);
+    getOrderById(orderId)
+      .then((data) => {
+        if (active) {
+          setOrder(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (active) {
+          setError(err);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [orderId, ordersMap, getOrderById]);
 
   return { order, loading, error };
 };
+

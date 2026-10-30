@@ -1,12 +1,10 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React from 'react';
 import {
   User, Store, FileText, Building2, Mail, Phone,
   Tag, Globe, CheckCircle2, Clock, Save, Loader2,
   Camera, ChevronRight, AlertCircle, Check
 } from 'lucide-react';
-import { useAuthVendor } from '../../hooks/useAuthVendor';
-import { getVendorProfile, saveVendorProfile } from '../../services/vendorService';
-import { emptyVendorProfile } from '../../schemas/firestoreSchema';
+import { useVendorProfile } from '../../context/VendorProfileContext';
 import './VendorProfile.css';
 
 /* ─── helpers ─── */
@@ -62,50 +60,17 @@ const Select = ({ value, onChange, options, placeholder }) => (
 
 /* ════════════════════════════════════════ */
 const VendorProfile = () => {
-  const { user } = useAuthVendor();
+  const {
+    profile,
+    loading,
+    saving,
+    saved,
+    saveError,
+    setTop,
+    setNested,
+    handleSave
+  } = useVendorProfile();
 
-  const [profile, setProfile] = useState({ ...emptyVendorProfile });
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState('');
-
-  /* fetch on mount */
-  useEffect(() => {
-    if (!user) return;
-    (async () => {
-      try {
-        const data = await getVendorProfile(user.uid);
-        if (data) setProfile({ ...emptyVendorProfile, ...data });
-      } catch (e) {
-        console.error('Failed to load profile', e);
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [user]);
-
-  /* deep-update helpers */
-  const setTop = useCallback((key, val) =>
-    setProfile((p) => ({ ...p, [key]: val })), []);
-
-  const setNested = useCallback((section, key, val) =>
-    setProfile((p) => ({ ...p, [section]: { ...p[section], [key]: val } })), []);
-
-  /* save */
-  const handleSave = async () => {
-    setSaving(true);
-    setSaveError('');
-    try {
-      await saveVendorProfile(profile, user.uid);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-    } catch (e) {
-      setSaveError('Failed to save. Please try again.');
-    } finally {
-      setSaving(false);
-    }
-  };
 
   if (loading) {
     return (

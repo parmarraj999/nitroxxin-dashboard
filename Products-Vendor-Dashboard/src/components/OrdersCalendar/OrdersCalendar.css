@@ -1,0 +1,775 @@
+/* Orders Calendar Component Styles */
+
+.orders-calendar-card {
+  background: #ffffff;
+  border: 1px solid var(--border-color, #e5e7eb);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.05);
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  overflow: hidden;
+  position: relative;
+  transition: box-shadow 0.2s ease;
+}
+
+.orders-calendar-card:hover {
+  box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.07);
+}
+
+/* ================= LEFT PANE: CALENDAR ================= */
+.calendar-pane {
+  padding: 18px 20px;
+  border-right: 1px solid #f1f3f5;
+  display: flex;
+  flex-direction: column;
+}
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.calendar-title-group {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+}
+
+.calendar-month-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.calendar-year-num {
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: #9ca3af;
+}
+
+.calendar-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+
+.nav-arrow-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #4b5563;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.nav-arrow-btn:hover {
+  background: #f9fafb;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.month-picker-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.month-picker-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+/* Month Picker Dropdown */
+.month-picker-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  z-index: 50;
+  min-width: 220px;
+}
+
+.month-option-btn {
+  padding: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 8px;
+  color: #4b5563;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.month-option-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.month-option-btn.active {
+  background: #111827;
+  color: #ffffff;
+}
+
+/* Day Names Row */
+.calendar-weekdays-row {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.calendar-weekday-cell {
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.06em;
+  padding: 4px 0;
+  transition: color 0.15s ease;
+}
+
+.calendar-weekday-cell.active-weekday {
+  color: #111827;
+  font-weight: 800;
+}
+
+/* Calendar Days Grid */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-day-cell {
+  position: relative;
+  aspect-ratio: 1;
+  min-height: 36px;
+  border-radius: 10px;
+  background-color: #f8f9fb;
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 3px;
+  user-select: none;
+}
+
+.calendar-day-cell:hover:not(.outside-month):not(.selected-day) {
+  background-color: #edeef2;
+  transform: translateY(-1px);
+}
+
+.calendar-day-cell.outside-month {
+  background-color: transparent;
+  cursor: pointer;
+}
+
+.calendar-day-cell.outside-month .day-number {
+  color: #cbd5e1;
+}
+
+.calendar-day-cell.has-orders:not(.outside-month):not(.selected-day) {
+  background-color: #f4f5f8;
+}
+
+/* Dot indicator on calendar */
+.calendar-day-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background-color: #111827;
+  margin-bottom: 3px;
+  transition: background-color 0.15s ease;
+}
+
+.calendar-day-dot-placeholder {
+  width: 4px;
+  height: 4px;
+  margin-bottom: 3px;
+  visibility: hidden;
+}
+
+.day-number {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #111827;
+  line-height: 1;
+}
+
+/* Selected Day (Black Pill Box) */
+.calendar-day-cell.selected-day {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.25);
+  transform: scale(1.03);
+  z-index: 2;
+}
+
+.calendar-day-cell.selected-day .day-number {
+  color: #ffffff !important;
+}
+
+.calendar-day-cell.selected-day .calendar-day-dot {
+  background-color: #ffffff !important;
+}
+
+/* ================= RIGHT PANE: ORDERS LIST ================= */
+.orders-pane {
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.orders-pane-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+
+.orders-pane-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #111827;
+  letter-spacing: -0.01em;
+}
+
+.orders-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  position: relative;
+}
+
+.status-filter-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.status-filter-btn:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.status-filter-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 120px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+  padding: 6px;
+  z-index: 50;
+  min-width: 170px;
+}
+
+.filter-option-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #374151;
+  border-radius: 8px;
+  text-align: left;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.filter-option-item:hover {
+  background-color: #f3f4f6;
+  color: #111827;
+}
+
+.filter-option-item.active {
+  background-color: #f1f5f9;
+  color: #111827;
+}
+
+.filter-count-badge {
+  font-size: 0.72rem;
+  background: #e2e8f0;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 9999px;
+  font-weight: 600;
+}
+
+/* + Add new button */
+.add-new-order-btn {
+  background-color: #000000;
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 7px 18px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.28);
+  transition: all 0.15s ease;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.add-new-order-btn:hover {
+  background-color: #1f2937;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.32);
+}
+
+/* Filter Banner / Selected Date Chip */
+.selected-date-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+  padding: 6px 12px;
+  margin-bottom: 14px;
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.clear-filter-link {
+  color: #0284c7;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.clear-filter-link:hover {
+  text-decoration: underline;
+}
+
+/* Orders Cards List */
+.orders-list-scroll {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+/* Sleek scrollbar */
+.orders-list-scroll::-webkit-scrollbar {
+  width: 5px;
+}
+
+.orders-list-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.orders-list-scroll::-webkit-scrollbar-thumb {
+  background: #e2e8f0;
+  border-radius: 10px;
+}
+
+.orders-list-scroll::-webkit-scrollbar-thumb:hover {
+  background: #cbd5e1;
+}
+
+/* Order Item Card */
+.order-schedule-card {
+  border: 1px solid #edf0f4;
+  border-radius: 12px;
+  padding: 10px 14px;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  position: relative;
+}
+
+.order-schedule-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+  transform: translateY(-1px);
+}
+
+.order-schedule-card.highlighted {
+  border-color: #94a3b8;
+  background-color: #fcfdfe;
+}
+
+/* Date Column */
+.order-date-col {
+  min-width: 42px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.order-day-num {
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #111827;
+  line-height: 1;
+  letter-spacing: -0.02em;
+}
+
+.order-day-name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: #9ca3af;
+  letter-spacing: 0.05em;
+  margin-top: 3px;
+}
+
+.order-card-divider {
+  width: 1px;
+  height: 34px;
+  background-color: #f1f3f5;
+}
+
+/* Details Column */
+.order-details-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.order-title-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  gap: 8px;
+}
+
+.order-product-name {
+  font-weight: 700;
+  font-size: 0.88rem;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  letter-spacing: -0.01em;
+}
+
+.order-amount-pill {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #111827;
+  white-space: nowrap;
+}
+
+/* Metadata row */
+.order-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Status Badges */
+.order-status-badge-custom {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.order-status-badge-custom.shipping {
+  background-color: #e0e7ff;
+  color: #3730a3;
+}
+
+.order-status-badge-custom.out_for_delivery {
+  background-color: #fef3c7;
+  color: #92400e;
+}
+
+.order-status-badge-custom.delivered {
+  background-color: #dcfce7;
+  color: #166534;
+}
+
+.order-status-badge-custom.cancelled {
+  background-color: #fee2e2;
+  color: #991b1b;
+}
+
+.order-status-badge-custom.pending {
+  background-color: #f3f4f6;
+  color: #4b5563;
+}
+
+.order-meta-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: #6b7280;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.order-meta-item.address {
+  max-width: 190px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.order-meta-item svg {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+/* Empty State */
+.empty-orders-view {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 20px;
+  text-align: center;
+  background: #f9fafb;
+  border-radius: 14px;
+  border: 1px dashed #e5e7eb;
+}
+
+.empty-orders-view p {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-top: 8px;
+}
+
+.reset-filter-btn {
+  margin-top: 12px;
+  padding: 6px 14px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #111827;
+  cursor: pointer;
+}
+
+/* ================= QUICK ADD ORDER MODAL ================= */
+.modal-overlay-custom {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal-content-custom {
+  background: #ffffff;
+  border-radius: 20px;
+  width: 100%;
+  max-width: 480px;
+  box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: modalPop 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes modalPop {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.modal-header-custom {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  border-bottom: 1px solid #f1f3f5;
+}
+
+.modal-header-custom h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.modal-close-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: all 0.15s ease;
+  cursor: pointer;
+}
+
+.modal-close-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.modal-body-custom {
+  padding: 20px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal-form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.modal-form-group input,
+.modal-form-group select {
+  padding: 10px 14px;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #111827;
+  outline: none;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.modal-form-group input:focus,
+.modal-form-group select:focus {
+  border-color: #111827;
+  box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.08);
+}
+
+.modal-row-two {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.modal-footer-custom {
+  padding: 16px 24px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  border-top: 1px solid #f1f3f5;
+}
+
+.modal-cancel-btn {
+  padding: 9px 16px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #4b5563;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.modal-submit-btn {
+  padding: 9px 20px;
+  border-radius: 10px;
+  background: #000000;
+  color: #ffffff;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.modal-submit-btn:hover {
+  background: #1f2937;
+}
+
+/* ================= RESPONSIVE DESIGN ================= */
+@media (max-width: 1024px) {
+  .orders-calendar-card {
+    grid-template-columns: 1fr;
+  }
+
+  .calendar-pane {
+    border-right: none;
+    border-bottom: 1px solid #f1f3f5;
+  }
+
+  .order-meta-item.address {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .calendar-pane,
+  .orders-pane {
+    padding: 16px;
+  }
+
+  .order-schedule-card {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .calendar-grid {
+    gap: 4px;
+  }
+
+  .calendar-day-cell {
+    min-height: 38px;
+    border-radius: 10px;
+  }
+}

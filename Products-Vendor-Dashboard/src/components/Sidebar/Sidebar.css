@@ -1,5 +1,5 @@
 .accessories-sidebar {
-  width: 260px;
+  width: 240px;
   background-color: var(--bg-sidebar);
   border-right: 1px solid var(--border-color);
   display: flex;
@@ -10,7 +10,7 @@
 }
 
 .sidebar-header {
-  padding: 24px;
+  padding: 16px 20px;
 }
 
 .logo-container {
@@ -59,12 +59,12 @@
 .nav-item {
   display: flex;
   align-items: center;
-  padding: 12px 24px;
-  gap: 16px;
+  padding: 10px 20px;
+  gap: 12px;
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: 500;
   position: relative;
 }
@@ -94,44 +94,44 @@
 }
 
 .admin-section {
-  margin-top: 24px;
+  margin-top: 18px;
 }
 
 .section-title {
-  padding: 0 24px;
+  padding: 0 20px;
   font-size: 0.65rem;
   font-weight: 700;
   color: var(--text-light);
   letter-spacing: 0.1em;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .sidebar-footer {
-  padding: 16px 16px 20px;
+  padding: 12px 14px 16px;
   border-top: 1px solid var(--border-color);
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 /* Vendor info strip */
 .sidebar-vendor-strip {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 10px 12px;
+  gap: 8px;
+  padding: 8px 10px;
   background: var(--bg-body);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
 }
 
 .sidebar-vendor-avatar {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: linear-gradient(135deg, var(--primary-orange) 0%, #c45200 100%);
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -144,13 +144,13 @@
 }
 
 .sidebar-vendor-email {
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 600;
   color: var(--text-main);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 148px;
+  max-width: 135px;
 }
 
 .sidebar-vendor-role {
@@ -175,10 +175,10 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 12px;
+  padding: 10px;
   border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   transition: background-color 0.2s ease;
   width: 100%;
 }
@@ -193,13 +193,13 @@
   align-items: center;
   justify-content: center;
   gap: 8px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   background: transparent;
   color: var(--text-muted);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font-weight: 600;
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   font-family: 'Inter', sans-serif;
   cursor: pointer;
   transition: all 0.2s ease;

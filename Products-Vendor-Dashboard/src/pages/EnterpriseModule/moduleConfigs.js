@@ -1,5 +1,4 @@
 import {
-  BadgeIndianRupee,
   BarChart3,
   Bell,
   Bike,
@@ -415,27 +414,6 @@ export const moduleConfigs = {
     columns: ['settingName', 'module', 'value', 'environment', 'status'],
     seed: [
       { settingName: 'Default GST', module: 'Pricing', value: '18%', environment: 'production', status: 'active' }
-    ]
-  },
-  pricing: {
-    title: 'Pricing Rules',
-    subtitle: 'Manage MRP, selling price, wholesale rates, platform fees, GST, COD, and offers.',
-    collectionName: 'pricing_rules',
-    icon: BadgeIndianRupee,
-    primaryAction: 'Add Rule',
-    accent: '#b45309',
-    fields: [
-      text('ruleName', 'Rule Name', 'Helmet Margin Guard'),
-      select('category', 'Category', accessoryCategories),
-      select('brand', 'Brand', productBrands),
-      number('minimumMargin', 'Minimum Margin %', '18'),
-      number('platformFee', 'Platform Fee %', '5'),
-      number('gstRate', 'GST Rate %', '18'),
-      select('status', 'Status', ['active', 'draft', 'paused'])
-    ],
-    columns: ['ruleName', 'category', 'brand', 'minimumMargin', 'platformFee', 'gstRate', 'status'],
-    seed: [
-      { ruleName: 'Helmet Margin Guard', category: 'Helmets', brand: 'Axor', minimumMargin: 18, platformFee: 5, gstRate: 18, status: 'active' }
     ]
   }
 };

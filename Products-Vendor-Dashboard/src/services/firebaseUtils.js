@@ -19,9 +19,9 @@ export const getVendorId = () => {
   return (!user || user.isAnonymous) ? DEFAULT_VENDOR_ID : user.uid;
 };
 
-export const withVendor = (data, vendorId = getVendorId()) => ({
+export const withVendor = (data, vendorId) => ({
   ...data,
-  vendorId
+  vendorId: data?.vendorId || vendorId || getVendorId()
 });
 
 export const cleanObject = (value) => {
