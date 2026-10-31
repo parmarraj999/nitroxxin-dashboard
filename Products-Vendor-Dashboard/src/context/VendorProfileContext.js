@@ -29,8 +29,9 @@ export const VendorProfileProvider = ({ children }) => {
     setLoading(true);
     (async () => {
       try {
-        console.log('[VendorProfileContext] Reading vendor profile from Firestore:', user.uid);
-        const data = await getVendorProfile(user.uid);
+        const vendorKey = localStorage.getItem('nitroxx_vendor_id') || user.uid;
+        console.log('[VendorProfileContext] Reading vendor profile from Firestore:', vendorKey);
+        const data = await getVendorProfile(vendorKey);
         if (data && active) {
           const merged = { ...emptyVendorProfile, ...data };
           setProfile(merged);
@@ -66,8 +67,9 @@ export const VendorProfileProvider = ({ children }) => {
     setSaving(true);
     setSaveError('');
     try {
-      console.log('[VendorProfileContext] Writing profile update to Firestore:', user.uid);
-      await saveVendorProfileInDb(targetData, user.uid);
+      const targetVendorId = targetData.vendorId || targetData.customVendorId || localStorage.getItem('nitroxx_vendor_id') || user.uid;
+      console.log('[VendorProfileContext] Writing profile update to Firestore:', targetVendorId);
+      await saveVendorProfileInDb({ ...targetData, ownerId: user.uid, uid: user.uid }, targetVendorId);
       setProfile(targetData);
       updateProfileCache(targetData);
       setSaved(true);

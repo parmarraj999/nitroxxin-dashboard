@@ -5,6 +5,7 @@ import {
   Camera, ChevronRight, AlertCircle, Check
 } from 'lucide-react';
 import { useVendorProfile } from '../../context/VendorProfileContext';
+import { useAuth } from '../../context/AuthContext';
 import './VendorProfile.css';
 
 /* ─── helpers ─── */
@@ -60,6 +61,7 @@ const Select = ({ value, onChange, options, placeholder }) => (
 
 /* ════════════════════════════════════════ */
 const VendorProfile = () => {
+  const { user, vendorId } = useAuth();
   const {
     profile,
     loading,
@@ -146,8 +148,8 @@ const VendorProfile = () => {
               {profile.verificationStatus || 'Pending'}
             </span>
           </div>
-          <p className="hero-email">{user?.email}</p>
-          <p className="hero-uid">Vendor ID: {user?.uid?.slice(0, 16)}…</p>
+          <p className="hero-email">{user?.email || profile?.businessDetails?.supportEmail || ''}</p>
+          <p className="hero-uid">Vendor ID: {profile?.vendorId || profile?.customVendorId || vendorId || user?.uid}</p>
         </div>
       </div>
 
@@ -177,9 +179,10 @@ const VendorProfile = () => {
             <Input
               id="profile-support-phone"
               type="tel"
-              placeholder="+91 9876543210"
+              placeholder="9876543210"
               value={profile.businessDetails?.supportPhone || ''}
-              onChange={(e) => setNested('businessDetails', 'supportPhone', e.target.value)}
+              onChange={(e) => setNested('businessDetails', 'supportPhone', e.target.value.replace(/\D/g, '').slice(0, 10))}
+              maxLength={10}
             />
           </Field>
         </Section>
@@ -220,7 +223,7 @@ const VendorProfile = () => {
               id="profile-gst-number"
               placeholder="22AAAAA0000A1Z5"
               value={profile.gstDetails?.gstNumber || ''}
-              onChange={(e) => setNested('gstDetails', 'gstNumber', e.target.value.toUpperCase())}
+              onChange={(e) => setNested('gstDetails', 'gstNumber', e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15))}
               maxLength={15}
             />
           </Field>

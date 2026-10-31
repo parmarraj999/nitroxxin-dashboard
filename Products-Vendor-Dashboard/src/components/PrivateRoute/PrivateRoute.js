@@ -42,19 +42,18 @@ const PrivateRoute = ({ children }) => {
     return <Navigate to="/login" replace />;
   }
 
-  const status = profile?.verificationStatus || 'verified';
+  const status = profile?.verificationStatus || 'pending';
 
-  // Only block access if the account has been rejected or suspended
-  if (status !== 'rejected' && status !== 'suspended') {
+  // Only verified accounts approved by super admin can access the dashboard
+  if (status === 'verified') {
     return children;
   }
-
 
   // Define screen layout based on verification status
   let icon = <Clock className="status-screen-icon text-warning animate-pulse" size={48} />;
   let title = "Application Under Review";
-  let subtitle = "Your vendor registration has been submitted to the Nitroxxin admin team.";
-  let description = "We are currently reviewing your store details, GST details, and brand alignment. You will gain full access to the vendor dashboard as soon as your account is approved.";
+  let subtitle = "Your vendor registration has been submitted to the Nitroxxin super admin team.";
+  let description = "We are currently reviewing your store details, GST details, and brand alignment. You will gain full access to the vendor dashboard as soon as your account is approved by super admin.";
 
   if (status === 'rejected') {
     icon = <XCircle className="status-screen-icon text-danger" size={48} />;
@@ -101,6 +100,12 @@ const PrivateRoute = ({ children }) => {
 
             {profile && (
               <div className="submitted-details">
+                <div className="detail-row">
+                  <span className="detail-label">Vendor ID</span>
+                  <span className="detail-value" style={{ fontFamily: 'monospace', letterSpacing: '0.02em', color: '#ff6b00' }}>
+                    {profile.vendorId || profile.customVendorId || 'N/A'}
+                  </span>
+                </div>
                 <div className="detail-row">
                   <span className="detail-label">Store Name</span>
                   <span className="detail-value">{profile.businessDetails?.businessName || profile.displayName || 'Pending Submission'}</span>

@@ -7,7 +7,7 @@ import {
   browserLocalPersistence,
   setPersistence
 } from 'firebase/auth';
-import { doc, getDoc } from 'firebase/firestore';
+import { doc, getDoc, collection, getDocs, query, where, limit } from 'firebase/firestore';
 import { auth, db } from '../firebase/firebase.config';
 import { DEFAULT_VENDOR_ID } from '../services/firebaseUtils';
 
@@ -24,9 +24,72 @@ export const AuthProvider = ({ children }) => {
   const fetchProfile = useCallback(async (targetUser) => {
     if (!targetUser) return null;
     try {
-      const docRef = doc(db, 'vendors', targetUser.uid);
-      const snapshot = await getDoc(docRef);
-      return snapshot.exists() ? snapshot.data() : null;
+      // 1. Try cached custom vendor ID first
+      let cachedVendorId = null;
+      try {
+        cachedVendorId = localStorage.getItem('nitroxx_vendor_id');
+      } catch (e) {}
+
+      if (cachedVendorId) {
+        const docRef = doc(db, 'vendors', cachedVendorId);
+        const snapshot = await getDoc(docRef);
+        if (snapshot.exists()) {
+          const data = snapshot.data();
+          const activeId = data.vendorId || data.customVendorId || snapshot.id;
+          try {
+            localStorage.setItem('nitroxx_vendor_id', activeId);
+          } catch (e) {}
+          return { id: snapshot.id, ...data };
+        }
+      }
+
+      // 2. Query vendors collection by ownerId == targetUser.uid
+      try {
+        const qOwner = query(collection(db, 'vendors'), where('ownerId', '==', targetUser.uid), limit(1));
+        const qOwnerSnap = await getDocs(qOwner);
+        if (!qOwnerSnap.empty) {
+          const docSnap = qOwnerSnap.docs[0];
+          const data = docSnap.data();
+          const activeId = data.vendorId || data.customVendorId || docSnap.id;
+          try {
+            localStorage.setItem('nitroxx_vendor_id', activeId);
+          } catch (e) {}
+          return { id: docSnap.id, ...data };
+        }
+      } catch (qErr) {
+        console.warn('[AuthContext] Error querying by ownerId:', qErr);
+      }
+
+      // 3. Query vendors collection by uid == targetUser.uid
+      try {
+        const qUid = query(collection(db, 'vendors'), where('uid', '==', targetUser.uid), limit(1));
+        const qUidSnap = await getDocs(qUid);
+        if (!qUidSnap.empty) {
+          const docSnap = qUidSnap.docs[0];
+          const data = docSnap.data();
+          const activeId = data.vendorId || data.customVendorId || docSnap.id;
+          try {
+            localStorage.setItem('nitroxx_vendor_id', activeId);
+          } catch (e) {}
+          return { id: docSnap.id, ...data };
+        }
+      } catch (qErr) {
+        console.warn('[AuthContext] Error querying by uid:', qErr);
+      }
+
+      // 4. Legacy fallback: doc keyed by targetUser.uid
+      const legacyRef = doc(db, 'vendors', targetUser.uid);
+      const legacySnap = await getDoc(legacyRef);
+      if (legacySnap.exists()) {
+        const data = legacySnap.data();
+        const activeId = data.vendorId || data.customVendorId || targetUser.uid;
+        try {
+          localStorage.setItem('nitroxx_vendor_id', activeId);
+        } catch (e) {}
+        return { id: legacySnap.id, ...data };
+      }
+
+      return null;
     } catch (e) {
       console.error('[AuthContext] Error fetching vendor profile:', e);
       return null;
@@ -49,6 +112,7 @@ export const AuthProvider = ({ children }) => {
         setIsAuthenticated(false);
         try {
           localStorage.removeItem('nitroxx_auth_user');
+          localStorage.removeItem('nitroxx_vendor_id');
         } catch (e) {}
       }
       setLoading(false);
@@ -105,6 +169,7 @@ export const AuthProvider = ({ children }) => {
     try {
       try {
         localStorage.removeItem('nitroxx_auth_user');
+        localStorage.removeItem('nitroxx_vendor_id');
       } catch (e) {}
       await firebaseSignOut(auth);
     } finally {
@@ -133,8 +198,8 @@ export const AuthProvider = ({ children }) => {
 
   const vendorId = useMemo(() => {
     if (!user || user.isAnonymous) return DEFAULT_VENDOR_ID;
-    return user.uid;
-  }, [user]);
+    return profile?.vendorId || profile?.customVendorId || user.uid;
+  }, [user, profile]);
 
   const value = useMemo(() => ({
     user,

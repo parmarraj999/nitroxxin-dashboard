@@ -16,7 +16,12 @@ export const DEFAULT_VENDOR_ID = 'nitroxx-default-vendor';
 
 export const getVendorId = () => {
   const user = auth.currentUser;
-  return (!user || user.isAnonymous) ? DEFAULT_VENDOR_ID : user.uid;
+  if (!user || user.isAnonymous) return DEFAULT_VENDOR_ID;
+  try {
+    const cached = localStorage.getItem('nitroxx_vendor_id');
+    if (cached) return cached;
+  } catch (e) {}
+  return user.uid;
 };
 
 export const withVendor = (data, vendorId) => ({

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, Zap, AlertCircle, Loader2 } from 'lucide-react';
 import { useAuthVendor } from '../../hooks/useAuthVendor';
-import { saveVendorProfile } from '../../services/vendorService';
+import { saveVendorProfile, generateVendorId } from '../../services/vendorService';
+import { validatePhoneNumber, validateGstNumber } from '../../services/validationService';
 import './Login.css';
 
 const Login = () => {
@@ -31,7 +32,16 @@ const Login = () => {
   const [error, setError] = useState('');
 
   const handleChange = (e) => {
-    setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    if (name === 'phone') {
+      const cleanDigits = value.replace(/\D/g, '').slice(0, 10);
+      setFormData((prev) => ({ ...prev, phone: cleanDigits }));
+    } else if (name === 'gstNumber') {
+      const upperGst = value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 15);
+      setFormData((prev) => ({ ...prev, gstNumber: upperGst }));
+    } else {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    }
     if (error) setError('');
   };
 
@@ -58,11 +68,29 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    let phoneVal = null;
+    let gstVal = null;
+
     if (isSignUp) {
       if (!formData.email || !formData.password || !formData.storeName || !formData.contactName || !formData.phone || !formData.address || !formData.gstNumber) {
         setError('Please fill in all fields.');
         return;
       }
+
+      // Validate Phone Number: min 10 & max 10 digits
+      phoneVal = validatePhoneNumber(formData.phone);
+      if (!phoneVal.isValid) {
+        setError(phoneVal.error);
+        return;
+      }
+
+      // Validate GST Number: 15-character structure
+      gstVal = validateGstNumber(formData.gstNumber);
+      if (!gstVal.isValid) {
+        setError(gstVal.error);
+        return;
+      }
+
       if (formData.password.length < 6) {
         setError('Password must be at least 6 characters long.');
         return;
@@ -81,19 +109,30 @@ const Login = () => {
         // Create auth user
         const user = await signUp(formData.email, formData.password);
         
-        // Write pending vendor profile
+        // Generate custom vendor ID: name-last5phone-random8
+        const customVendorId = generateVendorId(formData.contactName || formData.storeName, phoneVal?.cleanPhone || formData.phone);
+        try {
+          localStorage.setItem('nitroxx_vendor_id', customVendorId);
+        } catch (e) {}
+
+        // Write pending vendor profile with ID: vendors/customVendorId
         await saveVendorProfile({
+          vendorId: customVendorId,
+          customVendorId: customVendorId,
+          ownerId: user.uid,
+          uid: user.uid,
+          authUid: user.uid,
           displayName: formData.contactName,
           verificationStatus: 'pending',
           businessDetails: {
             businessName: formData.storeName,
             supportEmail: formData.email,
             businessType: '',
-            pan: '',
-            supportPhone: formData.phone
+            pan: gstVal?.pan || '',
+            supportPhone: phoneVal?.cleanPhone || formData.phone
           },
           gstDetails: {
-            gstNumber: formData.gstNumber,
+            gstNumber: gstVal?.cleanGst || formData.gstNumber,
             legalName: formData.storeName,
             registrationState: ''
           },
@@ -108,7 +147,7 @@ const Login = () => {
             logoUrl: '',
             description: ''
           }
-        }, user.uid);
+        }, customVendorId);
 
         // Update auth state in context
         await refreshProfile();
@@ -185,16 +224,23 @@ const Login = () => {
                     </div>
                   </div>
                   <div className="form-group">
-                    <label htmlFor="login-phone" className="form-label-login" style={{color:'white'}}>Phone Number</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label htmlFor="login-phone" className="form-label-login" style={{color:'white'}}>Phone Number</label>
+                      <span style={{ fontSize: '0.72rem', color: formData.phone.length === 10 ? '#10b981' : '#9ca3af', fontWeight: 500 }}>
+                        {formData.phone ? `${formData.phone.length}/10 digits` : '10 digits'}
+                      </span>
+                    </div>
                     <div className="form-input-wrap">
                       <input
                         id="login-phone"
                         type="tel"
                         name="phone"
-                        className={`form-input ${error ? 'form-input-error' : ''}`}
-                        placeholder="e.g. +91 9876543210"
+                        className={`form-input ${error && error.toLowerCase().includes('phone') ? 'form-input-error' : ''}`}
+                        placeholder="10-digit mobile number (e.g. 9876543210)"
                         value={formData.phone}
                         onChange={handleChange}
+                        maxLength={10}
+                        inputMode="numeric"
                         disabled={loading}
                       />
                     </div>
@@ -207,7 +253,7 @@ const Login = () => {
                         id="login-address"
                         type="text"
                         name="address"
-                        className={`form-input ${error ? 'form-input-error' : ''}`}
+                        className="form-input"
                         placeholder="e.g. 123 Main St, City, State"
                         value={formData.address}
                         onChange={handleChange}
@@ -217,16 +263,23 @@ const Login = () => {
                   </div>
 
                   <div className="form-group">
-                    <label htmlFor="login-gstNumber" className="form-label-login" style={{color:'white'}}>GST Number</label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <label htmlFor="login-gstNumber" className="form-label-login" style={{color:'white'}}>GST Number</label>
+                      <span style={{ fontSize: '0.72rem', color: formData.gstNumber.length === 15 ? '#10b981' : '#9ca3af', fontWeight: 500 }}>
+                        {formData.gstNumber ? `${formData.gstNumber.length}/15 chars` : '15 characters'}
+                      </span>
+                    </div>
                     <div className="form-input-wrap">
                       <input
                         id="login-gstNumber"
                         type="text"
                         name="gstNumber"
-                        className={`form-input ${error ? 'form-input-error' : ''}`}
-                        placeholder="e.g. 27ABCDE1234F1Z5"
+                        className={`form-input ${error && error.toLowerCase().includes('gst') ? 'form-input-error' : ''}`}
+                        placeholder="15-character GSTIN (e.g. 27ABCDE1234F1Z5)"
                         value={formData.gstNumber}
                         onChange={handleChange}
+                        maxLength={15}
+                        autoCapitalize="characters"
                         disabled={loading}
                       />
                     </div>

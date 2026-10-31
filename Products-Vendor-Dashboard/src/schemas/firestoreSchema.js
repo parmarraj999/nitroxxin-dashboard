@@ -61,6 +61,8 @@ export const categoryAttributeDefinitions = {
 };
 
 export const emptyVendorProfile = {
+  vendorId: '',
+  customVendorId: '',
   ownerId: '',
   displayName: '',
   verificationStatus: 'pending',
