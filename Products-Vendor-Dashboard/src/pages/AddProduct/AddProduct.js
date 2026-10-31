@@ -769,7 +769,7 @@ const AddProduct = () => {
         ))}
       </div>
 
-      <div className="add-product-layout">
+      <div className={`add-product-layout ${activeStep === 'preview' ? 'preview-mode-layout' : ''}`}>
         <aside className="form-sidebar">
           <div className="preview-card card">
             <div className="preview-image" style={{ backgroundImage: form.media.primaryImage ? `url(${form.media.primaryImage})` : undefined }}>
@@ -1375,36 +1375,44 @@ const AddProduct = () => {
 
               {/* 2. Key Metrics Grid */}
               <div className="product-health-grid">
-                <div className="health-card card">
-                  <Tag size={18} />
-                  <span>Catalog Status</span>
-                  <strong>{validation.length ? `${validation.length} pending` : 'Ready to Publish'}</strong>
+                <div className="health-card">
+                  <div className="health-icon-wrap"><Tag size={20} /></div>
+                  <div className="health-info">
+                    <span>Catalog Status</span>
+                    <strong>{validation.length ? `${validation.length} pending` : 'Ready to Publish'}</strong>
+                  </div>
                 </div>
-                <div className="health-card card">
-                  <Package size={18} />
-                  <span>Available Stock</span>
-                  <strong className={money(form.inventory.stockQuantity) <= money(form.inventory.lowStockThreshold) ? 'risk' : ''}>
-                    {money(form.inventory.stockQuantity)} units
-                  </strong>
+                <div className="health-card">
+                  <div className="health-icon-wrap"><Package size={20} /></div>
+                  <div className="health-info">
+                    <span>Available Stock</span>
+                    <strong className={money(form.inventory.stockQuantity) <= money(form.inventory.lowStockThreshold) ? 'risk' : ''}>
+                      {money(form.inventory.stockQuantity)} units
+                    </strong>
+                  </div>
                 </div>
-                <div className="health-card card">
-                  <BarChart3 size={18} />
-                  <span>Profit Margin</span>
-                  <strong>
-                    {money(form.pricing.sellingPrice) && money(form.pricing.costPrice)
-                      ? `${Math.round(((money(form.pricing.sellingPrice) - money(form.pricing.costPrice)) / money(form.pricing.sellingPrice)) * 100)}%`
-                      : '-'}
-                  </strong>
+                <div className="health-card">
+                  <div className="health-icon-wrap"><BarChart3 size={20} /></div>
+                  <div className="health-info">
+                    <span>Profit Margin</span>
+                    <strong>
+                      {money(form.pricing.sellingPrice) && money(form.pricing.costPrice)
+                        ? `${Math.round(((money(form.pricing.sellingPrice) - money(form.pricing.costPrice)) / money(form.pricing.sellingPrice)) * 100)}%`
+                        : '-'}
+                    </strong>
+                  </div>
                 </div>
-                <div className="health-card card">
-                  <ShieldCheck size={18} />
-                  <span>Safety Compliance</span>
-                  <strong>{form.attributes.certification || form.attributes.ceArmour ? 'Certified' : 'Standard'}</strong>
+                <div className="health-card">
+                  <div className="health-icon-wrap"><ShieldCheck size={20} /></div>
+                  <div className="health-info">
+                    <span>Safety Compliance</span>
+                    <strong>{form.attributes.certification || form.attributes.ceArmour ? 'Certified' : 'Standard'}</strong>
+                  </div>
                 </div>
               </div>
 
               {/* 3. Description & Highlights */}
-              <div className="preview-detail-card card">
+              <div className="preview-detail-card">
                 <h4>Description & Highlights</h4>
                 {form.shortDescription && <p className="preview-short-desc">{form.shortDescription}</p>}
                 <div className="preview-full-desc">{form.fullDescription || 'No detailed description provided yet.'}</div>
@@ -1444,7 +1452,7 @@ const AddProduct = () => {
               </div>
 
               {/* 4. Specifications & Attributes */}
-              <div className="preview-detail-card card">
+              <div className="preview-detail-card">
                 <h4>Dynamic Specifications ({form.category})</h4>
                 <div className="preview-spec-grid">
                   {form.category === 'Rider Wear' && (
@@ -1474,7 +1482,7 @@ const AddProduct = () => {
 
               {/* 5. Variants (if added) */}
               {form.variants.length > 0 && (
-                <div className="preview-detail-card card">
+                <div className="preview-detail-card">
                   <h4>Product Variants ({form.variants.length})</h4>
                   <div className="seller-table-wrap">
                     <table className="seller-table">
@@ -1502,23 +1510,23 @@ const AddProduct = () => {
               )}
 
               {/* 6. Policies & Delivery */}
-              <div className="preview-detail-card card">
+              <div className="preview-detail-card">
                 <h4>Policies, Warranty & Support</h4>
                 <div className="policy-grid">
-                  <div>
-                    <h4>Return Policy</h4>
+                  <div className="policy-item">
+                    <h5>Return Policy</h5>
                     <p>{form.returnPolicy || 'Not specified'}</p>
                   </div>
-                  <div>
-                    <h4>Replacement Policy</h4>
+                  <div className="policy-item">
+                    <h5>Replacement Policy</h5>
                     <p>{form.replacementPolicy || 'Not specified'}</p>
                   </div>
-                  <div>
-                    <h4>Warranty</h4>
+                  <div className="policy-item">
+                    <h5>Warranty</h5>
                     <p>{form.warranty || 'Not specified'}</p>
                   </div>
-                  <div>
-                    <h4>Care Instructions</h4>
+                  <div className="policy-item">
+                    <h5>Care Instructions</h5>
                     <p>{form.careInstructions || 'Standard care guidelines'}</p>
                   </div>
                 </div>
