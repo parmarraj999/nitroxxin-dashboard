@@ -17,6 +17,7 @@ export const AuthProvider = ({ children }) => {
   const hasSavedAuth = typeof window !== 'undefined' && localStorage.getItem('nitroxx_auth_user') === 'true';
   const [user, setUser] = useState(() => auth.currentUser);
   const [profile, setProfile] = useState(null);
+  console.log(profile)
   const [loading, setLoading] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(auth.currentUser && !auth.currentUser.isAnonymous) || hasSavedAuth);
 

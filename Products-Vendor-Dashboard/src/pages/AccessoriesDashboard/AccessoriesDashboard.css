@@ -7,10 +7,11 @@
 
 .dashboard-title {
   font-size: 1.55rem;
-  font-weight: 800;
+  font-weight:500;
   color: var(--text-main);
   margin-bottom: 4px;
   letter-spacing: -0.02em;
+  font-family: 'Poppins',sans-serif;
 }
 
 .dashboard-subtitle {

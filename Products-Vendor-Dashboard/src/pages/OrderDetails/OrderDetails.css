@@ -113,14 +113,253 @@
 }
 
 /* ══════════════════════════════════════════════════════════
-   2. DELIVERY TIMELINE CARD
+   2. MIDDLE SECTION: TIMELINE + SHIPPING & CUSTOMER DETAILS
    ══════════════════════════════════════════════════════════ */
+.order-middle-section {
+  display: grid;
+  grid-template-columns: minmax(360px, 1.2fr) minmax(320px, 0.8fr);
+  gap: 20px;
+  align-items: stretch;
+}
+
 .delivery-timeline-card {
   background-color: #ffffff;
   border: 1px solid #eaecf0;
-  border-radius: 14px;
+  border-radius: 20px;
   padding: 24px 28px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+}
+
+.order-side-cards-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  justify-content: flex-start;
+}
+
+/* Reference image style side cards */
+.order-side-card {
+  background-color: #ffffff;
+  border: 1px solid #eaecf0;
+  border-radius: 16px;
+  padding: 20px 22px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.order-side-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.osc-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0 0 14px 0;
+  letter-spacing: -0.01em;
+}
+
+/* 1. Contact Information Styles */
+.contact-info-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.contact-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.contact-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.contact-val {
+  color: #374151;
+  word-break: break-all;
+}
+
+.contact-phone-row {
+  padding-left: 26px;
+}
+
+.text-muted {
+  color: #64748b;
+  font-weight: 400;
+}
+
+/* 2. Shipping Address Styles */
+.shipping-address-content {
+  display: flex;
+  flex-direction: column;
+}
+
+.shipping-recipient-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.shipping-icon {
+  color: #64748b;
+  flex-shrink: 0;
+}
+
+.shipping-recipient-name {
+  color: #374151;
+  font-weight: 500;
+}
+
+.shipping-address-lines {
+  /* padding-left: 26px; */
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.address-line {
+  display: block;
+}
+
+.shipping-map-box {
+  width: 100%;
+  height: 200px;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-top: 14px;
+  margin-bottom: 4px;
+  border: 1px solid #e2e8f0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  background-color: #f1f5f9;
+}
+
+.shipping-map-iframe {
+  width: 100%;
+  height: 200px;
+  border: 0;
+  display: block;
+}
+
+/* 3. Advance Delivery Details Section */
+.advance-delivery-section {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 1px solid #f1f5f9;
+}
+
+.advance-delivery-header {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.advance-delivery-title {
+  font-size: 11.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #94a3b8;
+}
+
+.advance-delivery-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adv-delivery-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background-color: #f8fafc;
+  border-radius: 10px;
+  padding: 8px 12px;
+  font-size: 13px;
+  border: 1px solid #f1f5f9;
+  transition: all 0.15s ease;
+}
+
+.adv-delivery-item:hover {
+  background-color: #f1f5f9;
+  border-color: #e2e8f0;
+}
+
+.adv-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.adv-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.adv-val {
+  color: #0f172a;
+  font-weight: 600;
+  text-align: right;
+  max-width: 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.adv-val.adv-tracking {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  color: #4338ca;
+  font-weight: 700;
+}
+
+.adv-val.adv-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ow-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.ow-dot.dot-green {
+  background-color: #10b981;
+  box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.18);
+}
+
+.ow-dot.dot-yellow {
+  background-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.18);
+}
+
+.ow-dot.dot-red {
+  background-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.18);
 }
 
 .dt-header {
@@ -255,6 +494,7 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
@@ -381,7 +621,7 @@
    ══════════════════════════════════════════════════════════ */
 .product-items-table-card {
   background-color: #ffffff;
-  border: 1px solid #d1d5db;
+  border: 1px solid #cacbcd;
   border-radius: 20px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
   overflow: hidden;
@@ -406,11 +646,11 @@
 }
 
 .product-table-exact th {
-  padding: 18px 24px;
-  font-size: 0.875rem;
+  padding: 14px 12px;
+  font-size: 0.8125rem;
   font-weight: 600;
   color: #6b7280;
-  letter-spacing: 0.01em;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   text-align: left;
   user-select: none;
@@ -419,9 +659,11 @@
 /* Checkbox Column */
 .th-col-check,
 .td-col-check {
-  width: 52px;
-  padding-left: 24px !important;
-  padding-right: 12px !important;
+  width: 48px;
+  min-width: 48px;
+  max-width: 48px;
+  padding-left: 18px !important;
+  padding-right: 10px !important;
   text-align: center;
 }
 
@@ -432,7 +674,6 @@
   border: 1.5px solid #d1d5db;
   background-color: #ffffff !important;
   cursor: pointer;
-  /* accent-color: #0f172a; */
   display: block;
   margin: 0 auto;
   transition: all 0.12s ease;
@@ -445,33 +686,72 @@
 /* Columns */
 .th-col-id,
 .td-col-id {
-  width: 22%;
+  width: 17%;
+  min-width: 130px;
+}
+
+.th-col-img,
+.td-col-img {
+  width: 68px;
+  min-width: 68px;
+  max-width: 68px;
+  text-align: center;
+  padding-left: 6px !important;
+  padding-right: 6px !important;
+}
+
+.table-item-img {
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid #eaecf0;
+  display: block;
+  margin: 0 auto;
+}
+
+.table-item-img-placeholder {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  border: 1px solid #eaecf0;
+  background-color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #94a3b8;
+  margin: 0 auto;
 }
 
 .th-col-sku,
 .td-col-sku {
-  width: 18%;
+  width: 13%;
+  min-width: 110px;
 }
 
 .th-col-name,
 .td-col-name {
-  width: 25%;
+  width: 26%;
+  min-width: 180px;
 }
 
 .th-col-brand,
 .td-col-brand {
-  width: 15%;
+  width: 12%;
+  min-width: 90px;
 }
 
 .th-col-qty,
 .td-col-qty {
-  width: 10%;
+  width: 8%;
+  min-width: 60px;
 }
 
 .th-col-price,
 .td-col-price {
-  width: 10%;
-  padding-right: 28px !important;
+  width: 12%;
+  min-width: 90px;
+  padding-right: 24px !important;
 }
 
 /* Rows */
@@ -490,7 +770,7 @@
 }
 
 .product-table-exact td {
-  padding: 20px 24px;
+  padding: 12px 12px;
   font-size: 0.9rem;
   vertical-align: middle;
   text-align: left;
@@ -595,6 +875,18 @@
 
 .ob-fee-value {
   color: #0f172a;
+  font-weight: 600;
+}
+
+.ob-fee-value.ob-fee-deduct,
+.ob-sub-val.ob-fee-deduct {
+  color: #dc2626 !important;
+  font-weight: 600;
+}
+
+.ob-fee-value.ob-fee-add,
+.ob-sub-val.ob-fee-add {
+  color: #16a34a !important;
   font-weight: 600;
 }
 
@@ -757,6 +1049,7 @@
   body {
     background: #ffffff !important;
   }
+
   .page-header,
   .od-download-invoice-btn,
   .sidebar,
@@ -766,8 +1059,10 @@
   .detail-back-btn {
     display: none !important;
   }
+
   .order-details-summary-card,
   .delivery-timeline-card,
+  .order-side-card,
   .product-items-table-card,
   .order-breakdown-card,
   .invoice-details-card {
@@ -776,10 +1071,17 @@
   }
 }
 
+@media (max-width: 1240px) {
+  .order-middle-section {
+    grid-template-columns: 1fr;
+  }
+}
+
 @media (max-width: 1080px) {
   .order-invoice-summary-grid {
     grid-template-columns: 1fr;
   }
+
   .id-grid-content {
     grid-template-columns: 1fr 1fr;
     gap: 24px;
@@ -793,6 +1095,10 @@
 }
 
 @media (max-width: 768px) {
+  .order-side-cards-container {
+    grid-template-columns: 1fr;
+  }
+
   .id-grid-content {
     grid-template-columns: 1fr;
     gap: 20px;
@@ -803,11 +1109,13 @@
   .od-summary-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .od-summary-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
+
   .dt-step-item {
     gap: 12px;
   }

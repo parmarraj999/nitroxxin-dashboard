@@ -1,7 +1,10 @@
 import React, { useState, useMemo } from 'react';
 import {
   Check,
-  ArrowLeft
+  ArrowLeft,
+  Mail,
+  PhoneCall,
+  Package
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useOrder } from '../../hooks/useOrders';
@@ -24,10 +27,26 @@ const defaultSampleItems = [
     sku: 'SK-323-CKS-123',
     name: 'RJ Lether Rider Jacket',
     brand: 'Rynox',
-    qty: 2,
-    price: 12200
+    qty: 1,
+    price: 8999,
+    image: 'https://images.unsplash.com/photo-1551028719-00167b16eac5?w=150&auto=format&fit=crop&q=80'
   }
 ];
+
+const statusDisplayMap = {
+  pending: 'Pending',
+  new: 'Pending',
+  accepted: 'Accepted',
+  confirmed: 'Confirmed',
+  packed: 'Packed',
+  shipped: 'In Transit',
+  in_transit: 'In Transit',
+  out_for_delivery: 'Out for Delivery',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled',
+  returned: 'Returned',
+  refunded: 'Refunded'
+};
 
 const OrderDetails = () => {
   const navigate = useNavigate();
@@ -48,7 +67,25 @@ const OrderDetails = () => {
     ? created.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : 'Oct 15, 2026';
 
-  // 3. Process REAL Items (or sample matching image)
+  // 3. Shipping & Customer Details extraction
+  const shippingInfo = order?.shipping || order?.shippingAddress || order?.address || customer?.address || {};
+  const shippingStreet = shippingInfo.address || shippingInfo.line1 || shippingInfo.street || (typeof shippingInfo === 'string' ? shippingInfo : '');
+  const shippingCityName = shippingInfo.city || '';
+  const shippingStateName = shippingInfo.state || '';
+  const shippingZipCode = shippingInfo.pincode || shippingInfo.postalCode || shippingInfo.zip || '';
+
+  const mapQuery = [
+    shippingStreet,
+    shippingCityName,
+    shippingStateName,
+    shippingZipCode
+  ].filter(Boolean).join(', ') || (order?.shipping?.address ? `${order.shipping.address}, ${order.shipping.city || ''}` : 'Menlo Park, CA 94025');
+
+  // Customer Details
+  const customerEmail = customer?.email || order?.customerEmail || 'marco.r@example.com';
+  const customerPhone = customer?.phone || order?.customerPhone || order?.shippingAddress?.phone || '+1 202 555 0199';
+
+  // 4. Process REAL Items (or sample matching image)
   const items = useMemo(() => {
     if (Array.isArray(order?.items) && order.items.length > 0) {
       return order.items.map((item, idx) => {
@@ -59,6 +96,7 @@ const OrderDetails = () => {
         const brand = item.brand || 'Rynox';
         const qty = Number(item.qty || item.quantity || 1);
         const price = Number(item.price || item.unitPrice || 12200);
+        const image = item.image || item.imageUrl || item.thumbnail || item.productImage || item.productSnapshot?.image || '';
 
         return {
           id: rawId,
@@ -67,7 +105,8 @@ const OrderDetails = () => {
           name,
           brand,
           qty,
-          price
+          price,
+          image
         };
       });
     }
@@ -97,49 +136,48 @@ const OrderDetails = () => {
     });
   };
 
-  // 4. Financial Calculations derived directly from REAL order data
+  // 5. Financial Calculations derived directly from REAL order data
   const calcSubtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
 
-  const rawTotal = typeof order?.total === 'number'
+  const baseAmount = typeof order?.total === 'number'
     ? order.total
-    : (typeof order?.totalAmount === 'number' ? order.totalAmount : calcSubtotal);
+    : (typeof order?.totalAmount === 'number'
+      ? order.totalAmount
+      : (typeof order?.subtotal === 'number'
+        ? order.subtotal
+        : (calcSubtotal > 0 ? calcSubtotal : 8999)));
+
+  // Remove 2.5% gateway fees, 4% platform fees, add 150 for delivery charges
+  const gatewayFee = typeof order?.gatewayFee === 'number'
+    ? order.gatewayFee
+    : Math.round(baseAmount * 0.025 * 100) / 100;
 
   const platformFee = typeof order?.platformFee === 'number'
     ? order.platformFee
-    : Math.round(rawTotal * 0.05 * 100) / 100;
+    : Math.round(baseAmount * 0.04 * 100) / 100;
 
-  const transactionsFee = typeof order?.transactionsFee === 'number'
-    ? order.transactionsFee
-    : Math.round(rawTotal * 0.025 * 100) / 100;
+  const deliveryCharges = typeof order?.deliveryCharges === 'number'
+    ? order.deliveryCharges
+    : 150;
 
-  const cardIssuingFee = typeof order?.cardIssuingFee === 'number'
-    ? order.cardIssuingFee
-    : Math.round(rawTotal * 0.015 * 100) / 100;
+  const totalDeductions = Math.round((gatewayFee + platformFee) * 100) / 100;
 
-  const subtotal = typeof order?.subtotal === 'number'
-    ? order.subtotal
-    : (calcSubtotal > 0 ? calcSubtotal : Math.round(rawTotal * 0.9 * 100) / 100);
+  const finalTotal = typeof order?.finalTotal === 'number'
+    ? order.finalTotal
+    : Math.round((baseAmount - gatewayFee - platformFee + deliveryCharges) * 100) / 100;
 
   const tax = typeof order?.tax === 'number'
     ? order.tax
-    : Math.round(subtotal * 0.05 * 100) / 100;
+    : Math.round(baseAmount * 0.05 * 100) / 100;
 
   const formatMoney = (val) => {
-    return `$${Number(val || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₹${Number(val || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
-  const formattedTotal = formatMoney(rawTotal);
+  const formattedTotal = formatMoney(finalTotal);
+  const formattedOrderAmount = formatMoney(baseAmount);
 
-  // 5. Status Display Text
-  const statusDisplayMap = {
-    pending: 'Pending',
-    confirmed: 'Confirmed',
-    packed: 'Packed',
-    shipped: 'In Transit',
-    delivered: 'Delivered',
-    cancelled: 'Cancelled',
-    returned: 'Returned'
-  };
+  // Status text display
   const capitalizedStatus = statusDisplayMap[rawStatus] || (rawStatus.charAt(0).toUpperCase() + rawStatus.slice(1));
 
   // Determine Delivery Timeline Overall Badge
@@ -148,10 +186,10 @@ const OrderDetails = () => {
   if (rawStatus === 'delivered') {
     timelineOverallStatus = 'DELIVERED';
     timelineOverallClass = 'delivered';
-  } else if (rawStatus === 'confirmed') {
+  } else if (rawStatus === 'confirmed' || rawStatus === 'accepted') {
     timelineOverallStatus = 'CONFIRMED';
     timelineOverallClass = 'confirmed';
-  } else if (rawStatus === 'pending') {
+  } else if (rawStatus === 'pending' || rawStatus === 'new') {
     timelineOverallStatus = 'PENDING';
     timelineOverallClass = 'pending';
   } else if (rawStatus === 'cancelled') {
@@ -159,11 +197,11 @@ const OrderDetails = () => {
     timelineOverallClass = 'cancelled';
   }
 
-  // Determine Dynamic Timeline Steps
+  // Determine Dynamic Timeline Steps (Original Live 4-step Tracker)
   const isDelivered = rawStatus === 'delivered';
-  const isShipped = rawStatus === 'shipped' || rawStatus === 'delivered';
-  const isInTransit = rawStatus === 'shipped';
-  const isConfirmed = rawStatus !== 'pending' && rawStatus !== 'cancelled';
+  const isShipped = rawStatus === 'shipped' || rawStatus === 'delivered' || rawStatus === 'in_transit' || rawStatus === 'out_for_delivery';
+  const isInTransit = rawStatus === 'shipped' || rawStatus === 'in_transit' || rawStatus === 'out_for_delivery';
+  const isConfirmed = rawStatus !== 'pending' && rawStatus !== 'new' && rawStatus !== 'cancelled';
 
   const timelineSteps = [
     {
@@ -203,7 +241,7 @@ const OrderDetails = () => {
     window.print();
   };
 
-  // 6. REAL Customer & Billing Data
+  // REAL Customer & Billing Data
   const billedToName = customer.name || order?.customerName || customer.email || 'Southbank';
 
   const getBilledDetails = () => {
@@ -235,7 +273,7 @@ const OrderDetails = () => {
 
   const invoiceDateFormatted = order?.invoiceDate || (created ? created.toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }) : '1 June 2024');
 
-  const currencyDisplay = order?.currency || 'US Dollars (USD)';
+  const currencyDisplay = order?.currency || 'Indian Rupee (INR)';
 
   const poNumber = order?.poNumber || order?.orderNumber || (order?.id ? order.id.toUpperCase() : '—');
 
@@ -297,58 +335,118 @@ const OrderDetails = () => {
         </div>
       </div>
 
-      {/* 2. DELIVERY TIMELINE CARD */}
-      <div className="delivery-timeline-card card">
-        <div className="dt-header">
-          <h3 className="dt-title">Delivery timeline</h3>
-          <span className={`dt-header-status-badge dt-status-${timelineOverallClass}`}>
-            <span className="dt-header-dot"></span>
-            {timelineOverallStatus}
-          </span>
+      {/* 2. MIDDLE SECTION: TIMELINE + SHIPPING & CUSTOMER DETAILS */}
+      <div className="order-middle-section">
+        {/* 2A. DELIVERY TIMELINE CARD */}
+        <div className="delivery-timeline-card card">
+          <div className="dt-header">
+            <h3 className="dt-title">Delivery timeline</h3>
+            <span className={`dt-header-status-badge dt-status-${timelineOverallClass}`}>
+              <span className="dt-header-dot"></span>
+              {timelineOverallStatus}
+            </span>
+          </div>
+
+          <div className="dt-timeline-list">
+            {timelineSteps.map((step, idx) => (
+              <div key={idx} className={`dt-step-item dt-step-${step.state}`}>
+                {/* Left tracker node with connecting vertical line */}
+                <div className="dt-step-track">
+                  <div className={`dt-step-node dt-node-${step.state}`}>
+                    {step.state === 'done' && <Check size={14} strokeWidth={3} />}
+                    {step.state === 'active' && <div className="dt-active-arc"></div>}
+                    {step.state === 'pending' && <span className="dt-step-num">{step.stepNum}</span>}
+                  </div>
+                  {idx < timelineSteps.length - 1 && (
+                    <div className={`dt-connector-line ${step.state === 'done' ? 'dt-line-done' : 'dt-line-pending'}`} />
+                  )}
+                </div>
+
+                {/* Middle step details */}
+                <div className="dt-step-content">
+                  <div className="dt-step-title-row">
+                    <h4 className="dt-step-title">{step.title}</h4>
+                    {step.badgeType === 'done' && (
+                      <span className="dt-badge dt-badge-done">
+                        <Check size={11} strokeWidth={2.5} /> DONE
+                      </span>
+                    )}
+                    {step.badgeType === 'active' && (
+                      <span className="dt-badge dt-badge-active">
+                        <span className="dt-badge-dot"></span> ACTIVE
+                      </span>
+                    )}
+                    {step.badgeType === 'pending' && (
+                      <span className="dt-badge dt-badge-pending">PENDING</span>
+                    )}
+                  </div>
+                  <p className="dt-step-desc">{step.description}</p>
+                </div>
+
+                {/* Right timestamp */}
+                <div className="dt-step-time">
+                  <span>{step.time}</span>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
-        <div className="dt-timeline-list">
-          {timelineSteps.map((step, idx) => (
-            <div key={idx} className={`dt-step-item dt-step-${step.state}`}>
-              {/* Left tracker node with connecting vertical line */}
-              <div className="dt-step-track">
-                <div className={`dt-step-node dt-node-${step.state}`}>
-                  {step.state === 'done' && <Check size={14} strokeWidth={3} />}
-                  {step.state === 'active' && <div className="dt-active-arc"></div>}
-                  {step.state === 'pending' && <span className="dt-step-num">{step.stepNum}</span>}
-                </div>
-                {idx < timelineSteps.length - 1 && (
-                  <div className={`dt-connector-line ${step.state === 'done' ? 'dt-line-done' : 'dt-line-pending'}`} />
-                )}
-              </div>
+        {/* 2B. SIDE SECTION: CONTACT INFO & SHIPPING ADDRESS */}
+        <div className="order-side-cards-container">
+          {/* Card 1: Contact Information */}
+          <div className="order-side-card contact-info-card card">
+            <h3 className="osc-title">Contact Information</h3>
 
-              {/* Middle step details */}
-              <div className="dt-step-content">
-                <div className="dt-step-title-row">
-                  <h4 className="dt-step-title">{step.title}</h4>
-                  {step.badgeType === 'done' && (
-                    <span className="dt-badge dt-badge-done">
-                      <Check size={11} strokeWidth={2.5} /> DONE
-                    </span>
-                  )}
-                  {step.badgeType === 'active' && (
-                    <span className="dt-badge dt-badge-active">
-                      <span className="dt-badge-dot"></span> ACTIVE
-                    </span>
-                  )}
-                  {step.badgeType === 'pending' && (
-                    <span className="dt-badge dt-badge-pending">PENDING</span>
-                  )}
-                </div>
-                <p className="dt-step-desc">{step.description}</p>
+            <div className="contact-info-content">
+              <div className="contact-row">
+                <Mail size={16} className="contact-icon" />
+                <span className="contact-val">{customerEmail || 'No email provided'}</span>
               </div>
-
-              {/* Right timestamp */}
-              <div className="dt-step-time">
-                <span>{step.time}</span>
+              <div className="contact-row">
+                <PhoneCall size={16} className="contact-icon" />
+                <span className="contact-val text-muted">
+                  {customerPhone || 'No phone number'}
+                </span>
               </div>
             </div>
-          ))}
+          </div>
+
+          {/* Card 2: Shipping address with Real Map Box */}
+          <div className="order-side-card shipping-address-card card">
+            <h3 className="osc-title">Shipping address</h3>
+
+            <div className="shipping-address-content">
+              <div className="shipping-address-lines">
+                <span className="address-line">
+                  <span style={{ fontWeight: '600', color: 'black' }}>Address : </span> {order?.shipping?.address || shippingStreet || 'Menlo Park, CA'}
+                </span>
+                <span className="address-line">
+                  <span style={{ fontWeight: '600', color: 'black' }}>City : </span> {order?.shipping?.city || shippingCityName || 'Menlo Park CA 94025'}
+                </span>
+                <span className="address-line">
+                  <span style={{ fontWeight: '600', color: 'black' }}>State : </span> {order?.shipping?.state || shippingStateName || 'California'}
+                </span>
+                <span className="address-line">
+                  <span style={{ fontWeight: '600', color: 'black' }}>Pincode : </span> {order?.shipping?.pincode || shippingZipCode || '94025'}
+                </span>
+              </div>
+
+              {/* 100% Width 200px Height Real Map Box */}
+              <div className="shipping-map-box">
+                <iframe
+                  title="Shipping Real Location Map"
+                  width="100%"
+                  height="200"
+                  src={`https://maps.google.com/maps?q=${encodeURIComponent(mapQuery)}&t=&z=13&ie=UTF8&iwloc=&output=embed`}
+                  loading="lazy"
+                  allowFullScreen
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="shipping-map-iframe"
+                />
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -368,6 +466,7 @@ const OrderDetails = () => {
                   />
                 </th>
                 <th className="th-col-id">Product Id</th>
+                <th className="th-col-img">Image</th>
                 <th className="th-col-sku">SKU*</th>
                 <th className="th-col-name">Product Name</th>
                 <th className="th-col-brand">Brand</th>
@@ -390,7 +489,6 @@ const OrderDetails = () => {
                         type="checkbox"
                         className="exact-checkbox"
                         checked={isSelected}
-                        style={{}}
                         onChange={() => handleToggleItem(item.id)}
                         aria-label={`Select ${item.name}`}
                       />
@@ -399,6 +497,19 @@ const OrderDetails = () => {
                       <span className="text-product-id" title={item.id}>
                         {item.productId}
                       </span>
+                    </td>
+                    <td className="td-col-img">
+                      {item.image ? (
+                        <img
+                          src={item.image}
+                          alt={item.name}
+                          className="table-item-img"
+                        />
+                      ) : (
+                        <div className="table-item-img-placeholder">
+                          <Package size={18} />
+                        </div>
+                      )}
                     </td>
                     <td className="td-col-sku">
                       <span className="text-sku-bold">{item.sku}</span>
@@ -414,7 +525,7 @@ const OrderDetails = () => {
                     </td>
                     <td className="td-col-price">
                       <span className="text-price-bold">
-                        ${Number(item.price).toLocaleString('en-US')}
+                        ₹{Number(item.price).toLocaleString('en-IN')}
                       </span>
                     </td>
                   </tr>
@@ -436,16 +547,16 @@ const OrderDetails = () => {
 
           <div className="ob-fee-list">
             <div className="ob-fee-row">
-              <span className="ob-fee-name">Platform access fee</span>
-              <span className="ob-fee-value">{formatMoney(platformFee)}</span>
+              <span className="ob-fee-name">Gateway fees (2.5%)</span>
+              <span className="ob-fee-value ob-fee-deduct">- {formatMoney(gatewayFee)}</span>
             </div>
             <div className="ob-fee-row">
-              <span className="ob-fee-name">Transactions (USD)</span>
-              <span className="ob-fee-value">{formatMoney(transactionsFee)}</span>
+              <span className="ob-fee-name">Platform fees (4%)</span>
+              <span className="ob-fee-value ob-fee-deduct">- {formatMoney(platformFee)}</span>
             </div>
             <div className="ob-fee-row">
-              <span className="ob-fee-name">Card Issuing</span>
-              <span className="ob-fee-value">{formatMoney(cardIssuingFee)}</span>
+              <span className="ob-fee-name">Delivery charges</span>
+              <span className="ob-fee-value ob-fee-add">+ {formatMoney(deliveryCharges)}</span>
             </div>
           </div>
 
@@ -453,12 +564,16 @@ const OrderDetails = () => {
 
           <div className="ob-totals-section">
             <div className="ob-subtotal-row">
-              <span className="ob-sub-name">Subtotal</span>
-              <span className="ob-sub-val">{formatMoney(subtotal)}</span>
+              <span className="ob-sub-name">Order Amount</span>
+              <span className="ob-sub-val">{formattedOrderAmount}</span>
             </div>
             <div className="ob-subtotal-row">
-              <span className="ob-sub-name">Tax</span>
-              <span className="ob-sub-val">{formatMoney(tax)}</span>
+              <span className="ob-sub-name">Total Deductions</span>
+              <span className="ob-sub-val ob-fee-deduct">- {formatMoney(totalDeductions)}</span>
+            </div>
+            <div className="ob-subtotal-row">
+              <span className="ob-sub-name">Delivery Added</span>
+              <span className="ob-sub-val ob-fee-add">+ {formatMoney(deliveryCharges)}</span>
             </div>
           </div>
 
