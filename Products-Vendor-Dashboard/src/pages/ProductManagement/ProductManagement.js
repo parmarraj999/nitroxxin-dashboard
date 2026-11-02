@@ -17,24 +17,24 @@ const ProductManagement = () => {
     const lowStock = Number(product.inventory?.lowStockThreshold || 5);
     const status = product.status || 'draft';
     return ({
-    id: product.id,
-    image: product.media?.primaryImage || '#1f2937',
-    name: product.title || 'Untitled Product',
-    sku: `SKU: ${product.sku || 'N/A'}`,
-    rawSku: product.sku || '',
-    brand: product.brand || 'Unbranded',
-    category: product.category || 'Uncategorized',
-    price: `Rs. ${Number(product.pricing?.sellingPrice || 0).toLocaleString()}`,
-    mrp: Number(product.pricing?.mrp || 0),
-    stock,
-    lowStock,
-    stockTotal: Math.max(stock, lowStock * 10),
-    status,
-    stockState: stock <= 0 ? 'Out of Stock' : stock <= lowStock ? 'Low Stock' : 'In Stock',
-    compliance: status === 'published' ? 'Live' : status === 'archived' ? 'Archived' : 'Draft',
-    complianceIcon: status === 'published' ? CheckCircle2 : AlertTriangle,
-    complianceColor: status === 'published' ? 'var(--success)' : status === 'archived' ? 'var(--text-muted)' : 'var(--warning)'
-  });
+      id: product.id,
+      image: product.media?.primaryImage || '#1f2937',
+      name: product.title || 'Untitled Product',
+      sku: `SKU: ${product.sku || 'N/A'}`,
+      rawSku: product.sku || '',
+      brand: product.brand || 'Unbranded',
+      category: product.category || 'Uncategorized',
+      price: `Rs. ${Number(product.pricing?.sellingPrice || 0).toLocaleString()}`,
+      mrp: Number(product.pricing?.mrp || 0),
+      stock,
+      lowStock,
+      stockTotal: Math.max(stock, lowStock * 10),
+      status,
+      stockState: stock <= 0 ? 'Out of Stock' : stock <= lowStock ? 'Low Stock' : 'In Stock',
+      compliance: status === 'published' ? 'Live' : status === 'archived' ? 'Archived' : 'Draft',
+      complianceIcon: status === 'published' ? CheckCircle2 : AlertTriangle,
+      complianceColor: status === 'published' ? 'var(--success)' : status === 'archived' ? 'var(--text-muted)' : 'var(--warning)'
+    });
   });
   const rows = baseRows.filter((product) => {
     const haystack = `${product.name} ${product.rawSku} ${product.brand} ${product.category}`.toLowerCase();
@@ -144,16 +144,49 @@ const ProductManagement = () => {
           <div className="search-wrapper">
             <Search size={16} className="search-icon-small" />
             <input type="text" placeholder="Search SKU, brand, category or name..." value={search} onChange={(event) => setSearch(event.target.value)} />
+            {search && (
+              <button
+                type="button"
+                className="search-clear-btn"
+                onClick={() => setSearch('')}
+                title="Clear search"
+                aria-label="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
         </div>
       </div>
 
       <div className="products-table-container card">
         <div className="table-tabs">
-          <button className={`tab ${statusTab === 'all' ? 'active' : ''}`} onClick={() => setStatusTab('all')}>All Products ({loading ? '...' : baseRows.length})</button>
-          <button className={`tab ${statusTab === 'published' ? 'active' : ''}`} onClick={() => setStatusTab('published')}>Live ({baseRows.filter((item) => item.status === 'published').length})</button>
-          <button className={`tab ${statusTab === 'draft' ? 'active' : ''}`} onClick={() => setStatusTab('draft')}>Drafts ({baseRows.filter((item) => item.status === 'draft').length})</button>
-          <button className={`tab ${statusTab === 'archived' ? 'active' : ''}`} onClick={() => setStatusTab('archived')}>Archived ({baseRows.filter((item) => item.status === 'archived').length})</button>
+          {[
+            { id: 'all', label: 'All Products', count: loading ? '...' : baseRows.length },
+            { id: 'published', label: 'Live', count: baseRows.filter((item) => item.status === 'published').length },
+            { id: 'draft', label: 'Drafts', count: baseRows.filter((item) => item.status === 'draft').length, isDraft: true },
+            { id: 'archived', label: 'Archived', count: baseRows.filter((item) => item.status === 'archived').length }
+          ].map((tab) => {
+            const isActive = statusTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                type="button"
+                className={`tab ${isActive ? 'active' : ''}`}
+                onClick={() => setStatusTab(tab.id)}
+              >
+                <span className="tab-label-text">{tab.label}</span>
+                <span
+                  className={`tab-count-badge ${isActive ? 'badge-active' : ''} ${
+                    tab.isDraft && tab.count > 0 ? 'badge-draft-alert' : ''
+                  }`}
+                >
+                  {tab.count}
+                </span>
+                {isActive && <span className="tab-active-indicator" />}
+              </button>
+            );
+          })}
         </div>
 
         <table className="products-table">

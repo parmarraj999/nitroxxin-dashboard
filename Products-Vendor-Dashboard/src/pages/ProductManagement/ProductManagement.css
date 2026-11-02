@@ -144,37 +144,117 @@
   overflow: hidden;
 }
 
+.search-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: var(--text-muted);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  flex-shrink: 0;
+}
+
+.search-clear-btn:hover {
+  background: #e2e8f0;
+  color: var(--text-main);
+}
+
 .table-tabs {
   display: flex;
-  gap: 32px;
-  padding: 0 24px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 16px;
   border-bottom: 1px solid var(--border-color);
+  background-color: #ffffff;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.table-tabs::-webkit-scrollbar {
+  display: none;
 }
 
 .table-tabs .tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
   background: transparent;
   border: 0;
-  padding: 16px 0;
-  font-size: 0.9rem;
-  font-weight: 600;
+  padding: 14px 12px;
+  font-size: 0.84rem;
+  font-weight: 500;
   color: var(--text-muted);
   cursor: pointer;
-  position: relative;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  user-select: none;
+  border-radius: 6px 6px 0 0;
+}
+
+.table-tabs .tab:hover {
+  color: var(--text-main);
+  background: #fafbfc;
 }
 
 .table-tabs .tab.active {
   color: var(--text-main);
+  font-weight: 600;
 }
 
-.table-tabs .tab.active::after {
-  content: '';
+.table-tabs .tab-active-indicator {
   position: absolute;
   bottom: -1px;
-  left: 0;
-  width: 100%;
-  height: 3px;
+  left: 6px;
+  right: 6px;
+  height: 2.5px;
   background-color: var(--primary-orange);
   border-radius: 3px 3px 0 0;
+  box-shadow: 0 -1px 4px rgba(255, 107, 0, 0.35);
+}
+
+.table-tabs .tab-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1px 7px;
+  min-width: 20px;
+  height: 20px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background: #f1f5f9;
+  color: var(--text-muted);
+  transition: all 0.15s ease;
+}
+
+.table-tabs .tab:hover .tab-count-badge {
+  background: #e2e8f0;
+  color: var(--text-main);
+}
+
+.table-tabs .tab-count-badge.badge-active {
+  background: #fff0e6;
+  color: var(--primary-orange);
+  font-weight: 700;
+}
+
+.table-tabs .tab-count-badge.badge-draft-alert {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  font-weight: 700;
+}
+
+.table-tabs .tab.active .tab-count-badge.badge-draft-alert {
+  background: #f59e0b;
+  color: #ffffff;
+  border-color: #f59e0b;
 }
 
 .products-table {
