@@ -651,7 +651,7 @@
 
 /* Row & Cell Styling */
 .notion-row {
-  height: 38px;
+  height: 50px;
   border-bottom: 1px solid #f2f3f5;
   background-color: #ffffff;
   transition: background-color 0.12s ease;
@@ -996,78 +996,86 @@
   transition: all 0.12s ease;
 }
 
-.btn-more-dots:hover {
-  background-color: #f3f4f6;
-  color: #1f2937;
+.btn-more-dots:hover,
+.btn-more-dots.active {
+  background-color: #f1f5f9;
+  color: #0f172a;
 }
 
-/* 3-Dots Overlay Popup */
-.more-dropdown-popup {
-  position: absolute;
-  right: 0;
-  top: calc(100% + 4px);
-  z-index: 99999;
+/* 3-Dots Overlay Popup (Rendered into document.body over the table) */
+.more-dropdown-popup-portal {
+  position: fixed;
+  z-index: 9999999;
   background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.08);
-  min-width: 155px;
-  padding: 4px;
+  border-radius: 9px;
+  box-shadow: 0 14px 35px -4px rgba(0, 0, 0, 0.18), 0 8px 14px -6px rgba(0, 0, 0, 0.08);
+  min-width: 165px;
+  padding: 5px;
   display: flex;
   flex-direction: column;
   gap: 2px;
-  animation: fadeInDown 0.12s ease-out;
+  animation: portalFadeDown 0.13s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
 }
 
-.more-dropdown-popup.popup-open-up {
-  top: auto;
-  bottom: calc(100% + 4px);
-  animation: fadeInUp 0.12s ease-out;
+.more-dropdown-popup-portal.popup-open-up {
+  transform: translateY(-100%);
+  animation: portalFadeUp 0.13s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@keyframes fadeInDown {
+@keyframes portalFadeDown {
   from {
     opacity: 0;
-    transform: translateY(-3px);
+    transform: translateY(-5px) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(0) scale(1);
   }
 }
 
-@keyframes fadeInUp {
+@keyframes portalFadeUp {
   from {
     opacity: 0;
-    transform: translateY(3px);
+    transform: translateY(calc(-100% + 5px)) scale(0.98);
   }
   to {
     opacity: 1;
-    transform: translateY(0);
+    transform: translateY(-100%) scale(1);
   }
 }
 
 .dropdown-item {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: 8px;
   width: 100%;
-  padding: 6px 10px;
+  padding: 7px 11px;
   font-size: 0.78rem;
   font-weight: 500;
   color: #374151;
   background: none;
   border: none;
-  border-radius: 5px;
+  border-radius: 6px;
   cursor: pointer;
   text-align: left;
-  transition: background-color 0.12s ease;
+  transition: all 0.12s ease;
   white-space: nowrap;
 }
 
 .dropdown-item:hover {
-  background-color: #f3f4f6;
-  color: #111827;
+  background-color: #f8fafc;
+  color: #0f172a;
+}
+
+.dropdown-item.text-blue {
+  color: #2563eb;
+}
+
+.dropdown-item.text-blue:hover {
+  background-color: #eff6ff;
+  color: #1d4ed8;
 }
 
 .dropdown-item.text-green {

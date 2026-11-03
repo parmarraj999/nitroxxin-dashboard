@@ -17,7 +17,7 @@ const AccessoriesDashboard = () => {
 
       <div className="dashboard-header">
         <div>
-          <h1 className="dashboard-title">Good morning, <span style={{fontWeight:"600"}}>{profile.displayName}</span></h1>
+          <h1 className="dashboard-title">Good morning, <span style={{fontWeight:"600"}}>{profile?.displayName || 'Vendor'}</span></h1>
         </div>
 
       </div>

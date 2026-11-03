@@ -79,7 +79,7 @@ const ProductManagement = () => {
         </div>
       </div>
 
-      <div className="compliance-alert">
+      {/* <div className="compliance-alert">
         <div className="alert-content">
           <AlertTriangle className="alert-icon" size={20} />
           <div>
@@ -88,7 +88,7 @@ const ProductManagement = () => {
           </div>
         </div>
         <button className="resolve-btn" onClick={() => setStatusTab('draft')}>Resolve Now</button>
-      </div>
+      </div> */}
 
       <div className="product-filters card">
         <div className="filter-item">
@@ -177,9 +177,8 @@ const ProductManagement = () => {
               >
                 <span className="tab-label-text">{tab.label}</span>
                 <span
-                  className={`tab-count-badge ${isActive ? 'badge-active' : ''} ${
-                    tab.isDraft && tab.count > 0 ? 'badge-draft-alert' : ''
-                  }`}
+                  className={`tab-count-badge ${isActive ? 'badge-active' : ''} ${tab.isDraft && tab.count > 0 ? 'badge-draft-alert' : ''
+                    }`}
                 >
                   {tab.count}
                 </span>

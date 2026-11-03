@@ -92,14 +92,30 @@ export const getDashboardAnalytics = async (vendorId = getVendorId()) => {
     reviews,
     revenueChartData,
     topProducts: products
-      .map((product) => ({
-        id: product.id,
-        name: product.title,
-        sales: Number(product.salesCount || 0),
-        revenue: Number(product.revenue || 0),
-        category: product.category
-      }))
-      .sort((a, b) => b.revenue - a.revenue)
+      .map((product) => {
+        const orderSales = orders.reduce((sum, o) => {
+          const item = (o.items || []).find((i) => i.productId === product.id || i.name === product.title);
+          return sum + (item ? Number(item.qty || item.quantity || 1) : 0);
+        }, 0);
+        const orderRev = orders.reduce((sum, o) => {
+          const item = (o.items || []).find((i) => i.productId === product.id || i.name === product.title);
+          const itemPrice = Number(item?.price || product.pricing?.sellingPrice || 0);
+          return sum + (item ? Number(item.qty || item.quantity || 1) * itemPrice : 0);
+        }, 0);
+
+        const sales = Math.max(Number(product.salesCount || 0), orderSales);
+        const revenue = Math.max(Number(product.revenue || 0), orderRev);
+
+        return {
+          ...product,
+          id: product.id,
+          name: product.title || product.name || 'Untitled Product',
+          sales,
+          revenue,
+          category: product.category || 'Uncategorized'
+        };
+      })
+      .sort((a, b) => (b.revenue || b.sales || 0) - (a.revenue || a.sales || 0))
       .slice(0, 5),
     categorySales: Object.values(categorySales)
   };

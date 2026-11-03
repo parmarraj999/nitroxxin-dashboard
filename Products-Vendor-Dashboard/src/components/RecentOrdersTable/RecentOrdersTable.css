@@ -1,0 +1,450 @@
+/* RecentOrdersTable.css - Matches Order Management Notion Table UI */
+
+.recent-orders-table-card {
+  padding: 0;
+  overflow: hidden;
+  background-color: #ffffff;
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  margin-bottom: 20px;
+}
+
+.orders-count-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+/* Notion Grid Table layout */
+.orders-table-notion {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  background-color: #ffffff;
+  font-family: inherit;
+}
+
+/* Column Width Allocations */
+.orders-table-notion .th-order-id,
+.orders-table-notion .td-order-id {
+  width: 11%;
+}
+
+.orders-table-notion .th-customer,
+.orders-table-notion .td-customer {
+  width: 17%;
+}
+
+.orders-table-notion .th-items,
+.orders-table-notion .td-items {
+  width: 16%;
+}
+
+.orders-table-notion .th-address,
+.orders-table-notion .td-address {
+  width: 19%;
+}
+
+.orders-table-notion .th-status,
+.orders-table-notion .td-status {
+  width: 11%;
+}
+
+.orders-table-notion .th-price,
+.orders-table-notion .td-price {
+  width: 9%;
+}
+
+.orders-table-notion .th-order-at,
+.orders-table-notion .td-order-at {
+  width: 10%;
+}
+
+.orders-table-notion .th-actions,
+.orders-table-notion .td-actions {
+  width: 10%;
+}
+
+/* Notion Grid Header */
+.orders-table-notion thead {
+  background-color: #fbfbfb;
+  border-bottom: 1px solid #eaecf0;
+}
+
+.orders-table-notion th {
+  height: 36px;
+  padding: 0 10px;
+  vertical-align: middle;
+  font-size: 0.76rem;
+  font-weight: 500;
+  color: #64748b;
+  border-right: 1px solid #f0f0f2;
+  border-bottom: 1px solid #eaecf0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.orders-table-notion th:last-child {
+  border-right: none;
+}
+
+.th-inner {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.th-icon {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+.th-inner span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.76rem;
+}
+
+/* Notion Row and Cells */
+.notion-row {
+  height: 44px;
+  border-bottom: 1px solid #f2f3f5;
+  background-color: #ffffff;
+  transition: background-color 0.12s ease;
+  cursor: pointer;
+}
+
+.notion-row:hover {
+  background-color: #f9fafb;
+}
+
+.notion-row:last-child {
+  border-bottom: none;
+}
+
+.orders-table-notion td {
+  padding: 6px 10px;
+  height: 44px;
+  vertical-align: middle;
+  border-right: 1px solid #f2f3f5;
+  border-bottom: 1px solid #f2f3f5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  box-sizing: border-box;
+  font-size: 0.8125rem;
+}
+
+.orders-table-notion tr:last-child td {
+  border-bottom: none;
+}
+
+.orders-table-notion td:last-child {
+  border-right: none;
+}
+
+/* 1. Order ID */
+.order-id-code {
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1e293b;
+  letter-spacing: -0.01em;
+  white-space: nowrap;
+}
+
+/* 2. Customer Stack */
+.customer-info-stacked {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.customer-full-name {
+  font-weight: 600;
+  font-size: 0.825rem;
+  color: #0f172a;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customer-phone-number {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.71rem;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-icon-inline {
+  color: #94a3b8;
+  flex-shrink: 0;
+}
+
+/* 3. Items No. */
+.items-quantity-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.items-qty-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #f1f5f9;
+  color: #334155;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border-radius: 4px;
+  padding: 1px 5px;
+  min-width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  border: 1px solid #e2e8f0;
+}
+
+.items-name-text {
+  font-size: 0.79rem;
+  color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 4. Address */
+.address-cell {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.address-pin-icon {
+  color: #9ca3af;
+  flex-shrink: 0;
+}
+
+.address-string {
+  font-size: 0.78rem;
+  color: #4b5563;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 5. Status Pill (Notion Tag with Colored Dot) */
+.status-pill-notion {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+
+.status-pill-notion .status-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.status-pill-pending {
+  background-color: #fef3c7;
+  color: #92400e;
+  border-color: #fde68a;
+}
+.status-pill-pending .status-dot {
+  background-color: #f59e0b;
+}
+
+.status-pill-ready {
+  background-color: #ecfdf5;
+  color: #065f46;
+  border-color: #a7f3d0;
+}
+.status-pill-ready .status-dot {
+  background-color: #10b981;
+}
+
+.status-pill-preparing {
+  background-color: #fff7ed;
+  color: #9a3412;
+  border-color: #fed7aa;
+}
+.status-pill-preparing .status-dot {
+  background-color: #f97316;
+}
+
+.status-pill-shipped {
+  background-color: #eff6ff;
+  color: #1e40af;
+  border-color: #bfdbfe;
+}
+.status-pill-shipped .status-dot {
+  background-color: #3b82f6;
+}
+
+.status-pill-delivered {
+  background-color: #f0fdf4;
+  color: #14532d;
+  border-color: #bbf7d0;
+}
+.status-pill-delivered .status-dot {
+  background-color: #22c55e;
+}
+
+.status-pill-cancelled {
+  background-color: #fef2f2;
+  color: #991b1b;
+  border-color: #fecaca;
+}
+.status-pill-cancelled .status-dot {
+  background-color: #ef4444;
+}
+
+/* 6. Price */
+.price-bold-text {
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 7. Order At */
+.order-at-cell {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  line-height: 1.25;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
+.order-date-text {
+  font-weight: 500;
+  font-size: 0.77rem;
+  color: #374151;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.order-time-text {
+  font-size: 0.69rem;
+  color: #9ca3af;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 8. Actions Column */
+.actions-flex-container {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  justify-content: flex-start;
+  min-width: 0;
+  width: 100%;
+}
+
+.btn-approve-modern {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background-color: #2563eb;
+  color: #ffffff;
+  border: none;
+  padding: 3px 8px;
+  border-radius: 9999px;
+  font-size: 0.71rem;
+  font-weight: 500;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+  transition: all 0.12s ease;
+  white-space: nowrap;
+}
+
+.btn-approve-modern:hover:not(:disabled) {
+  background-color: #1d4ed8;
+}
+
+.btn-approve-modern:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.action-completed-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.73rem;
+  font-weight: 500;
+  color: #10b981;
+  white-space: nowrap;
+}
+
+.btn-view-modern {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  background: transparent;
+  border: 1px solid #e2e8f0;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.btn-view-modern:hover {
+  background-color: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.spin-icon-inline {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+

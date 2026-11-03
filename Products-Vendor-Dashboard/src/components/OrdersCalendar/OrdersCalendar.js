@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import {
   Calendar as CalendarIcon,
   MapPin,
@@ -7,251 +7,196 @@ import {
   ChevronDown,
   Plus,
   X,
-  Package,
-  Truck
+  Package
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useOrdersContext } from '../../context/OrdersContext';
 import { toDate } from '../../services/firebaseUtils';
 import './OrdersCalendar.css';
 
-// Initial realistic orders matching the screenshot reference layout and motorcycle store theme
-const defaultOrdersData = [
-  {
-    id: 'NX-99820',
-    day: 20,
-    month: 11, // December (0-indexed)
-    year: 2025,
-    dayName: 'FRI',
-    title: 'Axor Apex Carbon Pro Helmet',
-    customer: 'Rahul Sharma',
-    orderNumber: '#NX-99820',
-    status: 'shipping',
-    statusLabel: 'Shipping',
-    timeStr: 'Dec 20 at 08:05 am',
-    address: '3890 Poplar Dr., Mumbai',
-    amount: 'Rs. 5,499'
-  },
-  {
-    id: 'NX-99822',
-    day: 22,
-    month: 11,
-    year: 2025,
-    dayName: 'SUN',
-    title: 'Vantage Leather Armor Jacket',
-    customer: 'Elena Kraus',
-    orderNumber: '#NX-99822',
-    status: 'out_for_delivery',
-    statusLabel: 'Out for delivery',
-    timeStr: 'Dec 22 at 01:49 pm',
-    address: '8558 Green Rd., Delhi',
-    amount: 'Rs. 9,999'
-  },
-  {
-    id: 'NX-99825',
-    day: 25,
-    month: 11,
-    year: 2025,
-    dayName: 'WED',
-    title: 'Torque-S Racing Carbon Gloves',
-    customer: 'Vikram Mehta',
-    orderNumber: '#NX-99825',
-    status: 'shipping',
-    statusLabel: 'Shipping',
-    timeStr: 'Dec 25 at 12:10 am',
-    address: '775 Rolling Green Rd., Bangalore',
-    amount: 'Rs. 3,250'
-  },
-  {
-    id: 'NX-99803',
-    day: 3,
-    month: 11,
-    year: 2025,
-    dayName: 'MON',
-    title: 'Ultimate Moto Spec & Shield',
-    customer: 'David Miller',
-    orderNumber: '#NX-99803',
-    status: 'delivered',
-    statusLabel: 'Delivered',
-    timeStr: 'Dec 28 at 08:05 am',
-    address: '8080 Railroad St., Pune',
-    amount: 'Rs. 4,800'
-  },
-  {
-    id: 'NX-99802',
-    day: 2,
-    month: 11,
-    year: 2025,
-    dayName: 'TUE',
-    title: 'Motul 300V 4T Factory Synthetic Oil',
-    customer: 'Arjun Nair',
-    orderNumber: '#NX-99802',
-    status: 'delivered',
-    statusLabel: 'Delivered',
-    timeStr: 'Dec 02 at 02:00 pm',
-    address: '104 Willow Way, Kochi',
-    amount: 'Rs. 1,850'
-  },
-  {
-    id: 'NX-99806',
-    day: 6,
-    month: 11,
-    year: 2025,
-    dayName: 'SAT',
-    title: 'Viaterra Claw Mini Tail Bag',
-    customer: 'Siddharth Roy',
-    orderNumber: '#NX-99806',
-    status: 'delivered',
-    statusLabel: 'Delivered',
-    timeStr: 'Dec 06 at 09:15 am',
-    address: '910 Pine St., Kolkata',
-    amount: 'Rs. 3,899'
-  },
-  {
-    id: 'NX-99808',
-    day: 8,
-    month: 11,
-    year: 2025,
-    dayName: 'MON',
-    title: 'Rynox Storm Evo Riding Pants',
-    customer: 'Pooja Verma',
-    orderNumber: '#NX-99808',
-    status: 'delivered',
-    statusLabel: 'Delivered',
-    timeStr: 'Dec 08 at 03:15 pm',
-    address: '120 Sunset Blvd., Ahmedabad',
-    amount: 'Rs. 7,450'
-  },
-  {
-    id: 'NX-99811',
-    day: 11,
-    month: 11,
-    year: 2025,
-    dayName: 'THU',
-    title: 'Brembo Racing Sintered Brake Pads',
-    customer: 'Karan Patel',
-    orderNumber: '#NX-99811',
-    status: 'delivered',
-    statusLabel: 'Delivered',
-    timeStr: 'Dec 11 at 10:30 am',
-    address: '244 Highland Ave., Mumbai',
-    amount: 'Rs. 2,900'
-  },
-  {
-    id: 'NX-99814',
-    day: 14,
-    month: 11,
-    year: 2025,
-    dayName: 'SUN',
-    title: 'Axor Street Stealth Helmet',
-    customer: 'Aniket Deshmukh',
-    orderNumber: '#NX-99814',
-    status: 'cancelled',
-    statusLabel: 'Cancelled',
-    timeStr: 'Dec 14 at 05:20 pm',
-    address: '512 Elm St., Nagpur',
-    amount: 'Rs. 4,200'
-  },
-  {
-    id: 'NX-99817',
-    day: 17,
-    month: 11,
-    year: 2025,
-    dayName: 'WED',
-    title: 'Raida Tourer Motorcycle Boots',
-    customer: 'Rohan Gupta',
-    orderNumber: '#NX-99817',
-    status: 'out_for_delivery',
-    statusLabel: 'Out for delivery',
-    timeStr: 'Dec 17 at 11:45 am',
-    address: '633 Cedar Lane, Jaipur',
-    amount: 'Rs. 6,800'
-  }
-];
-
 const weekdays = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+const statusFilterLabels = {
+  all: 'All',
+  pending: 'Pending / Ready',
+  shipping: 'Shipping',
+  out_for_delivery: 'Out for delivery',
+  delivered: 'Delivered',
+  cancelled: 'Cancelled'
+};
+
+const monthsList = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
+];
 
 const OrdersCalendar = ({ analytics }) => {
   const navigate = useNavigate();
+  const ordersCtx = useOrdersContext();
 
-  // Active view date: initialize to December 2025 to match user UI reference
-  const [viewDate, setViewDate] = useState(new Date(2025, 11, 1));
-  // Selected day: 20 by default matching UI reference
-  const [selectedDay, setSelectedDay] = useState(20);
-  // Status filter: 'all' | 'shipping' | 'out_for_delivery' | 'delivered' | 'cancelled'
+  const realOrders = (ordersCtx?.orders && ordersCtx.orders.length > 0)
+    ? ordersCtx.orders
+    : (analytics?.orders || []);
+
+  // Determine initial view date: current month, or the month of the latest order
+  const [viewDate, setViewDate] = useState(() => {
+    const now = new Date();
+    if (realOrders.length > 0) {
+      const hasCurrentMonth = realOrders.some((o) => {
+        const d = toDate(o.createdAt);
+        return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+      });
+      if (hasCurrentMonth) return new Date(now.getFullYear(), now.getMonth(), 1);
+
+      for (const o of realOrders) {
+        const d = toDate(o.createdAt);
+        if (d && !isNaN(d.getTime())) {
+          return new Date(d.getFullYear(), d.getMonth(), 1);
+        }
+      }
+    }
+    return new Date(now.getFullYear(), now.getMonth(), 1);
+  });
+
+  const hasAutoAdjustedRef = useRef(false);
+
+  // Auto-adjust view date once real orders load if current month has no orders
+  useEffect(() => {
+    if (hasAutoAdjustedRef.current || !realOrders.length) return;
+    const now = new Date();
+    const hasCurrentMonth = realOrders.some((o) => {
+      const d = toDate(o.createdAt);
+      return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+
+    if (!hasCurrentMonth) {
+      for (const o of realOrders) {
+        const d = toDate(o.createdAt);
+        if (d && !isNaN(d.getTime())) {
+          setViewDate(new Date(d.getFullYear(), d.getMonth(), 1));
+          hasAutoAdjustedRef.current = true;
+          break;
+        }
+      }
+    } else {
+      hasAutoAdjustedRef.current = true;
+    }
+  }, [realOrders]);
+
+  // Selected day: null by default so all orders for the current month are visible
+  const [selectedDay, setSelectedDay] = useState(null);
   const [statusFilter, setStatusFilter] = useState('all');
   const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
   const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
 
-  // Quick add order modal
+  // Quick add order modal (for scheduling local orders)
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [customOrders, setCustomOrders] = useState([]);
   const [newOrderForm, setNewOrderForm] = useState({
     title: '',
     customer: '',
     status: 'shipping',
-    day: 20,
+    day: new Date().getDate(),
     time: '10:00 am',
-    address: '3890 Poplar Dr.',
+    address: '',
     amount: 'Rs. 4,999'
   });
 
   const currentYear = viewDate.getFullYear();
   const currentMonth = viewDate.getMonth(); // 0 - 11
 
-  // Format month and year
   const monthName = viewDate.toLocaleString('en-US', { month: 'long' });
   const yearStr = currentYear;
 
-  // Combine default mock orders, custom user orders, and any Firebase orders
+  // Map real orders from Firestore + any user custom scheduled orders
   const allOrders = useMemo(() => {
-    const list = [...defaultOrdersData, ...customOrders];
+    const list = [...customOrders];
 
-    // If analytics has real orders from Firestore, map them into the schedule
-    if (analytics?.orders && Array.isArray(analytics.orders)) {
-      analytics.orders.forEach((o) => {
+    if (Array.isArray(realOrders) && realOrders.length > 0) {
+      realOrders.forEach((o, idx) => {
         const d = toDate(o.createdAt);
-        if (d) {
-          const rawStatus = (o.status || 'pending').toLowerCase();
-          let mappedStatus = 'shipping';
-          let mappedLabel = 'Shipping';
+        if (!d || isNaN(d.getTime())) return;
 
-          if (rawStatus === 'delivered') {
-            mappedStatus = 'delivered';
-            mappedLabel = 'Delivered';
-          } else if (rawStatus === 'shipped' || rawStatus === 'transit') {
-            mappedStatus = 'shipping';
-            mappedLabel = 'Shipping';
-          } else if (rawStatus === 'out_for_delivery' || rawStatus === 'packed') {
-            mappedStatus = 'out_for_delivery';
-            mappedLabel = 'Out for delivery';
-          } else if (rawStatus === 'cancelled' || rawStatus === 'returned') {
-            mappedStatus = 'cancelled';
-            mappedLabel = 'Cancelled';
-          }
+        const rawStatus = (o.status || 'pending').toLowerCase();
+        let mappedStatus = 'shipping';
+        let mappedLabel = 'Shipping';
 
-          list.push({
-            id: o.id,
-            day: d.getDate(),
-            month: d.getMonth(),
-            year: d.getFullYear(),
-            dayName: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
-            title: o.items?.[0]?.name || o.productTitle || `Order #${String(o.id).slice(0, 7)}`,
-            customer: o.customer?.name || o.customerName || 'Customer',
-            orderNumber: `#${String(o.id).slice(0, 8)}`,
-            status: mappedStatus,
-            statusLabel: mappedLabel,
-            timeStr: `${d.toLocaleString('en-US', { month: 'short' })} ${d.getDate()} at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
-            address: o.shippingAddress?.line1 ? `${o.shippingAddress.line1}, ${o.shippingAddress.city || ''}` : (o.shippingAddress?.city || 'India'),
-            amount: `Rs. ${Number(o.total || o.totalAmount || 0).toLocaleString()}`
-          });
+        if (rawStatus === 'delivered') {
+          mappedStatus = 'delivered';
+          mappedLabel = 'Delivered';
+        } else if (rawStatus === 'shipped' || rawStatus === 'transit') {
+          mappedStatus = 'shipping';
+          mappedLabel = 'Shipping';
+        } else if (rawStatus === 'out_for_delivery' || rawStatus === 'packed') {
+          mappedStatus = 'out_for_delivery';
+          mappedLabel = rawStatus === 'packed' ? 'Preparing' : 'Out for delivery';
+        } else if (rawStatus === 'confirmed' || rawStatus === 'ready') {
+          mappedStatus = 'ready';
+          mappedLabel = 'Ready';
+        } else if (rawStatus === 'cancelled' || rawStatus === 'returned') {
+          mappedStatus = 'cancelled';
+          mappedLabel = rawStatus === 'returned' ? 'Returned' : 'Cancelled';
+        } else if (rawStatus === 'pending') {
+          mappedStatus = 'pending';
+          mappedLabel = 'Pending';
         }
+
+        const customerName = o.customer?.name || o.customerName || `Customer #${String(o.id || '').slice(0, 5) || (idx + 1)}`;
+
+        const shortId = o.orderNumber
+          ? (String(o.orderNumber).startsWith('#') ? o.orderNumber : `#${o.orderNumber}`)
+          : `#${String(o.id || '').slice(0, 8).toUpperCase()}`;
+
+        const items = o.items || [];
+        let title = '';
+        if (items.length === 1) {
+          title = items[0].name || items[0].title || 'Product';
+        } else if (items.length > 1) {
+          title = `${items[0].name || items[0].title || 'Product'} +${items.length - 1} more`;
+        } else {
+          title = o.productTitle || o.title || `Order ${shortId}`;
+        }
+
+        const rawTotal = Number(o.total || o.totalAmount || 0);
+        const amountStr = rawTotal > 100 ? `Rs. ${rawTotal.toLocaleString()}` : `$${rawTotal.toFixed(2)}`;
+
+        const addr = o.shippingAddress || o.address || {};
+        let addressStr = '';
+        if (typeof addr === 'string' && addr.trim()) {
+          addressStr = addr;
+        } else {
+          const parts = [
+            addr.line1 || addr.addressLine1 || addr.street,
+            addr.city,
+            addr.state
+          ].filter(Boolean);
+          addressStr = parts.length ? parts.join(', ') : (addr.city || addr.country || 'India');
+        }
+
+        list.push({
+          id: o.id,
+          day: d.getDate(),
+          month: d.getMonth(),
+          year: d.getFullYear(),
+          dayName: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+          title,
+          customer: customerName,
+          orderNumber: shortId,
+          status: mappedStatus,
+          rawStatus,
+          statusLabel: mappedLabel,
+          timeStr: `${d.toLocaleString('en-US', { month: 'short' })} ${d.getDate()} at ${d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`,
+          address: addressStr,
+          amount: amountStr,
+          createdAtMs: d.getTime()
+        });
       });
     }
 
     return list;
-  }, [analytics?.orders, customOrders]);
+  }, [realOrders, customOrders]);
 
-  // Orders for current month
+  // Orders for the current view month and year
   const currentMonthOrders = useMemo(() => {
     return allOrders.filter(
       (order) => order.month === currentMonth && order.year === currentYear
@@ -307,12 +252,16 @@ const OrdersCalendar = ({ analytics }) => {
     return cells;
   }, [currentYear, currentMonth, daysWithOrders]);
 
-  // Find active day of week for column highlight (e.g. FRI in the UI mockup)
+  // Find active day of week for column highlight
   const activeWeekdayIndex = useMemo(() => {
     if (selectedDay) {
       return new Date(currentYear, currentMonth, selectedDay).getDay();
     }
-    return new Date().getDay();
+    const today = new Date();
+    if (today.getMonth() === currentMonth && today.getFullYear() === currentYear) {
+      return today.getDay();
+    }
+    return -1;
   }, [currentYear, currentMonth, selectedDay]);
 
   // Navigation handlers
@@ -335,7 +284,7 @@ const OrdersCalendar = ({ analytics }) => {
   const handleDayClick = (cell) => {
     if (!cell.isCurrentMonth) return;
     if (selectedDay === cell.dayNumber) {
-      // Toggle off to show all
+      // Toggle off to show all orders for the month
       setSelectedDay(null);
     } else {
       setSelectedDay(cell.dayNumber);
@@ -348,19 +297,23 @@ const OrdersCalendar = ({ analytics }) => {
 
     // Status filter
     if (statusFilter !== 'all') {
-      list = list.filter((item) => item.status === statusFilter);
+      list = list.filter((item) => {
+        if (statusFilter === 'shipping') return item.status === 'shipping';
+        if (statusFilter === 'out_for_delivery') return item.status === 'out_for_delivery';
+        if (statusFilter === 'delivered') return item.status === 'delivered';
+        if (statusFilter === 'cancelled') return item.status === 'cancelled';
+        if (statusFilter === 'pending') return item.status === 'pending' || item.status === 'ready';
+        return item.status === statusFilter;
+      });
     }
 
-    // If a specific day is selected, prioritize or filter to that day
+    // If a specific day is selected, filter to that day
     if (selectedDay !== null) {
-      const selectedDayItems = list.filter((item) => item.day === selectedDay);
-      const otherItems = list.filter((item) => item.day !== selectedDay);
-      // Place selected day orders at top, followed by other upcoming orders
-      list = [...selectedDayItems, ...otherItems];
-    } else {
-      // Sort chronologically
-      list.sort((a, b) => a.day - b.day);
+      list = list.filter((item) => item.day === selectedDay);
     }
+
+    // Sort by latest order first
+    list.sort((a, b) => (b.createdAtMs || 0) - (a.createdAtMs || 0));
 
     return list;
   }, [currentMonthOrders, statusFilter, selectedDay]);
@@ -370,18 +323,18 @@ const OrdersCalendar = ({ analytics }) => {
     e.preventDefault();
     if (!newOrderForm.title.trim()) return;
 
-    const dayNum = Number(newOrderForm.day) || 20;
+    const dayNum = Number(newOrderForm.day) || new Date().getDate();
     const tempDate = new Date(currentYear, currentMonth, dayNum);
     const dayName = tempDate.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase();
 
     const createdOrder = {
-      id: `NX-${Date.now().toString().slice(-5)}`,
+      id: `NX-${Date.now().toString().slice(-6)}`,
       day: dayNum,
       month: currentMonth,
       year: currentYear,
       dayName,
       title: newOrderForm.title,
-      customer: newOrderForm.customer || 'Guest Customer',
+      customer: newOrderForm.customer || 'Customer',
       orderNumber: `#NX-${Math.floor(10000 + Math.random() * 90000)}`,
       status: newOrderForm.status,
       statusLabel:
@@ -393,8 +346,9 @@ const OrdersCalendar = ({ analytics }) => {
           ? 'Delivered'
           : 'Pending',
       timeStr: `${monthName.slice(0, 3)} ${dayNum} at ${newOrderForm.time || '10:00 am'}`,
-      address: newOrderForm.address || '3890 Poplar Dr.',
-      amount: newOrderForm.amount || 'Rs. 4,999'
+      address: newOrderForm.address || 'India',
+      amount: newOrderForm.amount || 'Rs. 4,999',
+      createdAtMs: tempDate.getTime()
     };
 
     setCustomOrders((prev) => [createdOrder, ...prev]);
@@ -406,23 +360,10 @@ const OrdersCalendar = ({ analytics }) => {
       status: 'shipping',
       day: dayNum,
       time: '10:00 am',
-      address: '3890 Poplar Dr.',
+      address: '',
       amount: 'Rs. 4,999'
     });
   };
-
-  const statusFilterLabels = {
-    all: 'All',
-    shipping: 'Shipping',
-    out_for_delivery: 'Out for delivery',
-    delivered: 'Delivered',
-    cancelled: 'Cancelled'
-  };
-
-  const monthsList = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
 
   return (
     <div className="orders-calendar-card">
@@ -548,7 +489,14 @@ const OrdersCalendar = ({ analytics }) => {
                     <span className="filter-count-badge">
                       {key === 'all'
                         ? currentMonthOrders.length
-                        : currentMonthOrders.filter((o) => o.status === key).length}
+                        : currentMonthOrders.filter((o) => {
+                            if (key === 'shipping') return o.status === 'shipping';
+                            if (key === 'out_for_delivery') return o.status === 'out_for_delivery';
+                            if (key === 'delivered') return o.status === 'delivered';
+                            if (key === 'cancelled') return o.status === 'cancelled';
+                            if (key === 'pending') return o.status === 'pending' || o.status === 'ready';
+                            return o.status === key;
+                          }).length}
                     </span>
                   </button>
                 ))}
@@ -593,7 +541,7 @@ const OrdersCalendar = ({ analytics }) => {
                 <div
                   key={order.id}
                   className={`order-schedule-card ${isCardHighlighted ? 'highlighted' : ''}`}
-                  onClick={() => navigate('/orders')}
+                  onClick={() => navigate(order.id ? `/orders/details/${order.id}` : '/orders')}
                 >
                   {/* Left Date Column */}
                   <div className="order-date-col">
@@ -614,7 +562,7 @@ const OrdersCalendar = ({ analytics }) => {
                     </div>
 
                     <div className="order-meta-line">
-                      {/* Status badge: shipping, out_for_delivery, delivered */}
+                      {/* Status badge */}
                       <span
                         className={`order-status-badge-custom ${order.status}`}
                       >
@@ -640,16 +588,22 @@ const OrdersCalendar = ({ analytics }) => {
           ) : (
             <div className="empty-orders-view">
               <Package size={32} color="#9ca3af" />
-              <p>No orders scheduled for this selection.</p>
-              <button
-                className="reset-filter-btn"
-                onClick={() => {
-                  setSelectedDay(null);
-                  setStatusFilter('all');
-                }}
-              >
-                Reset Filters
-              </button>
+              <p>
+                {selectedDay
+                  ? `No orders scheduled for ${monthName.slice(0, 3)} ${selectedDay}.`
+                  : `No orders found for ${monthName} ${yearStr}.`}
+              </p>
+              {(selectedDay !== null || statusFilter !== 'all') && (
+                <button
+                  className="reset-filter-btn"
+                  onClick={() => {
+                    setSelectedDay(null);
+                    setStatusFilter('all');
+                  }}
+                >
+                  Reset Filters
+                </button>
+              )}
             </div>
           )}
         </div>
@@ -679,7 +633,7 @@ const OrdersCalendar = ({ analytics }) => {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Axor Apex Hunter Helmet"
+                    placeholder="e.g. Apex Carbon Pro Helmet"
                     value={newOrderForm.title}
                     onChange={(e) =>
                       setNewOrderForm({ ...newOrderForm, title: e.target.value })
@@ -748,7 +702,7 @@ const OrdersCalendar = ({ analytics }) => {
                   <label>Delivery Address</label>
                   <input
                     type="text"
-                    placeholder="3890 Poplar Dr."
+                    placeholder="e.g. 3890 Poplar Dr., Mumbai"
                     value={newOrderForm.address}
                     onChange={(e) =>
                       setNewOrderForm({ ...newOrderForm, address: e.target.value })

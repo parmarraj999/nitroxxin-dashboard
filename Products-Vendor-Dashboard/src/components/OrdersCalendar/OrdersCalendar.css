@@ -543,6 +543,12 @@
   color: #4b5563;
 }
 
+.order-status-badge-custom.ready,
+.order-status-badge-custom.confirmed {
+  background-color: #ecfdf5;
+  color: #065f46;
+}
+
 .order-meta-item {
   display: inline-flex;
   align-items: center;

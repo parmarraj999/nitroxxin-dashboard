@@ -60,7 +60,7 @@ const OrderDetails = () => {
   const rawStatus = (order?.status || 'delivered').toLowerCase();
 
   // 1. Order ID Display
-  const displayOrderId = order?.orderNumber || (order?.id ? (order.id.startsWith('#') ? order.id : `#${order.id}`) : '#NX-99824');
+  const displayOrderId = order?.orderID || (order?.id ? (order.id.startsWith('#') ? order.id : `#${order.id}`) : '#NX-99824');
 
   // 2. Order Placed Date
   const orderPlacedFormatted = created

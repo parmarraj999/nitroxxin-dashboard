@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import {
   Check,
@@ -25,7 +26,8 @@ import {
   SlidersHorizontal,
   Plus,
   X,
-  RotateCcw
+  RotateCcw,
+  Truck
 } from 'lucide-react';
 import { useOrdersContext } from '../../context/OrdersContext';
 import { toDate } from '../../services/firebaseUtils';
@@ -72,26 +74,57 @@ const OrderManagement = () => {
   const [showMoreFilters, setShowMoreFilters] = useState(false);
   const moreFiltersRef = useRef(null);
 
-  const [activeMenuId, setActiveMenuId] = useState(null);
+  const [activeMenuOrder, setActiveMenuOrder] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0, openUp: false });
   const [updatingId, setUpdatingId] = useState(null);
   const [selectedIds, setSelectedIds] = useState(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(10);
 
-  // Close 3-dot dropdown menu and more filters popover when clicking anywhere outside
+  const handleToggleMenu = (e, order) => {
+    e.stopPropagation();
+    if (activeMenuOrder?.id === order.id) {
+      setActiveMenuOrder(null);
+      return;
+    }
+    const rect = e.currentTarget.getBoundingClientRect();
+    const spaceBelow = window.innerHeight - rect.bottom;
+    const openUp = spaceBelow < 220;
+    const right = Math.max(12, window.innerWidth - rect.right);
+    const top = openUp ? rect.top - 6 : rect.bottom + 6;
+
+    setMenuPosition({ top, right, openUp });
+    setActiveMenuOrder(order);
+  };
+
+  // Close 3-dot dropdown menu and more filters popover when clicking anywhere outside or scrolling
   useEffect(() => {
     const handleOutsideClick = (event) => {
       if (
-        !event.target.closest('.more-menu-wrapper') &&
+        !event.target.closest('.btn-more-dots') &&
+        !event.target.closest('.more-dropdown-popup-portal') &&
         !event.target.closest('.more-filters-popover-container')
       ) {
-        setActiveMenuId(null);
+        setActiveMenuOrder(null);
         setShowMoreFilters(false);
       }
     };
-    document.addEventListener('click', handleOutsideClick);
-    return () => document.removeEventListener('click', handleOutsideClick);
-  }, []);
+
+    const handleWindowScroll = (event) => {
+      if (activeMenuOrder && !event.target?.closest?.('.more-dropdown-popup-portal')) {
+        setActiveMenuOrder(null);
+      }
+    };
+
+    document.addEventListener('mousedown', handleOutsideClick);
+    window.addEventListener('scroll', handleWindowScroll, true);
+    window.addEventListener('resize', handleWindowScroll);
+    return () => {
+      document.removeEventListener('mousedown', handleOutsideClick);
+      window.removeEventListener('scroll', handleWindowScroll, true);
+      window.removeEventListener('resize', handleWindowScroll);
+    };
+  }, [activeMenuOrder]);
 
   // Reset to page 1 when filter or search changes
   useEffect(() => {
@@ -144,7 +177,7 @@ const OrderManagement = () => {
         : 'Artisan Ale, Eggplant Parmesan';
 
       // Order ID display (clean code without avatar box)
-      const shortId = order.orderNumber || (order.id ? (order.id.length > 8 ? order.id.slice(0, 7).toUpperCase() : order.id) : `CD${5670 + idx}`);
+      const shortId = order.orderID || (order.id ? (order.id.length > 8 ? order.id.slice(0, 7).toUpperCase() : order.id) : `CD${5670 + idx}`);
 
       // Price
       const rawPrice = Number(order.total || order.totalAmount || 42.7);
@@ -685,9 +718,6 @@ const OrderManagement = () => {
                     <span>Actions</span>
                   </div>
                 </th>
-                <th className="th-add-col">
-                  <Plus size={13} className="th-plus-icon" />
-                </th>
               </tr>
             </thead>
             <tbody>
@@ -729,10 +759,9 @@ const OrderManagement = () => {
               )}
 
               {!loading &&
-                paginatedRows.map((order, rowIdx) => {
+                paginatedRows.map((order) => {
                   const isSelected = selectedIds.has(order.id);
-                  const isMenuOpen = activeMenuId === order.id;
-                  const isNearBottom = rowIdx >= paginatedRows.length - 2 && paginatedRows.length > 2;
+                  const isMenuOpen = activeMenuOrder?.id === order.id;
 
                   return (
                     <tr
@@ -837,68 +866,17 @@ const OrderManagement = () => {
                             </span>
                           )}
 
-                          {/* 3-dots more menu with overlay popup */}
+                          {/* 3-dots more menu trigger button */}
                           <div className="more-menu-wrapper">
                             <button
                               type="button"
-                              className="btn-more-dots"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setActiveMenuId((prev) => (prev === order.id ? null : order.id));
-                              }}
+                              className={`btn-more-dots ${isMenuOpen ? 'active' : ''}`}
+                              onClick={(e) => handleToggleMenu(e, order)}
                               title="More actions"
+                              aria-label="More order actions"
                             >
                               <MoreVertical size={14} />
                             </button>
-
-                            {isMenuOpen && (
-                              <div className={`more-dropdown-popup ${isNearBottom ? 'popup-open-up' : ''}`}>
-                                <button
-                                  type="button"
-                                  className="dropdown-item"
-                                  onClick={() => {
-                                    setActiveMenuId(null);
-                                    navigate(`/orders/details/${order.id}`);
-                                  }}
-                                >
-                                  <Eye size={13} /> View Details
-                                </button>
-                                <button
-                                  type="button"
-                                  className="dropdown-item"
-                                  onClick={() => {
-                                    setActiveMenuId(null);
-                                    navigate(`/orders/details/${order.id}`);
-                                  }}
-                                >
-                                  <Printer size={13} /> Print Invoice
-                                </button>
-                                {order.rawStatus !== 'delivered' && (
-                                  <button
-                                    type="button"
-                                    className="dropdown-item text-green"
-                                    onClick={(e) => {
-                                      setActiveMenuId(null);
-                                      handleAdvanceStatus(e, order.id, 'delivered', 'Marked delivered from menu');
-                                    }}
-                                  >
-                                    <CheckCircle2 size={13} /> Mark Delivered
-                                  </button>
-                                )}
-                                {order.rawStatus !== 'cancelled' && (
-                                  <button
-                                    type="button"
-                                    className="dropdown-item text-red"
-                                    onClick={(e) => {
-                                      setActiveMenuId(null);
-                                      handleAdvanceStatus(e, order.id, 'cancelled', 'Cancelled from menu');
-                                    }}
-                                  >
-                                    <XCircle size={13} /> Cancel Order
-                                  </button>
-                                )}
-                              </div>
-                            )}
                           </div>
                         </div>
                       </td>
@@ -989,6 +967,121 @@ const OrderManagement = () => {
           </div>
         </div>
       </div>
+
+      {/* 3-Dots Overlay Popup rendered into document.body completely OVER the table */}
+      {activeMenuOrder &&
+        createPortal(
+          <div
+            className={`more-dropdown-popup-portal ${menuPosition.openUp ? 'popup-open-up' : ''}`}
+            style={{
+              top: `${menuPosition.top}px`,
+              right: `${menuPosition.right}px`
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="dropdown-item"
+              onClick={() => {
+                const id = activeMenuOrder.id;
+                setActiveMenuOrder(null);
+                navigate(`/orders/details/${id}`);
+              }}
+            >
+              <Eye size={13} />
+              <span>View Details</span>
+            </button>
+
+            <button
+              type="button"
+              className="dropdown-item"
+              onClick={() => {
+                const id = activeMenuOrder.id;
+                setActiveMenuOrder(null);
+                navigate(`/orders/details/${id}`);
+              }}
+            >
+              <Printer size={13} />
+              <span>Print Invoice</span>
+            </button>
+
+            {activeMenuOrder.rawStatus === 'pending' && (
+              <button
+                type="button"
+                className="dropdown-item text-blue"
+                onClick={(e) => {
+                  const id = activeMenuOrder.id;
+                  setActiveMenuOrder(null);
+                  handleAdvanceStatus(e, id, 'confirmed', 'Marked confirmed from menu');
+                }}
+              >
+                <Check size={13} />
+                <span>Confirm Order</span>
+              </button>
+            )}
+
+            {activeMenuOrder.rawStatus === 'confirmed' && (
+              <button
+                type="button"
+                className="dropdown-item text-blue"
+                onClick={(e) => {
+                  const id = activeMenuOrder.id;
+                  setActiveMenuOrder(null);
+                  handleAdvanceStatus(e, id, 'packed', 'Marked packed from menu');
+                }}
+              >
+                <Package size={13} />
+                <span>Pack Order</span>
+              </button>
+            )}
+
+            {activeMenuOrder.rawStatus === 'packed' && (
+              <button
+                type="button"
+                className="dropdown-item text-blue"
+                onClick={(e) => {
+                  const id = activeMenuOrder.id;
+                  setActiveMenuOrder(null);
+                  handleAdvanceStatus(e, id, 'shipped', 'Marked shipped from menu');
+                }}
+              >
+                <Truck size={13} />
+                <span>Ship Order</span>
+              </button>
+            )}
+
+            {activeMenuOrder.rawStatus !== 'delivered' && activeMenuOrder.rawStatus !== 'cancelled' && (
+              <button
+                type="button"
+                className="dropdown-item text-green"
+                onClick={(e) => {
+                  const id = activeMenuOrder.id;
+                  setActiveMenuOrder(null);
+                  handleAdvanceStatus(e, id, 'delivered', 'Marked delivered from menu');
+                }}
+              >
+                <CheckCircle2 size={13} />
+                <span>Mark Delivered</span>
+              </button>
+            )}
+
+            {activeMenuOrder.rawStatus !== 'cancelled' && activeMenuOrder.rawStatus !== 'delivered' && (
+              <button
+                type="button"
+                className="dropdown-item text-red"
+                onClick={(e) => {
+                  const id = activeMenuOrder.id;
+                  setActiveMenuOrder(null);
+                  handleAdvanceStatus(e, id, 'cancelled', 'Cancelled from menu');
+                }}
+              >
+                <XCircle size={13} />
+                <span>Cancel Order</span>
+              </button>
+            )}
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

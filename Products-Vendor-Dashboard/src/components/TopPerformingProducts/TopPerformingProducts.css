@@ -1,0 +1,335 @@
+/* TopPerformingProducts.css - Matches Product Management Table UI */
+
+.dashboard-table-card {
+  padding: 0;
+  overflow: hidden;
+  background-color: var(--bg-card, #ffffff);
+  border-radius: var(--radius-lg, 12px);
+  border: 1px solid var(--border-color, #e2e8f0);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.05));
+  margin-bottom: 20px;
+}
+
+.dashboard-table-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 24px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  background-color: #ffffff;
+}
+
+.table-header-left {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.table-title-badge-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dashboard-table-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  margin: 0;
+  letter-spacing: -0.01em;
+}
+
+.performing-count-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  background-color: #fff0e6;
+  color: var(--primary-orange, #ff6b00);
+  border: 1px solid #ffdec2;
+}
+
+.dashboard-table-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-muted, #64748b);
+  margin: 0;
+}
+
+.dashboard-view-all-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.825rem;
+  font-weight: 600;
+  color: var(--primary-orange, #ff6b00);
+  text-decoration: none;
+  transition: all 0.15s ease;
+  padding: 6px 12px;
+  border-radius: 6px;
+  background-color: #fff9f5;
+  border: 1px solid #ffe6d4;
+}
+
+.dashboard-view-all-link:hover {
+  background-color: #fff0e6;
+  color: var(--primary-orange-hover, #e66000);
+}
+
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+
+/* Products Table Styles - Matching ProductManagement.css */
+.products-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.products-table th {
+  text-align: left;
+  padding: 12px 20px;
+  background-color: var(--bg-body, #f8fafc);
+  color: var(--text-muted, #64748b);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  white-space: nowrap;
+}
+
+.products-table td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border-color, #e5e7eb);
+  vertical-align: middle;
+}
+
+.products-table tr:last-child td {
+  border-bottom: none;
+}
+
+.product-row {
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+
+.product-row:hover {
+  background-color: #f8fafc;
+}
+
+.rank-th, .rank-td {
+  width: 44px;
+  text-align: center;
+  padding-right: 6px !important;
+}
+
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  background-color: #f1f5f9;
+  color: #475569;
+}
+
+.rank-badge.rank-1 {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  box-shadow: 0 1px 3px rgba(245, 158, 11, 0.2);
+}
+
+.rank-badge.rank-2 {
+  background-color: #f1f5f9;
+  color: #334155;
+  border: 1px solid #e2e8f0;
+}
+
+.rank-badge.rank-3 {
+  background-color: #fff7ed;
+  color: #c2410c;
+  border: 1px solid #ffedd5;
+}
+
+.product-item-cell {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.product-img-box {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md, 8px);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-color, #e2e8f0);
+}
+
+.product-info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.product-name-large {
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  font-size: 0.9rem;
+  line-height: 1.3;
+}
+
+.product-sku {
+  font-size: 0.74rem;
+  color: var(--text-muted, #64748b);
+  font-family: inherit;
+}
+
+.category-pill {
+  background-color: var(--bg-body, #f1f5f9);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: var(--text-muted, #64748b);
+  white-space: nowrap;
+}
+
+.price-bold {
+  font-weight: 800;
+  color: var(--text-main, #0f172a);
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.stock-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 110px;
+}
+
+.stock-value {
+  font-weight: 700;
+  color: var(--text-main, #0f172a);
+  font-size: 0.84rem;
+}
+
+.stock-total {
+  color: var(--text-light, #94a3b8);
+  font-weight: 500;
+  font-size: 0.72rem;
+}
+
+.mini-progress-bar {
+  height: 4px;
+  background-color: var(--border-color, #e2e8f0);
+  border-radius: 999px;
+  width: 100%;
+  overflow: hidden;
+}
+
+.mini-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+.sales-data-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border-radius: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid #dbeafe;
+}
+
+.sales-trend-icon {
+  color: #2563eb;
+  flex-shrink: 0;
+}
+
+.revenue-data-bold {
+  font-weight: 800;
+  color: var(--text-main, #0f172a);
+  font-size: 0.88rem;
+  white-space: nowrap;
+}
+
+.compliance-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.actions-col {
+  width: 70px;
+  text-align: right;
+}
+
+.row-actions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.icon-btn {
+  color: var(--text-muted, #64748b);
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 6px);
+  background: transparent;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.icon-btn:hover {
+  background-color: #ffffff;
+  color: var(--text-main, #0f172a);
+  border-color: var(--border-color, #e2e8f0);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.dashboard-empty-table-state {
+  min-height: 180px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--text-muted, #64748b);
+  padding: 24px;
+}
+
+.dashboard-empty-table-state h3 {
+  color: var(--text-main, #0f172a);
+  font-size: 1rem;
+  margin: 0;
+}
+
+.dashboard-empty-table-state p {
+  font-size: 0.85rem;
+  margin: 0;
+}
+
