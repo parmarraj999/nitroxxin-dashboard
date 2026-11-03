@@ -450,3 +450,4 @@ const LowStockAlertTable = ({ analytics }) => {
 };
 
 export default LowStockAlertTable;
+
