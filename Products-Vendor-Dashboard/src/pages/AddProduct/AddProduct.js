@@ -10,6 +10,7 @@ import {
   Eye,
   FileText,
   ImagePlus,
+  IndianRupee,
   Layers,
   Package,
   Plus,
@@ -300,6 +301,8 @@ const AddProduct = () => {
   const setAttribute = (field, value) => setNested('attributes', field, value);
 
   const addVariant = () => {
+    const defaultPrice = form.pricing.sellingPrice ? Number(form.pricing.sellingPrice) : '';
+    const defaultMrp = form.pricing.mrp ? Number(form.pricing.mrp) : '';
     setForm((current) => ({
       ...current,
       variants: [
@@ -309,8 +312,9 @@ const AddProduct = () => {
           options: variantFields.reduce((acc, field) => ({ ...acc, [field.toLowerCase()]: '' }), {}),
           sku: current.sku ? `${current.sku}-${current.variants.length + 1}` : '',
           barcode: '',
-          stock: 0,
-          price: current.pricing.sellingPrice || 0,
+          stock: '',
+          price: defaultPrice,
+          mrp: defaultMrp,
           images: ''
         }
       ]
@@ -328,6 +332,20 @@ const AddProduct = () => {
         }
         return { ...variant, [path]: value };
       })
+    }));
+  };
+
+  const syncBasePriceToAllVariants = () => {
+    if (!form.pricing.sellingPrice) return;
+    const baseSelling = Number(form.pricing.sellingPrice);
+    const baseMrp = form.pricing.mrp ? Number(form.pricing.mrp) : '';
+    setForm((current) => ({
+      ...current,
+      variants: current.variants.map((v) => ({
+        ...v,
+        price: baseSelling,
+        ...(baseMrp !== '' ? { mrp: baseMrp } : {})
+      }))
     }));
   };
 
@@ -960,18 +978,169 @@ const AddProduct = () => {
                     </div>
                 ))}
               </div>
-              <div className="subsection-title">Unlimited Variants</div>
-              <div className="variant-table">
-                {form.variants.map((variant) => (
-                  <div className="variant-row" key={variant.id}>
-                    {variantFields.map((field) => <input key={field} value={variant.options[field.toLowerCase()] || ''} onChange={(event) => updateVariant(variant.id, `options.${field.toLowerCase()}`, event.target.value)} placeholder={field} />)}
-                    <input value={variant.sku} onChange={(event) => updateVariant(variant.id, 'sku', event.target.value)} placeholder="SKU" />
-                    <input type="number" value={variant.stock} onChange={(event) => updateVariant(variant.id, 'stock', Number(event.target.value))} placeholder="Stock" />
-                    <input type="number" value={variant.price} onChange={(event) => updateVariant(variant.id, 'price', Number(event.target.value))} placeholder="Price" />
-                    <button className="icon-btn text-red" onClick={() => removeVariant(variant.id)}><Trash2 size={16} /></button>
+              <div className="variants-section-block">
+                <div className="variants-header-row">
+                  <div>
+                    <div className="variants-title-group">
+                      <Layers size={18} className="variants-icon-accent" />
+                      <h4>Product Variants & Custom Pricing</h4>
+                      <span className="variants-count-badge">
+                        {form.variants.length} {form.variants.length === 1 ? 'Variant' : 'Variants'}
+                      </span>
+                    </div>
+                    <p className="variants-subtitle">
+                      Configure custom options (e.g. Size, Color), SKU, Stock, and individual Selling Price & MRP for each variant.
+                    </p>
                   </div>
-                ))}
-                <button className="export-btn" onClick={addVariant}><Plus size={16} /> Add Variant</button>
+
+                  <div className="variants-actions-bar">
+                    {form.variants.length > 0 && form.pricing.sellingPrice && (
+                      <button
+                        type="button"
+                        className="btn-sync-base-price"
+                        onClick={syncBasePriceToAllVariants}
+                        title="Copy base selling price to all variants"
+                      >
+                        <IndianRupee size={13} />
+                        <span>Apply Base Price (₹{money(form.pricing.sellingPrice).toLocaleString('en-IN')})</span>
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="quick-add-btn variant-add-btn"
+                      onClick={addVariant}
+                    >
+                      <Plus size={15} />
+                      <span>Add Variant</span>
+                    </button>
+                  </div>
+                </div>
+
+                {form.variants.length === 0 ? (
+                  <div className="variants-empty-state">
+                    <div className="empty-state-icon-circle">
+                      <Layers size={24} />
+                    </div>
+                    <h5>No product variants added yet</h5>
+                    <p>
+                      If this product is available in multiple sizes, colors, or versions with different prices (e.g. Size XL costs more than Size M), click below to add variants with custom prices.
+                    </p>
+                    <button
+                      type="button"
+                      className="btn-add-first-variant"
+                      onClick={addVariant}
+                    >
+                      <Plus size={15} />
+                      <span>Add First Variant with Custom Price</span>
+                    </button>
+                  </div>
+                ) : (
+                  <div className="variant-table-container">
+                    <table className="variant-interactive-table">
+                      <thead>
+                        <tr>
+                          {variantFields.map((field) => (
+                            <th key={field} className="th-variant-option">{field}</th>
+                          ))}
+                          <th className="th-variant-sku">Variant SKU</th>
+                          <th className="th-variant-price highlight-price-col">
+                            <div className="th-inner">
+                              <IndianRupee size={13} />
+                              <span>Selling Price (₹) *</span>
+                            </div>
+                          </th>
+                          <th className="th-variant-mrp">
+                            <div className="th-inner">
+                              <IndianRupee size={13} />
+                              <span>MRP (₹)</span>
+                            </div>
+                          </th>
+                          <th className="th-variant-stock">Stock (Qty)</th>
+                          <th className="th-variant-action">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {form.variants.map((variant, index) => (
+                          <tr key={variant.id} className="variant-table-row">
+                            {variantFields.map((field) => (
+                              <td key={field} className="td-variant-option">
+                                <input
+                                  type="text"
+                                  value={variant.options[field.toLowerCase()] || ''}
+                                  onChange={(event) => updateVariant(variant.id, `options.${field.toLowerCase()}`, event.target.value)}
+                                  placeholder={`e.g. ${field === 'Size' ? 'XL' : field === 'Color' ? 'Matte Black' : field}`}
+                                  className="variant-cell-input"
+                                />
+                              </td>
+                            ))}
+
+                            <td className="td-variant-sku">
+                              <input
+                                type="text"
+                                value={variant.sku || ''}
+                                onChange={(event) => updateVariant(variant.id, 'sku', event.target.value)}
+                                placeholder={form.sku ? `${form.sku}-${index + 1}` : `SKU-${index + 1}`}
+                                className="variant-cell-input sku-input"
+                              />
+                            </td>
+
+                            <td className="td-variant-price highlight-price-col">
+                              <div className="variant-price-input-wrapper">
+                                <span className="price-rupee-symbol">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  value={variant.price !== undefined && variant.price !== null ? variant.price : ''}
+                                  onChange={(event) => updateVariant(variant.id, 'price', event.target.value === '' ? '' : Number(event.target.value))}
+                                  placeholder={form.pricing.sellingPrice ? String(form.pricing.sellingPrice) : '0'}
+                                  className="variant-cell-input price-input"
+                                />
+                              </div>
+                            </td>
+
+                            <td className="td-variant-mrp">
+                              <div className="variant-price-input-wrapper">
+                                <span className="price-rupee-symbol">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  step="any"
+                                  value={variant.mrp !== undefined && variant.mrp !== null ? variant.mrp : ''}
+                                  onChange={(event) => updateVariant(variant.id, 'mrp', event.target.value === '' ? '' : Number(event.target.value))}
+                                  placeholder={form.pricing.mrp ? String(form.pricing.mrp) : 'MRP'}
+                                  className="variant-cell-input mrp-input"
+                                />
+                              </div>
+                            </td>
+
+                            <td className="td-variant-stock">
+                              <input
+                                type="number"
+                                min="0"
+                                value={variant.stock !== undefined && variant.stock !== null ? variant.stock : ''}
+                                onChange={(event) => updateVariant(variant.id, 'stock', event.target.value === '' ? '' : Number(event.target.value))}
+                                placeholder="0"
+                                className="variant-cell-input stock-input"
+                              />
+                            </td>
+
+                            <td className="td-variant-action">
+                              <button
+                                type="button"
+                                className="btn-delete-variant"
+                                onClick={() => removeVariant(variant.id)}
+                                title="Delete this variant"
+                              >
+                                <Trash2 size={15} />
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </div>
             </section>
           )}
@@ -1491,7 +1660,8 @@ const AddProduct = () => {
                           <th>SKU</th>
                           <th>Options</th>
                           <th>Stock</th>
-                          <th>Price</th>
+                          <th>Selling Price</th>
+                          <th>MRP</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1499,8 +1669,9 @@ const AddProduct = () => {
                           <tr key={v.id}>
                             <td><strong>{v.sku || 'N/A'}</strong></td>
                             <td>{Object.entries(v.options || {}).filter(([, val]) => val).map(([k, val]) => `${titleCase(k)}: ${val}`).join(' | ') || '-'}</td>
-                            <td>{v.stock} units</td>
-                            <td>Rs. {money(v.price).toLocaleString()}</td>
+                            <td>{v.stock || 0} units</td>
+                            <td><strong style={{ color: '#0f172a' }}>₹{money(v.price || form.pricing.sellingPrice).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                            <td>{v.mrp ? <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>₹{money(v.mrp).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> : '-'}</td>
                           </tr>
                         ))}
                       </tbody>

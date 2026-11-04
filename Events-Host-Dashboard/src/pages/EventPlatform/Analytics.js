@@ -48,7 +48,7 @@ const Analytics = () => {
                       <XAxis dataKey="name" hide />
                       <YAxis />
                       <Tooltip />
-                      <Bar dataKey="revenue" fill="#2563eb" />
+                      <Bar dataKey="revenue" fill="#2563eb" isAnimationActive={false} />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : <EmptyState title="No revenue yet" />}
@@ -58,7 +58,7 @@ const Analytics = () => {
                 {analytics.genderDistribution.length ? (
                   <ResponsiveContainer height={320} width="100%">
                     <PieChart>
-                      <Pie data={analytics.genderDistribution} dataKey="value" nameKey="name" outerRadius={105} label>
+                      <Pie data={analytics.genderDistribution} dataKey="value" nameKey="name" outerRadius={105} label isAnimationActive={false}>
                         {analytics.genderDistribution.map((entry, index) => <Cell key={entry.name} fill={colors[index % colors.length]} />)}
                       </Pie>
                       <Tooltip />
@@ -68,11 +68,11 @@ const Analytics = () => {
               </div>
               <div className="panel">
                 <h2>City Distribution</h2>
-                <ResponsiveContainer height={280} width="100%"><BarChart data={analytics.cityDistribution}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="value" fill="#f97316" /></BarChart></ResponsiveContainer>
+                <ResponsiveContainer height={280} width="100%"><BarChart data={analytics.cityDistribution}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="value" fill="#f97316" isAnimationActive={false} /></BarChart></ResponsiveContainer>
               </div>
               <div className="panel">
                 <h2>Age Distribution</h2>
-                <ResponsiveContainer height={280} width="100%"><BarChart data={analytics.ageDistribution}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="value" fill="#10b981" /></BarChart></ResponsiveContainer>
+                <ResponsiveContainer height={280} width="100%"><BarChart data={analytics.ageDistribution}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis allowDecimals={false} /><Tooltip /><Bar dataKey="value" fill="#10b981" isAnimationActive={false} /></BarChart></ResponsiveContainer>
               </div>
             </section>
           </>

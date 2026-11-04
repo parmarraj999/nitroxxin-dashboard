@@ -139,14 +139,23 @@ const ProductDetails = () => {
             ) : (
               <div className="seller-table-wrap">
                 <table className="seller-table">
-                  <thead><tr><th>Options</th><th>SKU</th><th>Stock</th><th>Price</th></tr></thead>
+                  <thead>
+                    <tr>
+                      <th>Options</th>
+                      <th>SKU</th>
+                      <th>Stock</th>
+                      <th>Selling Price</th>
+                      <th>MRP</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     {variants.map((variant) => (
                       <tr key={variant.id || variant.sku}>
                         <td>{formatValue(variant.options)}</td>
                         <td>{variant.sku || '-'}</td>
                         <td>{variant.stock || 0}</td>
-                        <td>Rs. {Number(variant.price || 0).toLocaleString()}</td>
+                        <td><strong style={{ color: '#0f172a' }}>₹{Number(variant.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</strong></td>
+                        <td>{variant.mrp ? <span style={{ textDecoration: 'line-through', color: '#94a3b8' }}>₹{Number(variant.mrp).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span> : '-'}</td>
                       </tr>
                     ))}
                   </tbody>

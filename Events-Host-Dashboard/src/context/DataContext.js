@@ -3,6 +3,7 @@ import { EventsProvider, useEventsContext } from './EventsContext';
 import { RegistrationsProvider, useRegistrationsContext } from './RegistrationsContext';
 import { TemplatesProvider, useTemplatesContext } from './TemplatesContext';
 import { NotificationsProvider, useNotificationsContext } from './NotificationsContext';
+import { BookingsProvider, useBookingsContext } from './BookingsContext';
 import { calculateAnalytics } from '../services/firebaseService';
 
 const DataContext = createContext(null);
@@ -13,6 +14,7 @@ const DataConsumerBridge = ({ children }) => {
   const registrationsCtx = useRegistrationsContext();
   const templatesCtx = useTemplatesContext();
   const notificationsCtx = useNotificationsContext();
+  const bookingsCtx = useBookingsContext();
 
   // In-memory analytics calculation (0 Firestore reads)
   const analytics = useMemo(() => {
@@ -34,14 +36,18 @@ const DataConsumerBridge = ({ children }) => {
       registrations: registrationsCtx.registrations,
       ticketTemplates: templatesCtx.ticketTemplates,
       notifications: notificationsCtx.notifications,
+      bookings: bookingsCtx?.bookings || [],
+      payments: bookingsCtx?.payments || [],
       analytics,
 
       // Loading states
-      loading: eventsCtx.eventsLoading || registrationsCtx.registrationsLoading,
+      loading: eventsCtx.eventsLoading || registrationsCtx.registrationsLoading || bookingsCtx?.loading,
       eventsLoading: eventsCtx.eventsLoading,
       registrationsLoading: registrationsCtx.registrationsLoading,
       templatesLoading: templatesCtx.templatesLoading,
-      error: eventsCtx.eventsError || registrationsCtx.registrationsError || '',
+      bookingsLoading: bookingsCtx?.loadingBookings,
+      paymentsLoading: bookingsCtx?.loadingPayments,
+      error: eventsCtx.eventsError || registrationsCtx.registrationsError || bookingsCtx?.error || '',
 
       // Read helpers (0 Firestore reads from memory)
       getEventById: eventsCtx.getEventById,
@@ -65,6 +71,7 @@ const DataConsumerBridge = ({ children }) => {
       registrationsCtx,
       templatesCtx,
       notificationsCtx,
+      bookingsCtx,
       analytics,
       refreshData,
     ]
@@ -82,7 +89,9 @@ export const DataProvider = ({ children }) => {
       <RegistrationsProvider>
         <TemplatesProvider>
           <NotificationsProvider>
-            <DataConsumerBridge>{children}</DataConsumerBridge>
+            <BookingsProvider>
+              <DataConsumerBridge>{children}</DataConsumerBridge>
+            </BookingsProvider>
           </NotificationsProvider>
         </TemplatesProvider>
       </RegistrationsProvider>

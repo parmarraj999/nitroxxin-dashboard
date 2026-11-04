@@ -1,27 +1,29 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { DataProvider } from './context/DataContext';
 import ErrorBoundary from './components/States/ErrorBoundary';
 import LoadingState from './components/States/LoadingState';
 import ProtectedRoute from './components/RouteGuards/ProtectedRoute';
-import Dashboard from './pages/Dashboard/Dashboard';
-import Login from './pages/Auth/Login';
-import Signup from './pages/Auth/Signup';
-import ForgotPassword from './pages/Auth/ForgotPassword';
-import EventList from './pages/EventPlatform/EventList';
-import EventForm from './pages/EventPlatform/EventForm';
-import EventDetailsPage from './pages/EventPlatform/EventDetailsPage';
-import PublicEvents from './pages/EventPlatform/PublicEvents';
-import Participants from './pages/EventPlatform/Participants';
-import Analytics from './pages/EventPlatform/Analytics';
-import Profile from './pages/EventPlatform/Profile';
-import Unauthorized from './pages/System/Unauthorized';
-import NotFound from './pages/System/NotFound';
-import ApprovalPending from './pages/Auth/ApprovalPending';
-import Transactions from './pages/Transactions/Transactions';
-import EventCheckInMobile from './pages/EventPlatform/EventCheckInMobile';
 import './App.css';
+
+// Lazy-loaded route components for fast asynchronous chunk splitting & zero-lag navigation
+const Dashboard = lazy(() => import('./pages/Dashboard/Dashboard'));
+const Login = lazy(() => import('./pages/Auth/Login'));
+const Signup = lazy(() => import('./pages/Auth/Signup'));
+const ForgotPassword = lazy(() => import('./pages/Auth/ForgotPassword'));
+const EventList = lazy(() => import('./pages/EventPlatform/EventList'));
+const EventForm = lazy(() => import('./pages/EventPlatform/EventForm'));
+const EventDetailsPage = lazy(() => import('./pages/EventPlatform/EventDetailsPage'));
+const PublicEvents = lazy(() => import('./pages/EventPlatform/PublicEvents'));
+const Participants = lazy(() => import('./pages/EventPlatform/Participants'));
+const Analytics = lazy(() => import('./pages/EventPlatform/Analytics'));
+const Profile = lazy(() => import('./pages/EventPlatform/Profile'));
+const Unauthorized = lazy(() => import('./pages/System/Unauthorized'));
+const NotFound = lazy(() => import('./pages/System/NotFound'));
+const ApprovalPending = lazy(() => import('./pages/Auth/ApprovalPending'));
+const Transactions = lazy(() => import('./pages/Transactions/Transactions'));
+const EventCheckInMobile = lazy(() => import('./pages/EventPlatform/EventCheckInMobile'));
 
 /**
  * Root route handler:
@@ -53,7 +55,8 @@ function App() {
         <DataProvider>
           <Router>
             <div className="app">
-              <Routes>
+              <Suspense fallback={<LoadingState label="Loading view..." />}>
+                <Routes>
                 <Route path="/" element={<RootRedirect />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/signup" element={<Signup />} />
@@ -91,7 +94,8 @@ function App() {
 
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </div>
+            </Suspense>
+          </div>
           </Router>
         </DataProvider>
       </AuthProvider>

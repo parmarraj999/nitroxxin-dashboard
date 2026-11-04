@@ -80,13 +80,12 @@ const CustomCashflowTooltip = ({ active, payload }) => {
 };
 
 const Dashboard = () => {
-  const { user, profile } = useAuth();
-  const { events = [] } = useEvents(profile?.role === 'Host' ? { hostId: user?.uid } : {});
-  const { registrations = [] } = useRegistrations(
-    profile?.role === 'Host' ? { hostId: user?.uid } : { userId: user?.uid }
-  );
-  const { bookings = [], payments = [] } = useBookingsAndPayments(profile?.role === 'Host' ? { hostId: user?.uid } : {});
-  const { notifications = [] } = useNotifications(user?.uid);
+  const { user } = useAuth();
+  const hostId = user?.uid;
+  const { events = [] } = useEvents({ hostId });
+  const { registrations = [] } = useRegistrations({ hostId });
+  const { bookings = [], payments = [] } = useBookingsAndPayments({ hostId });
+  const { notifications = [] } = useNotifications(hostId);
   const analytics = useAnalytics(events, registrations);
 
   // States
@@ -960,7 +959,7 @@ const Dashboard = () => {
                       strokeWidth={2}
                       fill="url(#sparkGrad1)"
                       dot={false}
-                      isAnimationActive={true}
+                      isAnimationActive={false}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -1019,7 +1018,7 @@ const Dashboard = () => {
                       strokeWidth={2}
                       fill="url(#sparkGrad2)"
                       dot={false}
-                      isAnimationActive={true}
+                      isAnimationActive={false}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -1080,7 +1079,7 @@ const Dashboard = () => {
                       strokeWidth={2}
                       fill="url(#sparkGrad3)"
                       dot={false}
-                      isAnimationActive={true}
+                      isAnimationActive={false}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -1139,7 +1138,7 @@ const Dashboard = () => {
                       strokeWidth={2}
                       fill="url(#sparkGrad4)"
                       dot={false}
-                      isAnimationActive={true}
+                      isAnimationActive={false}
                     />
                   </AreaChart>
                 </ResponsiveContainer>
@@ -1287,6 +1286,7 @@ const Dashboard = () => {
                   radius={[20, 20, 20, 20]}
                   barSize={cashflowPeriod === 'This Week' ? 36 : 14}
                   cursor="pointer"
+                  isAnimationActive={false}
                   onClick={(_, index) => setSelectedBarIndex(index)}
                 >
                   {activeCashflowData.map((entry, index) => {

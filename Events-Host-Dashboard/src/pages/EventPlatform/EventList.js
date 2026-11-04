@@ -152,7 +152,7 @@ const EventList = () => {
   };
 
   const { events: firestoreEvents, loading, error } = useEvents({
-    hostId: profile?.role === 'Host' ? user?.uid : undefined,
+    hostId: user?.uid,
   });
 
   // Map events ensuring exact month & date formatting matching Image 1

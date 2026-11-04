@@ -162,10 +162,6 @@ const Sidebar = () => {
                 <NavLink
                   key={index}
                   to={destination}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    navigate(destination);
-                  }}
                   className={({ isActive: linkActive }) =>
                     `sidebar-nav-item ${active || linkActive ? 'active' : ''}`
                   }
@@ -293,4 +289,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+export default React.memo(Sidebar);

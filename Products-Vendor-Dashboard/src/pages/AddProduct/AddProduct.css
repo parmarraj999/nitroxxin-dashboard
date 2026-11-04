@@ -541,35 +541,311 @@
   background: var(--bg-body);
 }
 
-.custom-attribute-row,
-.variant-row {
+.custom-attribute-row {
   display: grid;
   gap: 10px;
   margin-bottom: 10px;
-}
-
-.custom-attribute-row {
   grid-template-columns: 1fr 1fr;
 }
 
-.custom-attribute-row input,
-.variant-row input {
+.custom-attribute-row input {
   padding: 11px 12px;
   border: 1px solid var(--border-color);
   border-radius: var(--radius-md);
   font: inherit;
 }
 
-.variant-table {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
+/* =========================================================
+   VARIANTS & CUSTOM PRICING SECTION
+   ========================================================= */
+.variants-section-block {
+  margin-top: 24px;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
 }
 
-.variant-row {
-  grid-template-columns: repeat(6, minmax(100px, 1fr)) auto;
+.variants-header-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.variants-title-group {
+  display: flex;
   align-items: center;
+  gap: 10px;
+  margin-bottom: 4px;
+}
+
+.variants-title-group h4 {
+  font-size: 1.02rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.variants-icon-accent {
+  color: #2563eb;
+}
+
+.variants-count-badge {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.76rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+.variants-subtitle {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0;
+  max-width: 640px;
+  line-height: 1.45;
+}
+
+.variants-actions-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.btn-sync-base-price {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 13px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-sync-base-price:hover {
+  background: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+.variant-add-btn {
+  padding: 8px 16px;
+  font-size: 0.84rem;
+}
+
+/* Empty State */
+.variants-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 36px 20px;
+  background: #ffffff;
+  border: 1px dashed #cbd5e1;
+  border-radius: 10px;
+}
+
+.empty-state-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f1f5f9;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.variants-empty-state h5 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0 0 6px 0;
+}
+
+.variants-empty-state p {
+  font-size: 0.84rem;
+  color: #64748b;
+  max-width: 500px;
+  margin: 0 0 16px 0;
+  line-height: 1.5;
+}
+
+.btn-add-first-variant {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 18px;
+  border-radius: 8px;
+  font-size: 0.86rem;
+  font-weight: 600;
+  background: #0f172a;
+  color: #ffffff;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+
+.btn-add-first-variant:hover {
+  background: #1e293b;
+}
+
+/* Interactive Table */
+.variant-table-container {
   overflow-x: auto;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+.variant-interactive-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 780px;
+}
+
+.variant-interactive-table thead th {
+  background: #f8fafc;
+  padding: 12px 14px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid #e2e8f0;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.variant-interactive-table thead th .th-inner {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.variant-interactive-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #f1f5f9;
+  vertical-align: middle;
+}
+
+.variant-interactive-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.variant-interactive-table tbody tr:hover {
+  background: #fafafa;
+}
+
+/* Highlighted Price Column */
+.highlight-price-col {
+  background: #f0fdf4 !important;
+}
+
+.variant-interactive-table tbody tr:hover .highlight-price-col {
+  background: #ecfdf5 !important;
+}
+
+.th-variant-price.highlight-price-col {
+  color: #15803d !important;
+}
+
+/* Cell Inputs */
+.variant-cell-input {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.87rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.15s ease;
+  font-family: inherit;
+}
+
+.variant-cell-input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.variant-cell-input.sku-input {
+  font-family: monospace;
+  font-weight: 600;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+}
+
+.variant-cell-input.stock-input {
+  width: 85px;
+  text-align: right;
+  font-weight: 600;
+}
+
+/* Currency input with symbol */
+.variant-price-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 125px;
+}
+
+.price-rupee-symbol {
+  position: absolute;
+  left: 9px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  color: #64748b;
+  pointer-events: none;
+}
+
+.variant-price-input-wrapper .price-input {
+  padding-left: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  border-color: #86efac;
+}
+
+.variant-price-input-wrapper .price-input:focus {
+  border-color: #16a34a;
+  box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.15);
+}
+
+.variant-price-input-wrapper .mrp-input {
+  padding-left: 22px;
+  color: #64748b;
+}
+
+.btn-delete-variant {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-delete-variant:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #fecaca;
 }
 
 /* =========================================================
