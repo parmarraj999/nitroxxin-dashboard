@@ -34,7 +34,6 @@ import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import { useRegistrations } from '../../hooks/useRegistrations';
 import { useBookingsAndPayments } from '../../hooks/useBookingsAndPayments';
-import { EVENT_PARTICIPANTS_DATA } from './participantsData';
 import { downloadCsv, formatDateTime } from '../../utils/formatters';
 import { ParticipantTableSkeleton } from '../../components/States/SkeletonLoading';
 import './Participants.css';
@@ -44,10 +43,8 @@ const Participants = () => {
   const { registrations, loading: registrationsLoading } = useRegistrations({ hostId: user?.uid });
   const { bookings, loading: bookingsLoading } = useBookingsAndPayments({ hostId: user?.uid });
 
-  // Master Participants List initialized with event booking participants
-  const [participants, setParticipants] = useState(() => {
-    return EVENT_PARTICIPANTS_DATA;
-  });
+  // Master Participants List strictly from real bookings & registrations (empty for new host)
+  const [participants, setParticipants] = useState([]);
 
   // Search & Filter States
   const [searchQuery, setSearchQuery] = useState('');
@@ -96,72 +93,22 @@ const Participants = () => {
 
   const searchInputRef = useRef(null);
 
-  // Merge any live Firebase registrations into the list
+  // Sync live Firebase registrations and bookings into participants list
   useEffect(() => {
-    if (registrations && registrations.length > 0) {
-      const liveItems = registrations.map((r, i) => {
-        const rawTier = r.ticketType || 'Standard';
-        let tierName = 'Standard';
-        let ticketFor = 'Participant';
+    const asDate = (val) => {
+      if (!val) return new Date();
+      if (typeof val?.toDate === 'function') return val.toDate();
+      if (val.seconds) return new Date(val.seconds * 1000);
+      if (val instanceof Date) return val;
+      const parsed = new Date(val);
+      return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
+    };
 
-        if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
-        else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
-        else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
-        else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
-        else if (rawTier.toLowerCase().includes('explorer')) tierName = 'Explorer';
+    const combined = [];
+    const seenTicketOrId = new Set();
 
-        if (r.participant?.vehicleNumber) ticketFor = 'Rider';
-
-        return {
-          id: r.id || `live-${i}`,
-          name: r.participantName || r.participant?.fullName || 'Registered Participant',
-          email: r.participantEmail || r.participant?.email || 'guest@nitroxx.com',
-          phone: r.participantPhone || r.participant?.phone || '+91 98000 00000',
-          avatar: r.participantPhoto || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80`,
-          avatarInitial: (r.participantName || 'R').charAt(0).toUpperCase(),
-          eventTitle: r.eventTitle || 'Nitroxx MotoFest Pune 2025',
-          tierName,
-          ticketFor,
-          ticketTier: `${tierName} · ${ticketFor}`,
-          ticketNumber: r.ticketNumber || `NX-${Date.now().toString(36).toUpperCase()}`,
-          bibNumber: r.ticketNumber ? `BIB-${r.ticketNumber.slice(-3)}` : `BIB-${300 + i}`,
-          ticketPrice: r.ticketPrice ? `₹${Number(r.ticketPrice).toLocaleString()}` : '₹4,999',
-          priceNumeric: Number(r.ticketPrice || 4999),
-          bookedDate: r.registrationDate ? formatDateTime(r.registrationDate).split(',')[0] : 'Just now',
-          bookedMinutes: 0,
-          paymentStatus: 'Paid',
-          gateStatus: r.attendanceStatus === 'Checked In' ? 'Done' : r.status === 'Confirmed' ? 'On Progress' : 'Pending Gate',
-          vehicle: r.participant?.vehicleNumber || 'Motorcycle',
-          vehiclePlate: r.participant?.vehicleNumber || 'MH12-LIVE',
-          city: r.participant?.city || 'India',
-          bloodGroup: r.participant?.bloodGroup || 'O+',
-          emergencyContact: r.participant?.emergencyContact || 'Listed with Team',
-          wave: 'General Wave (08:00 AM)'
-        };
-      });
-
-      setParticipants(prev => {
-        const existingIds = new Set(prev.map(p => p.id));
-        const newUniques = liveItems.filter(item => !existingIds.has(item.id));
-        return [...newUniques, ...prev];
-      });
-    }
-  }, [registrations]);
-
-  // Merge live Firebase bookings (queried by hostId) into the participants list
-  useEffect(() => {
-    if (bookings && bookings.length > 0) {
-      const asDate = (val) => {
-        if (!val) return new Date();
-        if (typeof val?.toDate === 'function') return val.toDate();
-        if (val.seconds) return new Date(val.seconds * 1000);
-        if (val instanceof Date) return val;
-        const parsed = new Date(val);
-        return Number.isNaN(parsed.getTime()) ? new Date() : parsed;
-      };
-
-      const bookingParticipants = [];
-
+    // 1. Process bookings
+    if (Array.isArray(bookings) && bookings.length > 0) {
       bookings.forEach((b, idx) => {
         const rawTier = b.packageName || b.tierName || b.ticketType || 'Standard';
         let tierName = 'Standard';
@@ -174,7 +121,7 @@ const Participants = () => {
         else if (rawTier.toLowerCase().includes('explorer')) tierName = 'Explorer';
 
         const priceNumeric = Number(b.amount || b.totalAmount || b.pricing?.finalAmount || b.ticketPrice || b.priceNumeric || 0);
-        const ticketPrice = priceNumeric > 0 ? `₹${priceNumeric.toLocaleString('en-IN')}` : '₹4,999';
+        const ticketPrice = `₹${priceNumeric.toLocaleString('en-IN')}`;
         const dateObj = asDate(b.createdAt || b.bookingDate);
         const bookedDate = dateObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
         const bookedMinutes = dateObj.getTime();
@@ -183,7 +130,6 @@ const Participants = () => {
         const isDone = b.attendanceStatus === 'Checked In' || b.status === 'Checked In' || b.gateStatus === 'Done';
         const gateStatus = isDone ? 'Done' : (b.status === 'Confirmed' || isPaid ? 'On Progress' : 'Pending Gate');
 
-        // If booking document has attendees array, create an attendee entry for each attendee
         if (Array.isArray(b.attendees) && b.attendees.length > 0) {
           b.attendees.forEach((att, attIdx) => {
             const attName = att.name || att.fullName || b.bookingContact?.name || b.name || `Attendee ${attIdx + 1}`;
@@ -192,35 +138,40 @@ const Participants = () => {
             const attTicketNum = att.ticketNumber || att.ticketCode || b.ticketNumber || b.ticketCode || `NX-BKG-${String(b.id).slice(0, 5).toUpperCase()}-${attIdx + 1}`;
             const attBib = att.bibNumber || (attTicketNum ? `BIB-${attTicketNum.slice(-3)}` : `BIB-${400 + attIdx}`);
 
-            bookingParticipants.push({
-              id: `${b.id}-att-${attIdx}`,
-              bookingId: b.id,
-              name: attName,
-              email: attEmail,
-              phone: attPhone,
-              avatar: b.userPhoto || b.photoURL || `https://images.unsplash.com/photo-${1535713875002 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
-              avatarInitial: attName.charAt(0).toUpperCase(),
-              eventTitle: b.eventTitle || b.eventName || b.event?.title || 'Confirmed Nitroxx Event',
-              tierName,
-              ticketFor: att.joinAs || (b.vehicle ? 'Rider' : 'Participant'),
-              ticketTier: `${tierName} · ${att.joinAs || (b.vehicle ? 'Rider' : 'Participant')}`,
-              ticketNumber: attTicketNum,
-              bibNumber: attBib,
-              ticketPrice,
-              priceNumeric,
-              bookedDate,
-              bookedMinutes,
-              paymentStatus,
-              gateStatus,
-              vehicle: att.vehicle || b.vehicle || 'Motorcycle',
-              vehiclePlate: att.vehiclePlate || b.vehiclePlate || 'N/A',
-              city: att.city || b.city || b.bookingContact?.city || 'India',
-              bloodGroup: att.bloodGroup || b.bloodGroup || 'O+',
-              emergencyContact: att.emergencyContact || b.emergencyContact || 'Listed with Team',
-              wave: b.wave || 'General Wave (08:00 AM)',
-              rawBooking: b,
-              isFromBooking: true,
-            });
+            const id = `${b.id}-att-${attIdx}`;
+            if (!seenTicketOrId.has(attTicketNum) && !seenTicketOrId.has(id)) {
+              seenTicketOrId.add(attTicketNum);
+              seenTicketOrId.add(id);
+              combined.push({
+                id,
+                bookingId: b.id,
+                name: attName,
+                email: attEmail,
+                phone: attPhone,
+                avatar: att.photoURL || b.userPhoto || b.photoURL || `https://images.unsplash.com/photo-${1535713875002 + (attIdx % 10)}?auto=format&fit=crop&w=150&q=80`,
+                avatarInitial: attName.charAt(0).toUpperCase(),
+                eventTitle: b.eventTitle || b.eventName || b.event?.title || 'Confirmed Nitroxx Event',
+                tierName,
+                ticketFor: att.joinAs || b.ticketFor || (b.vehicle ? 'Rider' : 'Participant'),
+                ticketTier: `${tierName} · ${att.joinAs || b.ticketFor || (b.vehicle ? 'Rider' : 'Participant')}`,
+                ticketNumber: attTicketNum,
+                bibNumber: attBib,
+                ticketPrice,
+                priceNumeric,
+                bookedDate,
+                bookedMinutes,
+                paymentStatus,
+                gateStatus,
+                vehicle: att.vehicle || b.vehicle || 'Motorcycle',
+                vehiclePlate: att.vehiclePlate || b.vehiclePlate || 'N/A',
+                city: att.city || b.city || b.bookingContact?.city || 'India',
+                bloodGroup: att.bloodGroup || b.bloodGroup || 'O+',
+                emergencyContact: att.emergencyContact || b.emergencyContact || 'Listed with Team',
+                wave: b.wave || 'General Wave (08:00 AM)',
+                rawBooking: b,
+                isFromBooking: true,
+              });
+            }
           });
         } else {
           const name = b.bookingContact?.name || b.attendee?.name || b.name || b.participantName || b.user?.fullName || 'Registered Participant';
@@ -228,46 +179,98 @@ const Participants = () => {
           const phone = b.bookingContact?.phone || b.attendee?.phone || b.phone || b.userPhone || '+91 98000 00000';
           const ticketNumber = b.ticketNumber || b.ticketCode || `NX-BKG-${String(b.id).slice(0, 6).toUpperCase()}`;
           const bibNumber = b.bibNumber || (ticketNumber ? `BIB-${ticketNumber.slice(-3)}` : `BIB-${350 + idx}`);
+          const id = `bkg-${b.id}`;
 
-          bookingParticipants.push({
-            id: `bkg-${b.id}`,
-            bookingId: b.id,
-            name,
-            email,
-            phone,
-            avatar: b.userPhoto || b.photoURL || `https://images.unsplash.com/photo-${1535713875002 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
-            avatarInitial: name.charAt(0).toUpperCase(),
-            eventTitle: b.eventTitle || b.eventName || b.event?.title || 'Confirmed Nitroxx Event',
-            tierName,
-            ticketFor: b.ticketFor || (b.vehicle ? 'Rider' : 'Participant'),
-            ticketTier: `${tierName} · ${b.ticketFor || (b.vehicle ? 'Rider' : 'Participant')}`,
-            ticketNumber,
-            bibNumber,
-            ticketPrice,
-            priceNumeric,
-            bookedDate,
-            bookedMinutes,
-            paymentStatus,
-            gateStatus,
-            vehicle: b.vehicle || 'Motorcycle',
-            vehiclePlate: b.vehiclePlate || 'N/A',
-            city: b.city || b.bookingContact?.city || 'India',
-            bloodGroup: b.bloodGroup || 'O+',
-            emergencyContact: b.emergencyContact || 'Listed with Team',
-            wave: b.wave || 'General Wave (08:00 AM)',
-            rawBooking: b,
-            isFromBooking: true,
-          });
+          if (!seenTicketOrId.has(ticketNumber) && !seenTicketOrId.has(id)) {
+            seenTicketOrId.add(ticketNumber);
+            seenTicketOrId.add(id);
+            combined.push({
+              id,
+              bookingId: b.id,
+              name,
+              email,
+              phone,
+              avatar: b.userPhoto || b.photoURL || `https://images.unsplash.com/photo-${1535713875002 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
+              avatarInitial: name.charAt(0).toUpperCase(),
+              eventTitle: b.eventTitle || b.eventName || b.event?.title || 'Confirmed Nitroxx Event',
+              tierName,
+              ticketFor: b.ticketFor || (b.vehicle ? 'Rider' : 'Participant'),
+              ticketTier: `${tierName} · ${b.ticketFor || (b.vehicle ? 'Rider' : 'Participant')}`,
+              ticketNumber,
+              bibNumber,
+              ticketPrice,
+              priceNumeric,
+              bookedDate,
+              bookedMinutes,
+              paymentStatus,
+              gateStatus,
+              vehicle: b.vehicle || 'Motorcycle',
+              vehiclePlate: b.vehiclePlate || 'N/A',
+              city: b.city || b.bookingContact?.city || 'India',
+              bloodGroup: b.bloodGroup || 'O+',
+              emergencyContact: b.emergencyContact || 'Listed with Team',
+              wave: b.wave || 'General Wave (08:00 AM)',
+              rawBooking: b,
+              isFromBooking: true,
+            });
+          }
         }
       });
+    }
 
-      setParticipants(prev => {
-        const liveBookingIds = new Set(bookingParticipants.map(p => p.id));
-        const filteredPrev = prev.filter(p => !liveBookingIds.has(p.id) && !p.isFromBooking);
-        return [...bookingParticipants, ...filteredPrev];
+    // 2. Process registrations
+    if (Array.isArray(registrations) && registrations.length > 0) {
+      registrations.forEach((r, i) => {
+        const tNum = r.ticketNumber || r.ticketCode || `NX-REG-${r.id}`;
+        if (seenTicketOrId.has(tNum) || seenTicketOrId.has(r.id)) return;
+        seenTicketOrId.add(tNum);
+        seenTicketOrId.add(r.id);
+
+        const rawTier = r.ticketType || 'Standard';
+        let tierName = 'Standard';
+        let ticketFor = 'Participant';
+
+        if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
+        else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
+        else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
+        else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
+        else if (rawTier.toLowerCase().includes('explorer')) tierName = 'Explorer';
+
+        if (r.participant?.vehicleNumber) ticketFor = 'Rider';
+
+        const priceNumeric = Number(r.ticketPrice || r.amount || 0);
+
+        combined.push({
+          id: r.id || `live-${i}`,
+          name: r.participantName || r.participant?.fullName || 'Registered Participant',
+          email: r.participantEmail || r.participant?.email || 'N/A',
+          phone: r.participantPhone || r.participant?.phone || '+91 98000 00000',
+          avatar: r.participantPhoto || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80`,
+          avatarInitial: (r.participantName || 'R').charAt(0).toUpperCase(),
+          eventTitle: r.eventTitle || 'Confirmed Event',
+          tierName,
+          ticketFor,
+          ticketTier: `${tierName} · ${ticketFor}`,
+          ticketNumber: tNum,
+          bibNumber: r.bibNumber || `BIB-${tNum.slice(-3)}`,
+          ticketPrice: `₹${priceNumeric.toLocaleString('en-IN')}`,
+          priceNumeric,
+          bookedDate: r.registrationDate ? formatDateTime(r.registrationDate).split(',')[0] : 'Just now',
+          bookedMinutes: 0,
+          paymentStatus: r.paymentStatus || 'Paid',
+          gateStatus: r.attendanceStatus === 'Checked In' ? 'Done' : r.status === 'Confirmed' ? 'On Progress' : 'Pending Gate',
+          vehicle: r.participant?.vehicleNumber || 'Motorcycle',
+          vehiclePlate: r.participant?.vehicleNumber || 'N/A',
+          city: r.participant?.city || 'India',
+          bloodGroup: r.participant?.bloodGroup || 'O+',
+          emergencyContact: r.participant?.emergencyContact || 'Listed with Team',
+          wave: 'General Wave (08:00 AM)',
+        });
       });
     }
-  }, [bookings]);
+
+    setParticipants(combined);
+  }, [registrations, bookings]);
 
   // Keyboard shortcut (⌘K or Ctrl+K) to focus search
   useEffect(() => {

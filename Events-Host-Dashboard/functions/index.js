@@ -21,9 +21,8 @@ const { sendTicketEmail } = require('./services/emailService');
  * PAUSE TOGGLE FOR TICKET EMAIL CLOUD FUNCTIONS
  * ============================================================================
  * Set PAUSE_TICKET_EMAILS to true to pause sending emails on ticket booking.
- * Set to false (or environment variable PAUSE_TICKET_EMAILS=false) to resume.
  */
-const PAUSE_TICKET_EMAILS = process.env.PAUSE_TICKET_EMAILS === 'false' ? false : true;
+const PAUSE_TICKET_EMAILS = true;
 
 /**
  * ============================================================================

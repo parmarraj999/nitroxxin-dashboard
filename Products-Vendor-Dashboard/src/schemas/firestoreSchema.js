@@ -7,6 +7,7 @@ export const COLLECTIONS = {
   brands: 'brands',
   orders: 'orders',
   orderItems: 'order_items',
+  payments: 'payments',
   inventory: 'inventory',
   warehouses: 'warehouses',
   coupons: 'coupons',

@@ -28,7 +28,6 @@ import {
 import AppLayout from '../../components/AppLayout/AppLayout';
 import { useAuth } from '../../context/AuthContext';
 import { useBookingsAndPayments } from '../../hooks/useBookingsAndPayments';
-import { INITIAL_TRANSACTIONS } from './transactionsData';
 import TransactionDetailDrawer from './TransactionDetailDrawer';
 import { TransactionTableSkeleton } from '../../components/States/SkeletonLoading';
 import './Transactions.css';
@@ -39,7 +38,7 @@ const Transactions = () => {
   const { bookings, payments, loading: liveLoading } = useBookingsAndPayments({ hostId });
 
   const [loading, setLoading] = useState(true);
-  const [transactions, setTransactions] = useState(INITIAL_TRANSACTIONS);
+  const [transactions, setTransactions] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTimeframe, setSelectedTimeframe] = useState('All'); // 'All' | '1D' | '7D' | '1M' | '1Y'
   const [statusFilter, setStatusFilter] = useState('All'); // 'All' | 'Success' | 'In progress' | 'Failed' | 'Pending'
@@ -208,13 +207,7 @@ const Transactions = () => {
       });
     }
 
-    if (liveTxList.length > 0) {
-      setTransactions((prev) => {
-        const liveSet = new Set(liveTxList.map((t) => t.id));
-        const kept = prev.filter((t) => !liveSet.has(t.id) && !t.isLive);
-        return [...liveTxList, ...kept];
-      });
-    }
+    setTransactions(liveTxList);
   }, [bookings, payments]);
 
   // Skeleton loading indicator synced with live subscription

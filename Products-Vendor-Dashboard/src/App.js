@@ -10,6 +10,7 @@ import AddProduct from './pages/AddProduct/AddProduct';
 import ProductDetails from './pages/ProductDetails/ProductDetails';
 import OrderManagement from './pages/OrderManagement/OrderManagement';
 import OrderDetails from './pages/OrderDetails/OrderDetails';
+import Transactions from './pages/Transactions/Transactions';
 import VendorProfile from './pages/VendorProfile/VendorProfile';
 import './App.css';
 
@@ -46,6 +47,9 @@ function App() {
 
             {/* Profile page */}
             <Route path="profile" element={<VendorProfile />} />
+
+            {/* Transactions & Payouts */}
+            <Route path="transactions" element={<Transactions />} />
 
             {/* Sidebar links not yet built — redirect to dashboard */}
             <Route path="inventory" element={<Navigate to="/dashboard" replace />} />

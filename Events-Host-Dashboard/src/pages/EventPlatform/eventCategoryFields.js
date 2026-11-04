@@ -55,8 +55,8 @@ export const eventCategoryFields = {
     field('raceFormat', 'text'), field('raceClasses', 'array'), field('prizeMoney', 'array'), field('stuntShowTime', 'time'),
   ],
   Expeditions: [
-    field('numberOfDays', 'number'), field('dayWisePlan', 'array'), field('maximumAltitude', 'number'),field('totalDistance', 'number'), field('minimumAge', 'number'), field('terrain', 'text', { label: 'Terrain' }),field('allowedVehicle', 'text', { label: 'Allowed Vehicle' }),
-    field('permitsRequired', 'boolean'), field('supportVehicles', 'number'), field('mechanic', 'boolean'),  field('FIRST AID', 'boolean'), field('Gear', 'boolean', { required: true }), field('RC AND INSURANCE', 'boolean', { required: true }), field('Driving Licence', 'boolean', { required: true }),
+    field('numberOfDays', 'number'), field('maximumAltitude', 'number'),field('totalDistance', 'number'), field('minimumAge', 'number'), field('terrain', 'text', { label: 'Terrain' }),field('allowedVehicle', 'text', { label: 'Allowed Vehicle' }),
+    field('permitsRequired', 'boolean'), field('mechanic', 'boolean'),  field('FIRST AID', 'boolean'), field('Gear', 'boolean', { required: true }), field('RC AND INSURANCE', 'boolean', { required: true }), field('Driving Licence', 'boolean', { required: true }),
   ],
   'International Rides': [
     field('countriesVisited', 'array'), field('passportRequired', 'boolean'), field('visaRequired', 'boolean'),
