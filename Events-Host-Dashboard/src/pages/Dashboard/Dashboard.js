@@ -51,7 +51,8 @@ import { useAuth } from '../../context/AuthContext';
 import { useAnalytics } from '../../hooks/useAnalytics';
 import { useEvents } from '../../hooks/useEvents';
 import { useRegistrations } from '../../hooks/useRegistrations';
-import { EVENT_PARTICIPANTS_DATA } from '../EventPlatform/participantsData';
+import { useBookingsAndPayments } from '../../hooks/useBookingsAndPayments';
+import { useNotifications } from '../../hooks/useNotifications';
 import { currency, downloadCsv, formatDateTime } from '../../utils/formatters';
 import '../EventPlatform/Participants.css';
 import './Dashboard.css';
@@ -84,6 +85,8 @@ const Dashboard = () => {
   const { registrations = [] } = useRegistrations(
     profile?.role === 'Host' ? { hostId: user?.uid } : { userId: user?.uid }
   );
+  const { bookings = [], payments = [] } = useBookingsAndPayments(profile?.role === 'Host' ? { hostId: user?.uid } : {});
+  const { notifications = [] } = useNotifications(user?.uid);
   const analytics = useAnalytics(events, registrations);
 
   // States
@@ -100,104 +103,200 @@ const Dashboard = () => {
   });
   const [openCardDropdown, setOpenCardDropdown] = useState(null);
 
-  // Revenue Analytics state (Default: 'This Month' with single day showing bar)
+  // Revenue Analytics state (Default: 'This Month')
   const [cashflowPeriod, setCashflowPeriod] = useState('This Month');
   const [selectedBarIndex, setSelectedBarIndex] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [customStartDate, setCustomStartDate] = useState('2026-10-01');
   const [customEndDate, setCustomEndDate] = useState('2026-10-31');
 
-  // 1. Overview Calculated Data
-  const totalCalculatedRevenue = analytics.totalRevenue > 0 ? analytics.totalRevenue : 842500;
-  const totalCalculatedTickets = analytics.totalRegistrations > 0 ? analytics.totalRegistrations : 3844;
-  const totalCalculatedEvents = events.length > 0 ? events.length : 24;
-  const totalLiveEvents = events.filter((e) => e.status === 'Live' || e.status === 'Published').length || 3;
+  // 1. Overview Calculated Data (Strictly real data only - defaults to 0)
+  const totalCalculatedRevenue = Number(analytics.totalRevenue || 0);
+  const totalCalculatedTickets = Number(analytics.totalRegistrations || 0);
+  const totalCalculatedEvents = Number(events.length || 0);
+  const totalLiveEvents = events.filter((e) => e.status === 'Live' || e.status === 'Published').length || 0;
 
-  // Stat Card mini sparklines (Image 1 replica)
-  const sparkline1 = useMemo(() => [
-    { v: 12 }, { v: 18 }, { v: 15 }, { v: 24 }, { v: 20 }, { v: 32 }, { v: 40 }, { v: 35 }, { v: 48 }, { v: 56 }, { v: 50 }, { v: 58 }, { v: 72 }
-  ], []);
+  // Stat Card sparklines - shows real level or flat 0 line if no data
+  const sparkline1 = useMemo(() => totalCalculatedEvents > 0 ? [
+    { v: Math.max(1, Math.round(totalCalculatedEvents * 0.3)) },
+    { v: Math.max(1, Math.round(totalCalculatedEvents * 0.7)) },
+    { v: totalCalculatedEvents }
+  ] : [{ v: 0 }, { v: 0 }], [totalCalculatedEvents]);
 
-  const sparkline2 = useMemo(() => [
-    { v: 10 }, { v: 14 }, { v: 20 }, { v: 18 }, { v: 28 }, { v: 24 }, { v: 38 }, { v: 44 }, { v: 36 }, { v: 50 }, { v: 62 }, { v: 55 }, { v: 75 }
-  ], []);
+  const sparkline2 = useMemo(() => totalLiveEvents > 0 ? [
+    { v: Math.max(1, Math.round(totalLiveEvents * 0.4)) },
+    { v: totalLiveEvents }
+  ] : [{ v: 0 }, { v: 0 }], [totalLiveEvents]);
 
-  const sparkline3 = useMemo(() => [
-    { v: 15 }, { v: 22 }, { v: 19 }, { v: 30 }, { v: 26 }, { v: 42 }, { v: 38 }, { v: 52 }, { v: 48 }, { v: 64 }, { v: 70 }, { v: 65 }, { v: 82 }
-  ], []);
+  const sparkline3 = useMemo(() => totalCalculatedTickets > 0 ? [
+    { v: Math.max(1, Math.round(totalCalculatedTickets * 0.2)) },
+    { v: Math.max(1, Math.round(totalCalculatedTickets * 0.6)) },
+    { v: totalCalculatedTickets }
+  ] : [{ v: 0 }, { v: 0 }], [totalCalculatedTickets]);
 
-  const sparkline4 = useMemo(() => [
-    { v: 8 }, { v: 12 }, { v: 10 }, { v: 16 }, { v: 14 }, { v: 20 }, { v: 18 }, { v: 22 }, { v: 25 }, { v: 22 }, { v: 26 }, { v: 24 }, { v: 30 }
-  ], []);
+  const sparkline4 = useMemo(() => totalCalculatedRevenue > 0 ? [
+    { v: Math.max(1, Math.round(totalCalculatedRevenue * 0.2)) },
+    { v: Math.max(1, Math.round(totalCalculatedRevenue * 0.6)) },
+    { v: totalCalculatedRevenue }
+  ] : [{ v: 0 }, { v: 0 }], [totalCalculatedRevenue]);
 
-  // 2. Revenue Analytics Bar Data (Capsule bar graph with single day showing bar by default)
-  const cashflowDataMap = useMemo(() => ({
-    'This Month': [
-      { name: '1', amount: 18500, fullDate: 'Oct 01, 2026', day: 'Thu', growth: '+8.2%' },
-      { name: '2', amount: 22000, fullDate: 'Oct 02, 2026', day: 'Fri', growth: '+10.4%' },
-      { name: '3', amount: 19400, fullDate: 'Oct 03, 2026', day: 'Sat', growth: '+7.8%' },
-      { name: '4', amount: 31000, fullDate: 'Oct 04, 2026', day: 'Sun', growth: '+15.2%' },
-      { name: '5', amount: 24500, fullDate: 'Oct 05, 2026', day: 'Mon', growth: '+11.0%' },
-      { name: '6', amount: 16800, fullDate: 'Oct 06, 2026', day: 'Tue', growth: '+6.5%' },
-      { name: '7', amount: 28000, fullDate: 'Oct 07, 2026', day: 'Wed', growth: '+12.8%' },
-      { name: '8', amount: 35200, fullDate: 'Oct 08, 2026', day: 'Thu', growth: '+16.5%' },
-      { name: '9', amount: 29000, fullDate: 'Oct 09, 2026', day: 'Fri', growth: '+13.2%' },
-      { name: '10', amount: 42500, fullDate: 'Oct 10, 2026', day: 'Sat', growth: '+19.4%' },
-      { name: '11', amount: 38000, fullDate: 'Oct 11, 2026', day: 'Sun', growth: '+17.0%' },
-      { name: '12', amount: 25400, fullDate: 'Oct 12, 2026', day: 'Mon', growth: '+11.5%' },
-      { name: '13', amount: 33800, fullDate: 'Oct 13, 2026', day: 'Tue', growth: '+15.0%' },
-      { name: '14', amount: 46000, fullDate: 'Oct 14, 2026', day: 'Wed', growth: '+21.2%' },
-      { name: '15', amount: 52000, fullDate: 'Oct 15, 2026', day: 'Thu', growth: '+24.5%' },
-      { name: '16', amount: 39500, fullDate: 'Oct 16, 2026', day: 'Fri', growth: '+17.8%' },
-      { name: '17', amount: 44200, fullDate: 'Oct 17, 2026', day: 'Sat', growth: '+20.1%' },
-      { name: '18', amount: 68500, fullDate: 'Oct 18, 2026', day: 'Sun', growth: '+31.4%', isPeak: true },
-      { name: '19', amount: 34000, fullDate: 'Oct 19, 2026', day: 'Mon', growth: '+15.6%' },
-      { name: '20', amount: 28500, fullDate: 'Oct 20, 2026', day: 'Tue', growth: '+12.4%' },
-      { name: '21', amount: 37200, fullDate: 'Oct 21, 2026', day: 'Wed', growth: '+16.8%' },
-      { name: '22', amount: 41000, fullDate: 'Oct 22, 2026', day: 'Thu', growth: '+18.9%' },
-      { name: '23', amount: 30500, fullDate: 'Oct 23, 2026', day: 'Fri', growth: '+13.5%' },
-      { name: '24', amount: 26000, fullDate: 'Oct 24, 2026', day: 'Sat', growth: '+11.2%' },
-      { name: '25', amount: 35000, fullDate: 'Oct 25, 2026', day: 'Sun', growth: '+15.8%' },
-      { name: '26', amount: 29800, fullDate: 'Oct 26, 2026', day: 'Mon', growth: '+13.1%' },
-      { name: '27', amount: 33000, fullDate: 'Oct 27, 2026', day: 'Tue', growth: '+14.9%' },
-      { name: '28', amount: 27500, fullDate: 'Oct 28, 2026', day: 'Wed', growth: '+12.0%' },
-      { name: '29', amount: 24000, fullDate: 'Oct 29, 2026', day: 'Thu', growth: '+10.5%' },
-      { name: '30', amount: 21500, fullDate: 'Oct 30, 2026', day: 'Fri', growth: '+9.2%' },
-      { name: '31', amount: 18500, fullDate: 'Oct 31, 2026', day: 'Sat', growth: '+8.0%' },
-    ],
-    'This Week': [
-      { name: 'Sun', amount: 45000, fullDate: 'Sunday, Oct 11', growth: '+8.2%' },
-      { name: 'Mon', amount: 62000, fullDate: 'Monday, Oct 12', growth: '+12.4%' },
-      { name: 'Tue', amount: 58000, fullDate: 'Tuesday, Oct 13', growth: '+10.8%' },
-      { name: 'Wed', amount: 89000, fullDate: 'Wednesday, Oct 14', growth: '+24.5%', isPeak: true },
-      { name: 'Thu', amount: 52000, fullDate: 'Thursday, Oct 15', growth: '+9.5%' },
-      { name: 'Fri', amount: 74000, fullDate: 'Friday, Oct 16', growth: '+16.2%' },
-      { name: 'Sat', amount: 38000, fullDate: 'Saturday, Oct 17', growth: '+6.1%' },
-    ],
-    'Last Month': [
-      { name: '1', amount: 16000, fullDate: 'Sep 01, 2026', growth: '+7.5%' },
-      { name: '5', amount: 22000, fullDate: 'Sep 05, 2026', growth: '+9.8%' },
-      { name: '10', amount: 34000, fullDate: 'Sep 10, 2026', growth: '+14.2%' },
-      { name: '15', amount: 48000, fullDate: 'Sep 15, 2026', growth: '+21.0%' },
-      { name: '20', amount: 39000, fullDate: 'Sep 20, 2026', growth: '+17.4%' },
-      { name: '25', amount: 56000, fullDate: 'Sep 25, 2026', growth: '+26.0%', isPeak: true },
-      { name: '30', amount: 28000, fullDate: 'Sep 30, 2026', growth: '+12.5%' },
-    ],
-    'This Year': [
-      { name: 'Jan', amount: 145000, fullDate: 'January 2026', growth: '+12.4%' },
-      { name: 'Feb', amount: 180000, fullDate: 'February 2026', growth: '+14.2%' },
-      { name: 'Mar', amount: 210000, fullDate: 'March 2026', growth: '+16.0%' },
-      { name: 'Apr', amount: 245000, fullDate: 'April 2026', growth: '+15.5%' },
-      { name: 'May', amount: 198000, fullDate: 'May 2026', growth: '+11.2%' },
-      { name: 'Jun', amount: 280000, fullDate: 'June 2026', growth: '+18.4%' },
-      { name: 'Jul', amount: 420000, fullDate: 'July 2026', growth: '+25.1%' },
-      { name: 'Aug', amount: 510000, fullDate: 'August 2026', growth: '+28.6%' },
-      { name: 'Sep', amount: 480000, fullDate: 'September 2026', growth: '+20.3%' },
-      { name: 'Oct', amount: 650000, fullDate: 'October 2026', growth: '+31.4%', isPeak: true },
-      { name: 'Nov', amount: 780000, fullDate: 'November 2026', growth: '+36.8%' },
-      { name: 'Dec', amount: 842500, fullDate: 'December 2026', growth: '+42.0%' },
-    ],
-  }), []);
+  // Aggregate all real revenue transactions
+  const allRevenueItems = useMemo(() => {
+    const items = [];
+    const parseItemDate = (val) => {
+      if (!val) return null;
+      if (typeof val?.toDate === 'function') return val.toDate();
+      if (val.seconds) return new Date(val.seconds * 1000);
+      if (val instanceof Date) return val;
+      const parsed = new Date(val);
+      return isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    if (Array.isArray(bookings)) {
+      bookings.forEach((b) => {
+        const amt = Number(b.amount || b.totalAmount || b.pricing?.finalAmount || b.ticketPrice || b.priceNumeric || 0);
+        const d = parseItemDate(b.createdAt || b.bookingDate);
+        if (amt > 0 && d) items.push({ date: d, amount: amt });
+      });
+    }
+
+    if (Array.isArray(payments)) {
+      payments.forEach((p) => {
+        const amt = Number(p.amount || p.amountNum || 0);
+        const d = parseItemDate(p.createdAt || p.date || p.timestamp);
+        if (amt > 0 && d) items.push({ date: d, amount: amt });
+      });
+    }
+
+    if (Array.isArray(registrations)) {
+      registrations.forEach((r) => {
+        const amt = Number(r.ticketPrice || r.priceNumeric || 0);
+        const d = parseItemDate(r.registrationDate || r.createdAt);
+        if (amt > 0 && d) items.push({ date: d, amount: amt });
+      });
+    }
+
+    return items;
+  }, [bookings, payments, registrations]);
+
+  // 2. Revenue Analytics Bar Data calculated strictly from real transactions
+  const cashflowDataMap = useMemo(() => {
+    const now = new Date();
+    const currYear = now.getFullYear();
+    const currMonth = now.getMonth();
+
+    // 1. This Month: Day 1 to days in current month
+    const daysInMonth = new Date(currYear, currMonth + 1, 0).getDate();
+    const thisMonthDays = [];
+    let maxMonthAmount = 0;
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dDate = new Date(currYear, currMonth, d);
+      const dayAmt = allRevenueItems.reduce((acc, item) => {
+        if (item.date && item.date.getFullYear() === currYear && item.date.getMonth() === currMonth && item.date.getDate() === d) {
+          return acc + item.amount;
+        }
+        return acc;
+      }, 0);
+      if (dayAmt > maxMonthAmount) maxMonthAmount = dayAmt;
+      thisMonthDays.push({
+        name: String(d),
+        amount: dayAmt,
+        fullDate: dDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        day: dDate.toLocaleDateString('en-US', { weekday: 'short' }),
+        growth: '',
+        isPeak: false,
+      });
+    }
+    if (maxMonthAmount > 0) {
+      const peakDay = thisMonthDays.find((item) => item.amount === maxMonthAmount);
+      if (peakDay) peakDay.isPeak = true;
+    }
+
+    // 2. This Week: Sunday to Saturday
+    const weekDays = [];
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    let maxWeekAmount = 0;
+    for (let i = 0; i < 7; i++) {
+      const wDate = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + i);
+      const wAmt = allRevenueItems.reduce((acc, item) => {
+        if (item.date && item.date.getFullYear() === wDate.getFullYear() && item.date.getMonth() === wDate.getMonth() && item.date.getDate() === wDate.getDate()) {
+          return acc + item.amount;
+        }
+        return acc;
+      }, 0);
+      if (wAmt > maxWeekAmount) maxWeekAmount = wAmt;
+      weekDays.push({
+        name: wDate.toLocaleDateString('en-US', { weekday: 'short' }),
+        amount: wAmt,
+        fullDate: wDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+        isPeak: false,
+      });
+    }
+    if (maxWeekAmount > 0) {
+      const peakWeek = weekDays.find((item) => item.amount === maxWeekAmount);
+      if (peakWeek) peakWeek.isPeak = true;
+    }
+
+    // 3. Last Month
+    const lastMonthDate = new Date(currYear, currMonth - 1, 1);
+    const lastMonthYear = lastMonthDate.getFullYear();
+    const lastMonthIdx = lastMonthDate.getMonth();
+    const daysInLastMonth = new Date(lastMonthYear, lastMonthIdx + 1, 0).getDate();
+    const lastMonthDays = [];
+    let maxLastMonthAmount = 0;
+    for (let d = 1; d <= daysInLastMonth; d += 3) {
+      const lmDate = new Date(lastMonthYear, lastMonthIdx, d);
+      const lmEnd = new Date(lastMonthYear, lastMonthIdx, Math.min(daysInLastMonth, d + 2));
+      const lmAmt = allRevenueItems.reduce((acc, item) => {
+        if (item.date && item.date.getFullYear() === lastMonthYear && item.date.getMonth() === lastMonthIdx && item.date.getDate() >= d && item.date.getDate() <= lmEnd.getDate()) {
+          return acc + item.amount;
+        }
+        return acc;
+      }, 0);
+      if (lmAmt > maxLastMonthAmount) maxLastMonthAmount = lmAmt;
+      lastMonthDays.push({
+        name: String(d),
+        amount: lmAmt,
+        fullDate: `${lmDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${lmEnd.getDate()}`,
+        isPeak: false,
+      });
+    }
+    if (maxLastMonthAmount > 0) {
+      const peakLast = lastMonthDays.find((item) => item.amount === maxLastMonthAmount);
+      if (peakLast) peakLast.isPeak = true;
+    }
+
+    // 4. This Year: Months Jan to Dec
+    const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    let maxYearAmount = 0;
+    const yearMonths = monthNames.map((mName, mIdx) => {
+      const mAmt = allRevenueItems.reduce((acc, item) => {
+        if (item.date && item.date.getFullYear() === currYear && item.date.getMonth() === mIdx) {
+          return acc + item.amount;
+        }
+        return acc;
+      }, 0);
+      if (mAmt > maxYearAmount) maxYearAmount = mAmt;
+      return {
+        name: mName,
+        amount: mAmt,
+        fullDate: `${mName} ${currYear}`,
+        isPeak: false,
+      };
+    });
+    if (maxYearAmount > 0) {
+      const peakY = yearMonths.find((item) => item.amount === maxYearAmount);
+      if (peakY) peakY.isPeak = true;
+    }
+
+    return {
+      'This Month': thisMonthDays,
+      'This Week': weekDays,
+      'Last Month': lastMonthDays,
+      'This Year': yearMonths,
+    };
+  }, [allRevenueItems]);
 
   const activeCashflowData = cashflowDataMap[cashflowPeriod] || cashflowDataMap['This Month'];
 
@@ -210,8 +309,8 @@ const Dashboard = () => {
     setOpenCardDropdown(null);
   };
 
-  // 4. Recent Participants Directory (Matching Participants Page Data & UI)
-  const [participants, setParticipants] = useState(() => EVENT_PARTICIPANTS_DATA);
+  // 4. Recent Participants Directory (Strictly driven by real data - defaults to empty)
+  const [participants, setParticipants] = useState([]);
   const [participantGateFilter, setParticipantGateFilter] = useState('All');
   const [dashSortField, setDashSortField] = useState('');
   const [dashSortDirection, setDashSortDirection] = useState('asc');
@@ -222,10 +321,13 @@ const Dashboard = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [copiedCode, setCopiedCode] = useState(null);
 
-  // Merge any live Firebase registrations into the list
+  // Sync real registrations and bookings into participants list
   React.useEffect(() => {
-    if (registrations && registrations.length > 0) {
-      const liveItems = registrations.map((r, i) => {
+    const list = [];
+    const seen = new Set();
+
+    if (Array.isArray(registrations) && registrations.length > 0) {
+      registrations.forEach((r, i) => {
         const rawTier = r.ticketType || 'Standard';
         let tierName = 'Standard';
         let ticketFor = 'Participant';
@@ -238,41 +340,93 @@ const Dashboard = () => {
 
         if (r.participant?.vehicleNumber) ticketFor = 'Rider';
 
-        return {
-          id: r.id || `live-${i}`,
-          name: r.participantName || r.participant?.fullName || 'Registered Participant',
-          email: r.participantEmail || r.participant?.email || 'guest@nitroxx.com',
-          phone: r.participantPhone || r.participant?.phone || '+91 98000 00000',
-          avatar: r.participantPhoto || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80`,
-          avatarInitial: (r.participantName || 'R').charAt(0).toUpperCase(),
-          eventTitle: r.eventTitle || 'Nitroxx MotoFest Pune 2025',
-          tierName,
-          ticketFor,
-          ticketTier: `${tierName} · ${ticketFor}`,
-          ticketNumber: r.ticketNumber || `NX-${Date.now().toString(36).toUpperCase()}`,
-          bibNumber: r.ticketNumber ? `BIB-${r.ticketNumber.slice(-3)}` : `BIB-${300 + i}`,
-          ticketPrice: r.ticketPrice ? `₹${Number(r.ticketPrice).toLocaleString()}` : '₹4,999',
-          priceNumeric: Number(r.ticketPrice || 4999),
-          bookedDate: r.registrationDate ? formatDateTime(r.registrationDate).split(',')[0] : 'Just now',
-          bookedMinutes: 0,
-          paymentStatus: 'Paid',
-          gateStatus: r.attendanceStatus === 'Checked In' ? 'Done' : r.status === 'Confirmed' ? 'On Progress' : 'Pending Gate',
-          vehicle: r.participant?.vehicleNumber || 'Motorcycle',
-          vehiclePlate: r.participant?.vehicleNumber || 'MH12-LIVE',
-          city: r.participant?.city || 'India',
-          bloodGroup: r.participant?.bloodGroup || 'O+',
-          emergencyContact: r.participant?.emergencyContact || 'Listed with Team',
-          wave: 'General Wave (08:00 AM)'
-        };
-      });
-
-      setParticipants(prev => {
-        const existingIds = new Set(prev.map(p => p.id));
-        const newUniques = liveItems.filter(item => !existingIds.has(item.id));
-        return [...newUniques, ...prev];
+        const id = r.id || `live-reg-${i}`;
+        if (!seen.has(id)) {
+          seen.add(id);
+          list.push({
+            id,
+            name: r.participantName || r.participant?.fullName || 'Registered Participant',
+            email: r.participantEmail || r.participant?.email || 'guest@nitroxx.com',
+            phone: r.participantPhone || r.participant?.phone || '+91 98000 00000',
+            avatar: r.participantPhoto || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80`,
+            avatarInitial: (r.participantName || 'R').charAt(0).toUpperCase(),
+            eventTitle: r.eventTitle || 'Host Event',
+            tierName,
+            ticketFor,
+            ticketTier: `${tierName} · ${ticketFor}`,
+            ticketNumber: r.ticketNumber || `NX-${Date.now().toString(36).toUpperCase()}`,
+            bibNumber: r.ticketNumber ? `BIB-${r.ticketNumber.slice(-3)}` : `BIB-${300 + i}`,
+            ticketPrice: r.ticketPrice ? `₹${Number(r.ticketPrice).toLocaleString('en-IN')}` : '₹0.00',
+            priceNumeric: Number(r.ticketPrice || 0),
+            bookedDate: r.registrationDate ? formatDateTime(r.registrationDate).split(',')[0] : 'Recently',
+            bookedMinutes: 0,
+            paymentStatus: 'Paid',
+            gateStatus: r.attendanceStatus === 'Checked In' ? 'Done' : r.status === 'Confirmed' ? 'On Progress' : 'Pending Gate',
+            vehicle: r.participant?.vehicleNumber || 'Motorcycle',
+            vehiclePlate: r.participant?.vehicleNumber || 'N/A',
+            city: r.participant?.city || 'India',
+            bloodGroup: r.participant?.bloodGroup || 'O+',
+            emergencyContact: r.participant?.emergencyContact || 'Listed with Team',
+            wave: 'General Wave (08:00 AM)',
+          });
+        }
       });
     }
-  }, [registrations]);
+
+    if (Array.isArray(bookings) && bookings.length > 0) {
+      bookings.forEach((b, idx) => {
+        const rawTier = b.packageName || b.tierName || b.ticketType || 'Standard';
+        let tierName = 'Standard';
+        if (rawTier.toLowerCase().includes('platinum')) tierName = 'Platinum';
+        else if (rawTier.toLowerCase().includes('vip')) tierName = 'VIP';
+        else if (rawTier.toLowerCase().includes('plus')) tierName = 'Plus';
+        else if (rawTier.toLowerCase().includes('pro')) tierName = 'Pro Rider';
+
+        const priceNumeric = Number(b.amount || b.totalAmount || b.pricing?.finalAmount || b.ticketPrice || b.priceNumeric || 0);
+        const ticketPrice = priceNumeric > 0 ? `₹${priceNumeric.toLocaleString('en-IN')}` : '₹0.00';
+        const dObj = b.createdAt?.toDate ? b.createdAt.toDate() : (b.createdAt?.seconds ? new Date(b.createdAt.seconds * 1000) : (b.createdAt ? new Date(b.createdAt) : new Date()));
+        const bookedDate = dObj.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        const isPaid = (b.paymentStatus === 'paid' || b.paymentStatus === 'Success' || b.status === 'confirmed' || b.status === 'approved' || b.status === 'paid' || priceNumeric === 0);
+        const paymentStatus = isPaid ? 'Paid' : (b.paymentStatus || 'Pending');
+        const isDone = b.attendanceStatus === 'Checked In' || b.status === 'Checked In' || b.gateStatus === 'Done';
+        const gateStatus = isDone ? 'Done' : (b.status === 'Confirmed' || isPaid ? 'On Progress' : 'Pending Gate');
+
+        const bId = `bkg-${b.id || idx}`;
+        if (!seen.has(bId)) {
+          seen.add(bId);
+          const attName = b.bookingContact?.name || b.attendee?.name || b.name || b.participantName || 'Attendee';
+          list.push({
+            id: bId,
+            name: attName,
+            email: b.bookingContact?.email || b.attendee?.email || b.email || 'N/A',
+            phone: b.bookingContact?.phone || b.attendee?.phone || b.phone || '+91 98000 00000',
+            avatar: b.userPhoto || b.photoURL || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80`,
+            avatarInitial: attName.charAt(0).toUpperCase(),
+            eventTitle: b.eventTitle || b.eventName || b.event?.title || 'Confirmed Event',
+            tierName,
+            ticketFor: b.vehicle ? 'Rider' : 'Participant',
+            ticketTier: `${tierName} · ${b.vehicle ? 'Rider' : 'Participant'}`,
+            ticketNumber: b.ticketNumber || b.ticketCode || `NX-BKG-${String(b.id || '').slice(0, 5).toUpperCase()}`,
+            bibNumber: b.bibNumber || (b.ticketNumber ? `BIB-${b.ticketNumber.slice(-3)}` : `BIB-${400 + idx}`),
+            ticketPrice,
+            priceNumeric,
+            bookedDate,
+            bookedMinutes: dObj.getTime(),
+            paymentStatus,
+            gateStatus,
+            vehicle: b.vehicle || 'Motorcycle',
+            vehiclePlate: b.vehiclePlate || 'N/A',
+            city: b.city || b.bookingContact?.city || 'India',
+            bloodGroup: b.bloodGroup || 'O+',
+            emergencyContact: b.emergencyContact || 'Listed with Team',
+            wave: 'General Wave (08:00 AM)',
+          });
+        }
+      });
+    }
+
+    setParticipants(list);
+  }, [registrations, bookings]);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -461,19 +615,19 @@ const Dashboard = () => {
   };
 
   // =========================================================================
-  // UPCOMING EVENTS & INTERACTIVE CALENDAR LOGIC (Image Replication)
+  // UPCOMING EVENTS & INTERACTIVE CALENDAR LOGIC (Real Data Only)
   // =========================================================================
-  const [calendarDate, setCalendarDate] = useState(() => new Date(2025, 11, 1)); // December 2025 as in reference image
-  const [selectedCalendarDay, setSelectedCalendarDay] = useState(20); // 20 selected by default matching image
+  const [calendarDate, setCalendarDate] = useState(() => new Date());
+  const [selectedCalendarDay, setSelectedCalendarDay] = useState(null);
   const [eventsFilter, setEventsFilter] = useState('All'); // 'All' | 'Ongoing' | 'Upcoming' | 'Completed' | 'Pending' | 'Cancelled'
   const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
   const [viewDropdownOpen, setViewDropdownOpen] = useState(false);
   const [calendarViewMode, setCalendarViewMode] = useState('Month');
 
   const allCalendarEvents = useMemo(() => {
-    const liveItems = (events || []).map((e, idx) => {
-      const sDate = e.startDate ? new Date(e.startDate) : new Date(2025, 11, 14);
-      const eDate = e.endDate ? new Date(e.endDate) : (e.startDate ? new Date(e.startDate) : new Date(2025, 11, 18));
+    return (events || []).map((e, idx) => {
+      const sDate = e.startDate ? (e.startDate.toDate ? e.startDate.toDate() : new Date(e.startDate)) : new Date();
+      const eDate = e.endDate ? (e.endDate.toDate ? e.endDate.toDate() : new Date(e.endDate)) : sDate;
       const startDay = sDate.getDate();
       const endDay = eDate.getDate();
       const isMultiDay = endDay > startDay || (eDate.getTime() - sDate.getTime()) > 86400000;
@@ -491,7 +645,7 @@ const Dashboard = () => {
       if (e.status === 'Live' || e.status === 'Ongoing') statusLabel = 'Ongoing';
       else if (e.status === 'Cancelled') statusLabel = 'Cancelled';
       else if (e.status === 'Draft' || e.status === 'Pending') statusLabel = 'Pending';
-      else if (e.status === 'Completed') statusLabel = 'Completed';
+      else if (e.status === 'Completed' || e.status === 'Complete') statusLabel = 'Completed';
 
       return {
         id: e.id || `live-${idx}`,
@@ -503,125 +657,13 @@ const Dashboard = () => {
         displayDayRange: isMultiDay ? `${dayNum}-${endDayNum}` : dayNum,
         dayName,
         dateStr,
-        fullDate: e.startDate || '2025-12-20',
-        title: e.title || 'Live Host Event',
+        fullDate: e.startDate || '',
+        title: e.title || 'Untitled Event',
         status: statusLabel,
-        location: e.venue ? `${e.venue}, ${e.city || ''}` : 'Nitroxx Track Arena',
-        category: e.category || 'Race',
+        location: e.venue ? `${e.venue}${e.city ? `, ${e.city}` : ''}` : 'Location TBD',
+        category: e.category || 'General',
       };
     });
-
-    const referenceItems = [
-      {
-        id: 'evt-1',
-        day: '20',
-        startDayNum: 20,
-        endDayNum: 20,
-        isMultiDay: false,
-        displayDayRange: '20',
-        dayName: 'FRI',
-        dateStr: 'Dec 20 at 08:05 am',
-        fullDate: '2025-12-20',
-        title: 'Global Summit 2025',
-        status: 'Upcoming',
-        location: '3890 Poplar Dr.',
-        category: 'Summit',
-      },
-      {
-        id: 'evt-2',
-        day: '22',
-        startDayNum: 22,
-        endDayNum: 22,
-        isMultiDay: false,
-        displayDayRange: '22',
-        dayName: 'SUN',
-        dateStr: 'Dec 22 at 01:49 pm',
-        fullDate: '2025-12-22',
-        title: 'Elite Athlete Invitational',
-        status: 'Cancelled',
-        location: '8558 Green Rd.',
-        category: 'Motorsports',
-      },
-      {
-        id: 'evt-3',
-        day: '25',
-        startDayNum: 25,
-        endDayNum: 25,
-        isMultiDay: false,
-        displayDayRange: '25',
-        dayName: 'WED',
-        dateStr: 'Dec 25 at 12:10 am',
-        fullDate: '2025-12-25',
-        title: 'World Design Challenge',
-        status: 'Pending',
-        location: '775 Rolling Green Rd.',
-        category: 'Design & Tech',
-      },
-      {
-        id: 'evt-4',
-        day: '03',
-        startDayNum: 3,
-        endDayNum: 3,
-        isMultiDay: false,
-        displayDayRange: '03',
-        dayName: 'MON',
-        dateStr: 'Dec 03 at 08:05 am',
-        fullDate: '2025-12-03',
-        title: 'Ultimate Development Showdown',
-        status: 'Completed',
-        location: '8080 Railroad St.',
-        category: 'Hackathon',
-      },
-      {
-        id: 'evt-5',
-        day: '14',
-        endDay: '18',
-        startDayNum: 14,
-        endDayNum: 18,
-        isMultiDay: true,
-        displayDayRange: '14-18',
-        dayName: 'SUN-THU',
-        dateStr: 'Dec 14 - 18 at 02:30 pm',
-        fullDate: '2025-12-14',
-        title: 'Nitroxx Pro Supercross Championship',
-        status: 'Ongoing',
-        location: 'Manali High Arena, HP',
-        category: 'Racing',
-      },
-      {
-        id: 'evt-6',
-        day: '17',
-        startDayNum: 17,
-        endDayNum: 17,
-        isMultiDay: false,
-        displayDayRange: '17',
-        dayName: 'WED',
-        dateStr: 'Dec 17 at 11:00 am',
-        fullDate: '2025-12-17',
-        title: 'Aravalli Dirt Sprint Series Round 4',
-        status: 'Upcoming',
-        location: 'Leopard Trail, Gurugram',
-        category: 'Rally',
-      },
-      {
-        id: 'evt-7',
-        day: '07',
-        endDay: '10',
-        startDayNum: 7,
-        endDayNum: 10,
-        isMultiDay: true,
-        displayDayRange: '07-10',
-        dayName: 'SUN-WED',
-        dateStr: 'Dec 07 - 10 at 04:00 pm',
-        fullDate: '2025-12-07',
-        title: 'Goa Coastal Beach Sprint & Pitlane',
-        status: 'Ongoing',
-        location: 'Vagator Arena, Goa',
-        category: 'Festival',
-      },
-    ];
-
-    return liveItems.length > 0 ? [...liveItems, ...referenceItems] : referenceItems;
   }, [events]);
 
   const calendarYear = calendarDate.getFullYear();
@@ -633,7 +675,6 @@ const Dashboard = () => {
   const daysInPrevMonth = new Date(calendarYear, calendarMonth, 0).getDate();
 
   const calendarCells = useMemo(() => {
-    // Determine which days have events and which days are ongoing multi-day events
     const ongoingDaysMap = new Map();
     const eventDaysMap = new Map();
 
@@ -653,11 +694,6 @@ const Dashboard = () => {
           }
         }
       }
-    });
-
-    // Default decorative dots from reference if no direct event mapped
-    [2, 3, 6, 8, 11, 14, 17, 20, 22, 25].forEach((d) => {
-      if (!eventDaysMap.has(d)) eventDaysMap.set(d, []);
     });
 
     const cells = [];
@@ -702,7 +738,6 @@ const Dashboard = () => {
       if (selectedCalendarDay !== null) {
         const s = item.startDayNum !== undefined ? item.startDayNum : parseInt(item.day, 10);
         const e = item.endDayNum !== undefined ? item.endDayNum : s;
-        // Check if selectedCalendarDay is within the event range [s, e]
         if (selectedCalendarDay < s || selectedCalendarDay > e) {
           return false;
         }
@@ -730,12 +765,11 @@ const Dashboard = () => {
     }
   };
 
-  // 8. Top Performing Events (Matching Reference UI with dynamic timeframes)
+  // 8. Top Performing Events (Strictly real host events - defaults to empty)
   const [topEventsTimeframe, setTopEventsTimeframe] = useState('This Month');
   const [topEventsFilterOpen, setTopEventsFilterOpen] = useState(false);
   const topEventsFilterRef = React.useRef(null);
 
-  // Close filter dropdown on outside click
   React.useEffect(() => {
     const handleClickOutside = (e) => {
       if (topEventsFilterRef.current && !topEventsFilterRef.current.contains(e.target)) {
@@ -751,65 +785,38 @@ const Dashboard = () => {
   }, [topEventsFilterOpen]);
 
   const topPerformingEventsDataMap = useMemo(() => {
-    const getListFor = (multiplier) => {
-      const defaults = [
-        {
-          id: 'tpe-1',
-          title: 'Nitroxx Supercross Championship 2026',
-          revenue: multiplier === 1 ? '₹3,42,000' : multiplier === 0.15 ? '₹48,500' : multiplier === 0.5 ? '₹1,85,000' : '₹12,40,000',
-          tickets: multiplier === 1 ? '490 / 500 tickets sold' : multiplier === 0.15 ? '68 tickets today' : multiplier === 0.5 ? '260 tickets sold' : '1,840 tickets sold',
-          banner: 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=150&q=80',
-          ringColor: '#3b82f6',
-        },
-        {
-          id: 'tpe-2',
-          title: 'Thar Desert 4x4 Dune Rally',
-          revenue: multiplier === 1 ? '₹2,88,000' : multiplier === 0.15 ? '₹36,200' : multiplier === 0.5 ? '₹1,42,000' : '₹9,80,000',
-          tickets: multiplier === 1 ? '500 / 500 tickets sold' : multiplier === 0.15 ? '42 tickets today' : multiplier === 0.5 ? '210 tickets sold' : '1,450 tickets sold',
-          banner: 'https://images.unsplash.com/photo-1509316975850-ff9c5deb0cd9?auto=format&fit=crop&w=150&q=80',
-          ringColor: '#f59e0b',
-        },
-        {
-          id: 'tpe-3',
-          title: 'Himalayan Enduro Mountain Expedition',
-          revenue: multiplier === 1 ? '₹1,45,000' : multiplier === 0.15 ? '₹24,000' : multiplier === 0.5 ? '₹88,000' : '₹6,20,000',
-          tickets: multiplier === 1 ? '128 / 150 tickets sold' : multiplier === 0.15 ? '18 tickets today' : multiplier === 0.5 ? '78 tickets sold' : '520 tickets sold',
-          banner: 'https://images.unsplash.com/photo-1519751138087-5bf79df62d5b?auto=format&fit=crop&w=150&q=80',
-          ringColor: '#10b981',
-        },
-        {
-          id: 'tpe-4',
-          title: 'Goa Beach Motocross & Night Festival',
-          revenue: multiplier === 1 ? '₹1,18,500' : multiplier === 0.15 ? '₹15,800' : multiplier === 0.5 ? '₹64,500' : '₹4,60,000',
-          tickets: multiplier === 1 ? '320 / 350 tickets sold' : multiplier === 0.15 ? '22 tickets today' : multiplier === 0.5 ? '140 tickets sold' : '890 tickets sold',
-          banner: 'https://images.unsplash.com/photo-1508974239320-0a029497e820?auto=format&fit=crop&w=150&q=80',
-          ringColor: '#8b5cf6',
-        },
-      ];
-
-      if (events && events.length > 0) {
-        return events.slice(0, 4).map((evt, idx) => {
-          const rev = evt.revenue || evt.gross || (defaults[idx] ? defaults[idx].revenue : '₹95,000');
-          const formattedRev = typeof rev === 'number' ? `₹${rev.toLocaleString('en-IN')}` : rev;
-          return {
-            id: evt.id || defaults[idx]?.id || `evt-${idx}`,
-            title: evt.title || defaults[idx]?.title || 'Motorsport Event',
-            revenue: formattedRev,
-            tickets: `${evt.registeredCount ? `${evt.registeredCount} tickets sold` : (defaults[idx] ? defaults[idx].tickets : '100 tickets')}`,
-            banner: evt.bannerImage || (defaults[idx] ? defaults[idx].banner : 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=150&q=80'),
-            ringColor: defaults[idx]?.ringColor || '#3b82f6',
-          };
-        });
+    const getListFor = () => {
+      if (!Array.isArray(events) || events.length === 0) {
+        return [];
       }
 
-      return defaults;
+      // Sort host's real events by revenue or registered count descending
+      const sortedEvents = [...events].sort((a, b) => {
+        const revA = Number(a.revenue || a.gross || 0);
+        const revB = Number(b.revenue || b.gross || 0);
+        return revB - revA;
+      });
+
+      return sortedEvents.slice(0, 4).map((evt, idx) => {
+        const rev = Number(evt.revenue || evt.gross || 0);
+        const formattedRev = `₹${rev.toLocaleString('en-IN')}`;
+        return {
+          id: evt.id || `evt-${idx}`,
+          title: evt.title || 'Untitled Event',
+          revenue: formattedRev,
+          tickets: `${evt.registeredCount || 0} tickets sold`,
+          banner: evt.bannerImage || 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=150&q=80',
+          location: evt.venue ? `${evt.venue}${evt.city ? `, ${evt.city}` : ''}` : 'Location TBD',
+          ringColor: ['#3b82f6', '#f59e0b', '#10b981', '#8b5cf6'][idx % 4],
+        };
+      });
     };
 
     return {
-      'Today': getListFor(0.15),
-      '7 Days': getListFor(0.5),
-      'This Month': getListFor(1),
-      'All Time': getListFor(3.5),
+      'Today': getListFor(),
+      '7 Days': getListFor(),
+      'This Month': getListFor(),
+      'All Time': getListFor(),
     };
   }, [events]);
 
@@ -844,7 +851,7 @@ const Dashboard = () => {
               onClick={() => setShowNotificationsModal(!showNotificationsModal)}
             >
               <Bell size={16} />
-              <span className="dash-notif-dot" />
+              {notifications.some((n) => !n.isRead) && <span className="dash-notif-dot" />}
             </button>
             <Link to="/events/new" className="dash-primary-btn">
               <Plus size={15} strokeWidth={2.5} />
@@ -874,15 +881,25 @@ const Dashboard = () => {
               <button onClick={() => setShowNotificationsModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={14} /></button>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '12px' }}>
-              <div style={{ padding: '8px', background: '#dcfce7', borderRadius: '8px', color: '#15803d' }}>
-                <strong>Recent Sale:</strong> John Doe purchased 2x VIP Paddock Pass
-              </div>
-              <div style={{ padding: '8px', background: '#fce7f3', borderRadius: '8px', color: '#be185d' }}>
-                <strong>Refund Request:</strong> ₹4,500 refund pending review
-              </div>
-              <div style={{ padding: '8px', background: '#e0f2fe', borderRadius: '8px', color: '#0369a1' }}>
-                <strong>Live Update:</strong> Gate A scanner registered 120 riders
-              </div>
+              {notifications.length === 0 ? (
+                <div style={{ padding: '16px 8px', textAlign: 'center', color: '#6b7280' }}>
+                  No new notifications
+                </div>
+              ) : (
+                notifications.slice(0, 5).map((notif) => (
+                  <div
+                    key={notif.id}
+                    style={{
+                      padding: '8px',
+                      background: notif.type === 'error' ? '#fce7f3' : notif.type === 'success' ? '#dcfce7' : '#e0f2fe',
+                      borderRadius: '8px',
+                      color: notif.type === 'error' ? '#be185d' : notif.type === 'success' ? '#15803d' : '#0369a1',
+                    }}
+                  >
+                    <strong>{notif.title || 'Notification'}:</strong> {notif.message}
+                  </div>
+                ))
+              )}
             </div>
           </div>
         )}
@@ -1043,7 +1060,7 @@ const Dashboard = () => {
             <div className="stat-card-bottom-row">
               <div className="stat-card-metrics-col">
                 <div className="stat-card-value">
-                  {totalCalculatedTickets > 0 ? totalCalculatedTickets.toLocaleString('en-IN') : 3844}
+                  {totalCalculatedTickets.toLocaleString('en-IN')}
                 </div>
                 <div className="stat-card-label">Tickets Sold</div>
               </div>
@@ -1576,41 +1593,48 @@ const Dashboard = () => {
 
             {/* Event Rows matching Image */}
             <div className="top-events-list">
-              {activeTopEvents.map((evt) => (
-                <div key={evt.id} className="top-event-item-modern">
-                  <div className="top-event-left-group">
-                    {/* Event Banner Circular Avatar */}
-                    <div
-                      className="top-event-avatar-ring"
-                      style={{ borderColor: evt.ringColor || '#3b82f6' }}
-                    >
-                      <img
-                        src={evt.banner}
-                        alt={evt.title}
-                        className="top-event-avatar-img"
-                        onError={(e) => {
-                          e.target.src = 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=150&q=80';
-                        }}
-                      />
-                    </div>
-
-                    {/* Event Name */}
-                    <div className="top-event-title-wrap">
-                      <span className="top-event-name-text" title={evt.title}>
-                        {evt.title}
-                      </span>
-                      <span className="top-event-location-text" title={evt.title}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-map-pin preview-icon"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0" /><circle cx="12" cy="10" r="3" /></svg> Buddh International Circuit
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Right Side: Simple Amount Text */}
-                  <div className="top-event-amount-val">
-                    {evt.revenue}
-                  </div>
+              {activeTopEvents.length === 0 ? (
+                <div style={{ padding: '32px 16px', textAlign: 'center', color: '#6b7280', fontSize: '13px' }}>
+                  No events found for this timeframe.
                 </div>
-              ))}
+              ) : (
+                activeTopEvents.map((evt) => (
+                  <div key={evt.id} className="top-event-item-modern">
+                    <div className="top-event-left-group">
+                      {/* Event Banner Circular Avatar */}
+                      <div
+                        className="top-event-avatar-ring"
+                        style={{ borderColor: evt.ringColor || '#3b82f6' }}
+                      >
+                        <img
+                          src={evt.banner}
+                          alt={evt.title}
+                          className="top-event-avatar-img"
+                          onError={(e) => {
+                            e.target.src = 'https://images.unsplash.com/photo-1558981403-c5f9899a28bc?auto=format&fit=crop&w=150&q=80';
+                          }}
+                        />
+                      </div>
+
+                      {/* Event Name */}
+                      <div className="top-event-title-wrap">
+                        <span className="top-event-name-text" title={evt.title}>
+                          {evt.title}
+                        </span>
+                        <span className="top-event-location-text" title={evt.location}>
+                          <MapPin size={13} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'text-bottom' }} />
+                          {evt.location}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Right Side: Simple Amount Text */}
+                    <div className="top-event-amount-val">
+                      {evt.revenue}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           </div>
 
@@ -1623,27 +1647,59 @@ const Dashboard = () => {
                 </div>
                 <h3 className="dash-card-title">Audience Insights</h3>
               </div>
-              <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>+18.4% New Riders</span>
+              <span style={{ fontSize: '11px', color: '#16a34a', fontWeight: 600 }}>
+                {participants.length > 0 ? `${participants.length} Total Bookings` : '0 Bookings'}
+              </span>
             </div>
 
             {/* Age Groups Segmented Meter */}
             <div className="audience-meter-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px' }}>
                 <span style={{ fontWeight: 600, color: '#374151' }}>Age Groups Distribution</span>
-                <span style={{ color: '#6b7280' }}>Core: 22 - 38 yrs</span>
+                <span style={{ color: '#6b7280' }}>
+                  {participants.length > 0 ? 'Attendee Demographics' : 'No age data yet'}
+                </span>
               </div>
-              <div className="audience-meter-track">
-                <div className="audience-seg orange" style={{ width: '48%' }} title="22-30 yrs (48%)" />
-                <div className="audience-seg teal" style={{ width: '32%' }} title="31-40 yrs (32%)" />
-                <div className="audience-seg purple" style={{ width: '14%' }} title="18-21 yrs (14%)" />
-                <div className="audience-seg blue" style={{ width: '6%' }} title="41+ yrs (6%)" />
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#6b7280' }}>
-                <span>22-30 (48%)</span>
-                <span>31-40 (32%)</span>
-                <span>18-21 (14%)</span>
-                <span>41+ (6%)</span>
-              </div>
+              {participants.length > 0 && (analytics.ageDistribution || []).some((a) => a.value > 0) ? (
+                <>
+                  <div className="audience-meter-track">
+                    {(analytics.ageDistribution || []).map((seg, sIdx) => {
+                      const segColors = ['orange', 'teal', 'purple', 'blue', 'gray'];
+                      const segPct = participants.length ? Math.round((seg.value / participants.length) * 100) : 0;
+                      if (segPct === 0) return null;
+                      return (
+                        <div
+                          key={seg.name}
+                          className={`audience-seg ${segColors[sIdx % segColors.length]}`}
+                          style={{ width: `${segPct}%` }}
+                          title={`${seg.name} (${segPct}%)`}
+                        />
+                      );
+                    })}
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#6b7280', flexWrap: 'wrap', gap: '4px' }}>
+                    {(analytics.ageDistribution || []).map((seg) => {
+                      const segPct = participants.length ? Math.round((seg.value / participants.length) * 100) : 0;
+                      return (
+                        <span key={seg.name}>{seg.name} ({segPct}%)</span>
+                      );
+                    })}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="audience-meter-track" style={{ background: '#f3f4f6' }}>
+                    <div style={{ width: '100%', height: '100%', backgroundColor: '#e5e7eb', borderRadius: '4px' }} />
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#9ca3af', marginTop: '6px' }}>
+                    <span>Under 18 (0%)</span>
+                    <span>18-24 (0%)</span>
+                    <span>25-34 (0%)</span>
+                    <span>35-44 (0%)</span>
+                    <span>45+ (0%)</span>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* Top Cities */}
@@ -1652,22 +1708,29 @@ const Dashboard = () => {
                 Top Cities & Hubs
               </span>
 
-              {[
-                { city: 'Mumbai & Pune Belt', pct: 42, count: '5,240 riders' },
-                { city: 'Delhi NCR & Gurugram', pct: 28, count: '3,490 riders' },
-                { city: 'Bengaluru', pct: 18, count: '2,240 riders' },
-                { city: 'Rest of India', pct: 12, count: '1,510 riders' },
-              ].map((c) => (
-                <div key={c.city} className="city-progress-item">
-                  <div className="city-meta-row">
-                    <span className="city-name">{c.city}</span>
-                    <span className="city-count">{c.count} ({c.pct}%)</span>
-                  </div>
-                  <div className="city-progress-bar">
-                    <div className="city-progress-fill" style={{ width: `${c.pct}%` }} />
-                  </div>
+              {analytics.cityDistribution && analytics.cityDistribution.filter((c) => c.name && c.name !== 'Unknown').length > 0 ? (
+                analytics.cityDistribution
+                  .filter((c) => c.name && c.name !== 'Unknown')
+                  .slice(0, 4)
+                  .map((c) => {
+                    const pct = participants.length ? Math.round((c.value / participants.length) * 100) : 0;
+                    return (
+                      <div key={c.name} className="city-progress-item">
+                        <div className="city-meta-row">
+                          <span className="city-name">{c.name}</span>
+                          <span className="city-count">{c.value} {c.value === 1 ? 'attendee' : 'attendees'} ({pct}%)</span>
+                        </div>
+                        <div className="city-progress-bar">
+                          <div className="city-progress-fill" style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    );
+                  })
+              ) : (
+                <div style={{ padding: '16px 0', textAlign: 'center', color: '#9ca3af', fontSize: '12px' }}>
+                  No city data available yet
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>

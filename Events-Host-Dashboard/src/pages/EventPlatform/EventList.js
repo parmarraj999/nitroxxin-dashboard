@@ -31,126 +31,7 @@ import './EventList.css';
 import './EventPlatform.css';
 import './EventManagementFlow.css';
 
-// Exact reference events from user screenshot (Image 1)
-
-const DEFAULT_EVENTS = [
-  {
-    id: 'nitroxx-manali-leh',
-    title: 'Manali-LEH-Manali',
-    subtitle: '🏍️ Manali–Leh–Manali Group Adventure Tour (6 Days / 5 Nights)',
-    startDate: '2026-09-01T08:00:00Z',
-    monthGroup: 'September 2026',
-    dateDisplay: { month: 'Sep', day: '1' },
-    soldDisplay: '0 / 60',
-    sold: 0,
-    capacity: 60,
-    grossDisplay: '₹25,000',
-    gross: 25000,
-    status: 'Complete',
-    isStarred: false,
-    category: 'Expedition',
-    city: 'Manali',
-    venue: 'Manali Basecamp',
-    logoType: 'nitroxx',
-  },
-  {
-    id: 'nitroxx-motofest-2025',
-    title: "Nitroxx MotoFest Pune 2025 — Maharashtra's Biggest Bike Festival",
-    subtitle: 'Nitroxx MotoFest Pune 2025 is a full-day, outdoor motorcycle festival',
-    startDate: '2026-08-17T09:00:00Z',
-    monthGroup: 'August 2026',
-    dateDisplay: { month: 'Aug', day: '17' },
-    soldDisplay: '0 / 2000',
-    sold: 0,
-    capacity: 2000,
-    grossDisplay: '₹299',
-    gross: 299,
-    status: 'Complete',
-    isStarred: true,
-    category: 'Festival',
-    city: 'Pune',
-    venue: 'Mahalaxmi Lawns',
-    logoType: 'bikes',
-  },
-  {
-    id: 'nitroxx-sinhagad-scramble',
-    title: 'Sinhagad Summit Scramble — Mountain Biking Challenge',
-    subtitle: 'The Sinhagad Summit Scramble is a timed mountain biking event on',
-    startDate: '2026-08-13T06:00:00Z',
-    monthGroup: 'August 2026',
-    dateDisplay: { month: 'Aug', day: '13' },
-    soldDisplay: '0 / 80',
-    sold: 0,
-    capacity: 80,
-    grossDisplay: '₹799',
-    gross: 799,
-    status: 'Complete',
-    isStarred: true,
-    category: 'Challenge',
-    city: 'Pune',
-    venue: 'Sinhagad Fort Ghat',
-    logoType: 'mountain',
-  },
-  {
-    id: 'nitroxx-rooftop-call',
-    title: 'Rooftop Call — Leh Ladakh Expedition 2025 (Pune to Pangong)',
-    subtitle: "Rooftop Call is Nitroxx's most ambitious event — a fully supported",
-    startDate: '2026-08-13T07:30:00Z',
-    monthGroup: 'August 2026',
-    dateDisplay: { month: 'Aug', day: '13' },
-    soldDisplay: '0 / 16',
-    sold: 0,
-    capacity: 16,
-    grossDisplay: '₹42,000',
-    gross: 42000,
-    status: 'Complete',
-    isStarred: true,
-    category: 'Expedition',
-    city: 'Leh',
-    venue: 'Pune to Pangong Tso',
-    logoType: 'expedition',
-  },
-  {
-    id: 'nitroxx-miles-for-smiles',
-    title: 'Miles for Smiles — Charity Ride for Child Education',
-    subtitle: "Miles for Smiles is Nitroxx's annual charity ride in partnership with",
-    startDate: '2026-08-08T07:00:00Z',
-    monthGroup: 'August 2026',
-    dateDisplay: { month: 'Aug', day: '8' },
-    soldDisplay: '0 / 129',
-    sold: 0,
-    capacity: 129,
-    grossDisplay: '₹500',
-    gross: 500,
-    status: 'Complete',
-    isStarred: false,
-    category: 'Charity',
-    city: 'Pune',
-    venue: 'University Road',
-    logoType: 'charity',
-  },
-  {
-    id: 'nitroxx-chai-chains',
-    title: 'Sunday Chai & Chains — Monthly Biker Meetup at FC Road',
-    subtitle: "Sunday Chai & Chains is Nitroxx's monthly no-pressure biker",
-    startDate: '2026-08-06T06:30:00Z',
-    monthGroup: 'August 2026',
-    dateDisplay: { month: 'Aug', day: '6' },
-    soldDisplay: '0 / 30',
-    sold: 0,
-    capacity: 30,
-    grossDisplay: '₹0.00',
-    gross: 0,
-    status: 'Complete',
-    isStarred: true,
-    category: 'Meetup',
-    city: 'Pune',
-    venue: 'Goodluck Cafe, FC Road',
-    logoType: 'cafe',
-  },
-];
-
-// Stylized visual thumbnails matching the user's uploaded screenshot logos
+// Stylized visual thumbnails matching event logo categories
 const EventThumbnail = ({ logoType, bannerImage, title }) => {
   // If a banner image exists and is valid, prioritize it
   if (bannerImage && bannerImage.startsWith('http') && !bannerImage.includes('unsplash.com/photo-1501281668745')) {
@@ -247,7 +128,7 @@ const EventList = () => {
   const [pageSize, setPageSize] = useState(10);
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Starred events state (pre-populate with defaults from screenshot)
+  // Starred events state
   const [starredMap, setStarredMap] = useState(() => {
     try {
       const saved = localStorage.getItem('nitroxx_starred_events');
@@ -255,11 +136,7 @@ const EventList = () => {
     } catch {
       // ignore
     }
-    const initial = {};
-    DEFAULT_EVENTS.forEach((e) => {
-      if (e.isStarred) initial[e.id] = true;
-    });
-    return initial;
+    return {};
   });
 
   const toggleStar = (id) => {
@@ -295,18 +172,9 @@ const EventList = () => {
         const soldCount = Number(evt.registeredCount || 0);
         const cap = Number(evt.capacity || 0);
 
-        // Derive gross amount matching Image 1 prices if mock/empty
+        // Derive gross amount from real event data
         const titleLower = (evt.title || '').toLowerCase();
-        let grossNum = Number(evt.revenue || evt.gross || evt.ticketPrice || evt.price || 0);
-        if (grossNum === 0) {
-          if (titleLower.includes('manali')) grossNum = 25000;
-          else if (titleLower.includes('motofest')) grossNum = 299;
-          else if (titleLower.includes('sinhagad')) grossNum = 799;
-          else if (titleLower.includes('rooftop') || titleLower.includes('ladakh')) grossNum = 42000;
-          else if (titleLower.includes('miles for smiles') || titleLower.includes('charity')) grossNum = 500;
-          else if (titleLower.includes('chai') || titleLower.includes('fc road')) grossNum = 0;
-        }
-
+        const grossNum = Number(evt.revenue || evt.gross || evt.ticketPrice || evt.price || 0);
         const grossFormatted = grossNum === 0 ? '₹0.00' : `₹${grossNum.toLocaleString('en-IN')}`;
 
         // Derive logoType for visual badge
@@ -383,10 +251,7 @@ const EventList = () => {
         };
       });
     } else {
-      list = DEFAULT_EVENTS.map((e) => ({
-        ...e,
-        startDateRaw: new Date(e.startDate),
-      }));
+      list = [];
     }
 
     // Apply live search & filter
@@ -442,18 +307,20 @@ const EventList = () => {
       (e) => e.status === 'Published' || e.status === 'Active' || e.status === 'Upcoming' || !e.status
     ).length;
 
+    const bookingPct = totalCapacity > 0 ? Math.round((totalBookings / totalCapacity) * 100) : 0;
+
     return {
-      totalCount: totalCount || 6,
-      totalBookings: totalBookings > 0 ? totalBookings.toLocaleString('en-IN') : (totalCapacity > 0 ? totalCapacity.toLocaleString('en-IN') : '1,280'),
-      grossAmount: totalGross > 0 ? `₹${totalGross.toLocaleString('en-IN')}` : '₹68,598',
-      activeCount: activeCount > 0 ? (activeCount < 10 ? `0${activeCount}` : String(activeCount)) : '04',
+      totalCount,
+      totalBookings: totalBookings.toLocaleString('en-IN'),
+      bookingRate: `${bookingPct}% booking rate`,
+      grossAmount: `₹${totalGross.toLocaleString('en-IN')}`,
+      activeCount: activeCount < 10 ? `0${activeCount}` : String(activeCount),
     };
   }, [unifiedEvents]);
 
   // Category list for filters
   const categories = useMemo(() => {
     const set = new Set();
-    DEFAULT_EVENTS.forEach((e) => e.category && set.add(e.category));
     firestoreEvents?.forEach((e) => e.category && set.add(e.category));
     return Array.from(set);
   }, [firestoreEvents]);
@@ -491,8 +358,7 @@ const EventList = () => {
     if (starredMap[event.id] !== undefined) {
       return Boolean(starredMap[event.id]);
     }
-    const t = (event.title || '').toLowerCase();
-    return t.includes('motofest') || t.includes('sinhagad') || t.includes('rooftop') || t.includes('chai & chains');
+    return Boolean(event.isStarred);
   };
 
   return (
@@ -511,8 +377,8 @@ const EventList = () => {
             </div>
             <strong className="kpi-value">{portfolioStats.totalCount}</strong>
             <div className="kpi-trend positive">
-              <span className="kpi-trend-symbol">▲</span>
-              <span>12.04% this month</span>
+              <span className="kpi-trend-symbol">●</span>
+              <span>All hosted events</span>
             </div>
           </div>
 
@@ -525,8 +391,8 @@ const EventList = () => {
             </div>
             <strong className="kpi-value">{portfolioStats.totalBookings}</strong>
             <div className="kpi-trend positive">
-              <span className="kpi-trend-symbol">▲</span>
-              <span>28.00% booking rate</span>
+              <span className="kpi-trend-symbol">●</span>
+              <span>{portfolioStats.bookingRate}</span>
             </div>
           </div>
 
@@ -539,8 +405,8 @@ const EventList = () => {
             </div>
             <strong className="kpi-value">{portfolioStats.grossAmount}</strong>
             <div className="kpi-trend positive">
-              <span className="kpi-trend-symbol">▲</span>
-              <span>14.11% vs last month</span>
+              <span className="kpi-trend-symbol">●</span>
+              <span>Total revenue</span>
             </div>
           </div>
 

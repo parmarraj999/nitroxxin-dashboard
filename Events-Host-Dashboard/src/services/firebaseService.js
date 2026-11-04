@@ -35,6 +35,7 @@ import {
   uploadBytesResumable,
 } from 'firebase/storage';
 import { auth, db, googleProvider, storage } from '../firebase/firebase.config';
+import { clearSessionMemory } from '../utils/sessionMemory';
 
 export const collections = {
   users: 'users',
@@ -189,11 +190,6 @@ export const ensureHostProfileFromApplication = async (uid, appData) => {
       }
     );
     await setDoc(hostRef, profile);
-    await setDoc(
-      doc(db, collections.users, uid),
-      { role: 'Host', isActive: true, updatedAt: serverTimestamp() },
-      { merge: true }
-    );
   }
 };
 
@@ -340,30 +336,10 @@ export const signUpWithEmail = async ({
   };
 
   // 1. Save host application in host_applications collection
-  // NOTE: Strictly do NOT create a document inside event_host at registration!
+  // NOTE: Strictly do NOT create a document inside users or event_host at registration!
   await setDoc(
     doc(db, collections.host_applications, credential.user.uid),
     applicationData
-  );
-
-  // 2. Save minimal identity in users collection
-  await setDoc(
-    doc(db, collections.users, credential.user.uid),
-    {
-      uid: credential.user.uid,
-      fullName: fullName || '',
-      email: email || '',
-      role: 'Host',
-      phone: phone || '',
-      organizationName: organizationName || '',
-      city: city || '',
-      state: state || '',
-      hostApplicationStatus: 'Pending',
-      isActive: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    },
-    { merge: true }
   );
 
   await sendEmailVerification(credential.user).catch(() => {});
@@ -372,29 +348,87 @@ export const signUpWithEmail = async ({
 
 export const loginWithEmail = async (email, password) => {
   const credential = await signInWithEmailAndPassword(auth, email, password);
+
+  // 1. Check if account already exists in event_host collection
+  const hostRef = doc(db, collections.event_host, credential.user.uid);
+  let hostSnap = await getDoc(hostRef);
+  let targetHostRef = hostRef;
+
+  // Fallback check if host document is keyed differently (by uid or email field)
+  if (!hostSnap.exists()) {
+    const qUid = query(
+      collection(db, collections.event_host),
+      where('uid', '==', credential.user.uid),
+      limit(1)
+    );
+    const snapUid = await getDocs(qUid);
+    if (!snapUid.empty) {
+      hostSnap = snapUid.docs[0];
+      targetHostRef = hostSnap.ref;
+    } else if (credential.user.email) {
+      const qEmail = query(
+        collection(db, collections.event_host),
+        where('email', '==', credential.user.email.toLowerCase()),
+        limit(1)
+      );
+      const snapEmail = await getDocs(qEmail);
+      if (!snapEmail.empty) {
+        hostSnap = snapEmail.docs[0];
+        targetHostRef = hostSnap.ref;
+      }
+    }
+  }
+
+  // 2. Also check if host has an application in host_applications
+  let appSnap = null;
+  if (!hostSnap.exists()) {
+    const appRef = doc(db, collections.host_applications, credential.user.uid);
+    appSnap = await getDoc(appRef);
+    if (!appSnap.exists()) {
+      const qApp = query(
+        collection(db, collections.host_applications),
+        where('uid', '==', credential.user.uid),
+        limit(1)
+      );
+      const qAppSnap = await getDocs(qApp);
+      if (!qAppSnap.empty) {
+        appSnap = qAppSnap.docs[0];
+      }
+    }
+
+    // If application is approved, initialize event_host profile
+    if (appSnap && appSnap.exists()) {
+      const appData = appSnap.data();
+      if (appData.status === 'Approved' || appData.isActive) {
+        await ensureHostProfileFromApplication(credential.user.uid, appData);
+        hostSnap = await getDoc(hostRef);
+        targetHostRef = hostRef;
+      }
+    }
+  }
+
+  const isHost = hostSnap && (typeof hostSnap.exists === 'function' ? hostSnap.exists() : true);
+  const hasApp = appSnap && (typeof appSnap.exists === 'function' ? appSnap.exists() : true);
+
+  // 3. If neither event_host nor host_applications exists, reject login
+  if (!isHost && !hasApp) {
+    await signOut(auth);
+    clearSessionMemory();
+    throw new Error('No host account found for these credentials. Please create a new account.');
+  }
+
+  // 4. Update lastLogin strictly in event_host (strictly DO NOT write to users collection)
   const updateData = timestamped({
     uid: credential.user.uid,
     email: credential.user.email,
     photoURL: credential.user.photoURL || '',
-    fullName: credential.user.displayName || '',
+    fullName: credential.user.displayName || (isHost && typeof hostSnap.data === 'function' ? hostSnap.data()?.fullName : '') || '',
     isVerified: credential.user.emailVerified,
     lastLogin: serverTimestamp(),
   });
 
-  await setDoc(
-    doc(db, collections.users, credential.user.uid),
-    updateData,
-    { merge: true }
-  );
-
-  // Only update event_host IF it already exists (prevent creating event_host for pending applicants)
-  const hostDoc = await getDoc(doc(db, collections.event_host, credential.user.uid));
-  if (hostDoc.exists()) {
-    await setDoc(
-      doc(db, collections.event_host, credential.user.uid),
-      updateData,
-      { merge: true }
-    );
+  if (isHost) {
+    await setDoc(targetHostRef, updateData, { merge: true });
   }
 
   return credential.user;
@@ -402,67 +436,70 @@ export const loginWithEmail = async (email, password) => {
 
 export const loginWithGoogle = async (role = 'Host') => {
   const credential = await signInWithPopup(auth, googleProvider);
-  const userRef = doc(db, collections.users, credential.user.uid);
   const hostRef = doc(db, collections.event_host, credential.user.uid);
   const appRef = doc(db, collections.host_applications, credential.user.uid);
 
-  const [snapshot, hostSnapshot, appSnapshot] = await Promise.all([
-    getDoc(userRef),
+  let [hostSnapshot, appSnapshot] = await Promise.all([
     getDoc(hostRef),
     getDoc(appRef),
   ]);
 
-  if (!snapshot.exists() && !hostSnapshot.exists() && !appSnapshot.exists()) {
-    // New user signing up with Google - create host_applications, NOT event_host!
-    const applicationId = `APP-${credential.user.uid.slice(0, 8).toUpperCase()}`;
-    const applicationData = {
-      applicationId,
-      uid: credential.user.uid,
-      fullName: credential.user.displayName || '',
-      email: credential.user.email || '',
-      phone: credential.user.phoneNumber || '',
-      organizationName: '',
-      city: '',
-      state: '',
-      gstNumber: '',
-      panNumber: '',
-      documents: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      status: 'Pending',
-      reviewedBy: null,
-      reviewedAt: null,
-      rejectionReason: '',
-      isActive: false,
-    };
-    await setDoc(appRef, applicationData);
-    await setDoc(userRef, {
-      uid: credential.user.uid,
-      fullName: credential.user.displayName || '',
-      email: credential.user.email || '',
-      role: 'Host',
-      hostApplicationStatus: 'Pending',
-      isActive: false,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-    });
-  } else if (hostSnapshot.exists()) {
-    const updateData = timestamped({
-      photoURL: credential.user.photoURL || '',
-      fullName: credential.user.displayName || snapshot.data()?.fullName || hostSnapshot.data()?.fullName || '',
-      isVerified: credential.user.emailVerified,
-      lastLogin: serverTimestamp(),
-    });
-    await setDoc(userRef, updateData, { merge: true });
-    await setDoc(hostRef, updateData, { merge: true });
-  } else {
-    const updateData = timestamped({
-      photoURL: credential.user.photoURL || '',
-      fullName: credential.user.displayName || snapshot.data()?.fullName || '',
-      isVerified: credential.user.emailVerified,
-      lastLogin: serverTimestamp(),
-    });
-    await setDoc(userRef, updateData, { merge: true });
+  let targetHostRef = hostRef;
+
+  // Fallback checks for event_host
+  if (!hostSnapshot.exists()) {
+    const qUid = query(
+      collection(db, collections.event_host),
+      where('uid', '==', credential.user.uid),
+      limit(1)
+    );
+    const snapUid = await getDocs(qUid);
+    if (!snapUid.empty) {
+      hostSnapshot = snapUid.docs[0];
+      targetHostRef = hostSnapshot.ref;
+    } else if (credential.user.email) {
+      const qEmail = query(
+        collection(db, collections.event_host),
+        where('email', '==', credential.user.email.toLowerCase()),
+        limit(1)
+      );
+      const snapEmail = await getDocs(qEmail);
+      if (!snapEmail.empty) {
+        hostSnapshot = snapEmail.docs[0];
+        targetHostRef = hostSnapshot.ref;
+      }
+    }
+  }
+
+  const isHost = hostSnapshot && (typeof hostSnapshot.exists === 'function' ? hostSnapshot.exists() : true);
+  const hasApp = appSnapshot && (typeof appSnapshot.exists === 'function' ? appSnapshot.exists() : true);
+
+  // If no host account and no application exists, reject login
+  if (!isHost && !hasApp) {
+    await signOut(auth);
+    clearSessionMemory();
+    throw new Error('No host account found for this Google account. Please create a new account.');
+  }
+
+  // If application is approved, initialize event_host
+  if (!isHost && hasApp) {
+    const appData = appSnapshot.data();
+    if (appData.status === 'Approved' || appData.isActive) {
+      await ensureHostProfileFromApplication(credential.user.uid, appData);
+      hostSnapshot = await getDoc(hostRef);
+      targetHostRef = hostRef;
+    }
+  }
+
+  const updateData = timestamped({
+    photoURL: credential.user.photoURL || '',
+    fullName: credential.user.displayName || (isHost && typeof hostSnapshot.data === 'function' ? hostSnapshot.data()?.fullName : '') || '',
+    isVerified: credential.user.emailVerified,
+    lastLogin: serverTimestamp(),
+  });
+
+  if (hostSnapshot && (typeof hostSnapshot.exists === 'function' ? hostSnapshot.exists() : true)) {
+    await setDoc(targetHostRef, updateData, { merge: true });
   }
 
   return credential.user;
@@ -511,8 +548,16 @@ export const deleteStorageFile = async (url) => {
 
 export const updateUserProfile = async (uid, data) => {
   const profile = timestamped(data);
-  await updateDoc(doc(db, collections.users, uid), profile);
   await setDoc(doc(db, collections.event_host, uid), profile, { merge: true });
+  try {
+    const userRef = doc(db, collections.users, uid);
+    const userSnap = await getDoc(userRef);
+    if (userSnap.exists()) {
+      await updateDoc(userRef, profile);
+    }
+  } catch (err) {
+    // Ignore users update if document does not exist
+  }
   if (auth.currentUser?.uid === uid) {
     if (data.fullName || data.photoURL) {
       await updateProfile(auth.currentUser, {
@@ -609,10 +654,18 @@ export const createEvent = async (event) => {
     )
   );
   await updateDoc(eventRef, { eventId: eventRef.id });
-  await updateDoc(doc(db, collections.users, event.hostId), {
-    totalEventsHosted: increment(1),
-    updatedAt: serverTimestamp(),
-  });
+  try {
+    const userDocRef = doc(db, collections.users, event.hostId);
+    const userDocSnap = await getDoc(userDocRef);
+    if (userDocSnap.exists()) {
+      await updateDoc(userDocRef, {
+        totalEventsHosted: increment(1),
+        updatedAt: serverTimestamp(),
+      });
+    }
+  } catch (err) {
+    // Ignore users update if document does not exist
+  }
   try {
     await updateDoc(doc(db, collections.event_host, event.hostId), {
       totalEventsHosted: increment(1),
