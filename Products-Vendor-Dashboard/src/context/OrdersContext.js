@@ -2,7 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { collection, onSnapshot, query, where, orderBy, limit, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebase.config';
 import { COLLECTIONS } from '../schemas/firestoreSchema';
-import { updateOrderStatus as updateOrderStatusInDb } from '../services/orderService';
+import { updateOrderStatus as updateOrderStatusInDb, acceptOrder as acceptOrderInDb } from '../services/orderService';
 import { useAuth } from './AuthContext';
 
 export const OrdersContext = createContext(null);
@@ -110,14 +110,36 @@ export const OrdersProvider = ({ children }) => {
     );
   }, []);
 
+  // Accept order: updates status to confirmed, adds timeline event, and reduces live stock
+  const acceptOrder = useCallback(async (orderId, items = [], note = 'Order accepted by admin') => {
+    const result = await acceptOrderInDb(orderId, items, note);
+    setOrders((prev) =>
+      prev.map((o) =>
+        o.id === orderId
+          ? {
+              ...o,
+              status: 'confirmed',
+              updatedAt: new Date(),
+              timeline: {
+                ...(o.timeline || {}),
+                confirmed: { note, at: new Date() }
+              }
+            }
+          : o
+      )
+    );
+    return result;
+  }, []);
+
   const value = useMemo(() => ({
     orders,
     ordersMap,
     loading,
     error,
     getOrderById,
-    changeOrderStatus
-  }), [orders, ordersMap, loading, error, getOrderById, changeOrderStatus]);
+    changeOrderStatus,
+    acceptOrder
+  }), [orders, ordersMap, loading, error, getOrderById, changeOrderStatus, acceptOrder]);
 
   return (
     <OrdersContext.Provider value={value}>

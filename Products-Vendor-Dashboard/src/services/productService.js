@@ -6,6 +6,7 @@ import {
   getDoc,
   getDocs,
   increment,
+  limit,
   query,
   runTransaction,
   serverTimestamp,
@@ -154,4 +155,130 @@ export const reserveProductStock = async (productId, quantity) => {
       updatedAt: serverTimestamp()
     });
   });
+};
+
+/**
+ * Deduct live inventory and product collection stock for items when an order is accepted
+ */
+export const deductStockForOrderItems = async (items = []) => {
+  if (!Array.isArray(items) || items.length === 0) return { updatedProducts: [] };
+
+  const updatedProducts = [];
+
+  for (const item of items) {
+    const qtyToDeduct = Number(item.qty || item.quantity || 1);
+    if (qtyToDeduct <= 0) continue;
+
+    let targetProductId = item.productId || item.id;
+    let productRef = null;
+    let productSnap = null;
+
+    // 1. Try direct ID lookup in COLLECTIONS.products
+    if (targetProductId) {
+      try {
+        const candidateRef = docRef(COLLECTIONS.products, targetProductId);
+        const candidateSnap = await getDoc(candidateRef);
+        if (candidateSnap.exists()) {
+          productRef = candidateRef;
+          productSnap = candidateSnap;
+        }
+      } catch (e) {
+        console.warn('[deductStock] Error checking product by ID:', targetProductId, e);
+      }
+    }
+
+    // 2. If not found by direct ID, try title/name lookup
+    if (!productSnap || !productSnap.exists()) {
+      const searchTerms = [item.name, item.title].filter(Boolean);
+      for (const term of searchTerms) {
+        try {
+          const q = query(
+            collection(db, COLLECTIONS.products),
+            where('title', '==', term),
+            limit(1)
+          );
+          const qSnap = await getDocs(q);
+          if (!qSnap.empty) {
+            productSnap = qSnap.docs[0];
+            productRef = productSnap.ref;
+            targetProductId = productSnap.id;
+            break;
+          }
+        } catch (e) {
+          console.warn('[deductStock] Error querying product by title:', term, e);
+        }
+      }
+    }
+
+    // 3. If still not found, try SKU lookup
+    if ((!productSnap || !productSnap.exists()) && item.sku) {
+      try {
+        const q = query(
+          collection(db, COLLECTIONS.products),
+          where('sku', '==', item.sku),
+          limit(1)
+        );
+        const qSnap = await getDocs(q);
+        if (!qSnap.empty) {
+          productSnap = qSnap.docs[0];
+          productRef = productSnap.ref;
+          targetProductId = productSnap.id;
+        }
+      } catch (e) {
+        console.warn('[deductStock] Error querying product by SKU:', item.sku, e);
+      }
+    }
+
+    // 4. If product was found, update stock in both products and inventory collections
+    if (productRef && productSnap && productSnap.exists()) {
+      const productData = productSnap.data();
+      const currentStock = Number(
+        productData.inventory?.stockQuantity ?? productData.stock ?? 0
+      );
+      const newStock = Math.max(0, currentStock - qtyToDeduct);
+
+      // Update product document
+      await updateDoc(productRef, {
+        'inventory.stockQuantity': newStock,
+        stock: newStock,
+        updatedAt: serverTimestamp()
+      });
+
+      // Update standalone inventory document
+      try {
+        const invRef = docRef(COLLECTIONS.inventory, targetProductId);
+        const invSnap = await getDoc(invRef);
+        if (invSnap.exists()) {
+          const invData = invSnap.data();
+          const currInvStock = Number(invData.stock ?? currentStock);
+          const nextInvStock = Math.max(0, currInvStock - qtyToDeduct);
+          const nextAvailable = Math.max(
+            0,
+            Number(invData.availableStock ?? currInvStock) - qtyToDeduct
+          );
+
+          await updateDoc(invRef, {
+            stock: nextInvStock,
+            availableStock: nextAvailable,
+            updatedAt: serverTimestamp()
+          });
+        }
+      } catch (invErr) {
+        console.warn('[deductStock] Inventory doc update note:', invErr);
+      }
+
+      updatedProducts.push({
+        id: targetProductId,
+        name: productData.title || item.name || 'Product',
+        previousStock: currentStock,
+        newStock,
+        deducted: qtyToDeduct
+      });
+      console.log(`[deductStock] Successfully reduced stock for "${productData.title || item.name}": ${currentStock} -> ${newStock} (-${qtyToDeduct})`);
+    } else {
+      console.warn('[deductStock] Could not locate product in database for item:', item);
+    }
+  }
+
+  return { updatedProducts };
 };

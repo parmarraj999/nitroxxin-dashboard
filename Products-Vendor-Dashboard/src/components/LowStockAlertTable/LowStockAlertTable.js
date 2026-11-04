@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Loader2,
   X,
-  MapPin,
   RefreshCw
 } from 'lucide-react';
 import { useProductsContext } from '../../context/ProductsContext';
@@ -43,7 +42,7 @@ const LowStockAlertTable = ({ analytics }) => {
       // Low stock criteria: stock is less than or equal to alert threshold
       if (stock <= lowStock) {
         const rawPrice = Number(p.pricing?.sellingPrice ?? p.price ?? 0);
-        const formattedPrice = rawPrice > 100 ? `Rs. ${rawPrice.toLocaleString()}` : `$${rawPrice.toFixed(2)}`;
+        const formattedPrice = rawPrice > 0 ? `₹${rawPrice.toLocaleString('en-IN')}` : '—';
         const stockTotal = Math.max(stock, lowStock * 5, 20);
         const stockPercent = Math.min(100, Math.round((stock / stockTotal) * 100));
 
@@ -83,6 +82,8 @@ const LowStockAlertTable = ({ analytics }) => {
         if (!list.some((item) => item.id === id)) {
           const stock = Number(inv.availableStock ?? inv.stock ?? 0);
           const lowStock = Number(inv.lowStockThreshold ?? 5);
+          const rawPrice = Number(inv.price || 0);
+          const formattedPrice = rawPrice > 0 ? `₹${rawPrice.toLocaleString('en-IN')}` : '—';
 
           list.push({
             id,
@@ -91,8 +92,8 @@ const LowStockAlertTable = ({ analytics }) => {
             sku: inv.sku ? `SKU: ${inv.sku}` : 'SKU: N/A',
             brand: '',
             category: 'Gear & Parts',
-            price: '—',
-            rawPrice: 0,
+            price: formattedPrice,
+            rawPrice,
             stock,
             lowStock,
             stockPercent: Math.min(100, Math.round((stock / Math.max(stock, lowStock * 5, 20)) * 100)),
@@ -172,9 +173,6 @@ const LowStockAlertTable = ({ analytics }) => {
               </span>
             )}
           </div>
-          <p className="dashboard-table-subtitle">
-            Products falling below reorder threshold requiring urgent inventory replenishment
-          </p>
         </div>
         <div className="table-header-right">
           <Link to="/products" className="dashboard-view-all-link">
@@ -188,13 +186,13 @@ const LowStockAlertTable = ({ analytics }) => {
         <table className="products-table low-stock-table">
           <thead>
             <tr>
-              <th className="severity-th">SEVERITY</th>
+              <th className="rank-th">#</th>
               <th>PRODUCT</th>
               <th>CATEGORY</th>
-              <th>PRICE</th>
-              <th>LOCATION</th>
-              <th>REMAINING STOCK</th>
-              <th>REORDER ALERT</th>
+              <th>UNIT PRICE</th>
+              <th>STOCK LEVEL</th>
+              <th>ALERT THRESHOLD</th>
+              <th>SEVERITY</th>
               <th className="actions-col">ACTIONS</th>
             </tr>
           </thead>
@@ -214,15 +212,15 @@ const LowStockAlertTable = ({ analytics }) => {
               <tr>
                 <td colSpan="8">
                   <div className="dashboard-empty-table-state stock-healthy-empty">
-                    <CheckCircle2 size={36} color="#10b981" style={{ marginBottom: '6px' }} />
+                    <CheckCircle2 size={32} color="#10b981" style={{ marginBottom: '6px' }} />
                     <h3>Inventory Healthy</h3>
-                    <p>All store products are currently well-stocked and above their minimum thresholds.</p>
+                    <p>All store products are currently well-stocked and above minimum thresholds.</p>
                   </div>
                 </td>
               </tr>
             )}
 
-            {lowStockRows.map((product) => {
+            {lowStockRows.map((product, idx) => {
               const hasHttpImage = product.image && product.image.startsWith('http');
 
               return (
@@ -231,13 +229,10 @@ const LowStockAlertTable = ({ analytics }) => {
                   className={`product-row low-stock-row row-severity-${product.severity}`}
                   onClick={() => navigate(`/products/details/${product.id}`)}
                 >
-                  {/* 1. Severity Badge */}
-                  <td className="severity-td" onClick={(e) => e.stopPropagation()}>
-                    <span className={`stock-severity-badge severity-${product.severity}`}>
-                      {product.severity === 'out' && <AlertCircle size={12} />}
-                      {product.severity === 'critical' && <AlertTriangle size={12} />}
-                      {product.severity === 'low' && <RefreshCw size={11} />}
-                      <span>{product.severityLabel}</span>
+                  {/* 1. Item Rank / Index Badge */}
+                  <td className="rank-td" onClick={(e) => e.stopPropagation()}>
+                    <span className={`rank-badge rank-severity-${product.severity}`}>
+                      #{idx + 1}
                     </span>
                   </td>
 
@@ -269,30 +264,22 @@ const LowStockAlertTable = ({ analytics }) => {
                     <span className="category-pill">{product.category}</span>
                   </td>
 
-                  {/* 4. Price */}
+                  {/* 4. Unit Price in ₹ */}
                   <td>
                     <span className="price-bold">{product.price}</span>
                   </td>
 
-                  {/* 5. Warehouse / Location */}
-                  <td>
-                    <div className="warehouse-info-cell">
-                      <MapPin size={12} className="warehouse-pin-icon" />
-                      <span>{product.warehouse}</span>
-                    </div>
-                  </td>
-
-                  {/* 6. Remaining Stock with Visual Warning Bar */}
+                  {/* 5. Remaining Stock with Visual Warning Bar */}
                   <td>
                     <div className="stock-alert-cell">
                       <div className="stock-qty-text-line">
-                        <span className={`stock-remaining-val ${product.stock === 0 ? 'text-danger' : 'text-warning'}`}>
+                        <span className={`stock-remaining-val ${product.stock === 0 ? 'text-danger' : (product.stock <= 2 ? 'text-critical' : 'text-warning')}`}>
                           {product.stock} {product.stock === 1 ? 'unit' : 'units'} left
                         </span>
                       </div>
                       <div className="mini-progress-bar">
                         <div
-                          className={`mini-progress-fill ${product.stock === 0 ? 'fill-out' : (product.stock <= 2 ? 'fill-critical' : 'fill-low')}`}
+                          className={`mini-progress-fill fill-${product.severity}`}
                           style={{
                             width: `${Math.max(8, product.stockPercent)}%`
                           }}
@@ -301,10 +288,21 @@ const LowStockAlertTable = ({ analytics }) => {
                     </div>
                   </td>
 
-                  {/* 7. Reorder Alert Threshold */}
+                  {/* 6. Alert Threshold */}
                   <td>
                     <span className="threshold-pill">
-                      Alert at ≤ {product.lowStock}
+                      ≤ {product.lowStock} units
+                    </span>
+                  </td>
+
+                  {/* 7. Severity Notion-style Soft Pill */}
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <span className={`status-pill-notion status-pill-stock-${product.severity}`}>
+                      <span className="status-dot"></span>
+                      {product.severity === 'out' && <AlertCircle size={11} style={{ marginRight: 2 }} />}
+                      {product.severity === 'critical' && <AlertTriangle size={11} style={{ marginRight: 2 }} />}
+                      {product.severity === 'low' && <RefreshCw size={10} style={{ marginRight: 2 }} />}
+                      <span>{product.severityLabel}</span>
                     </span>
                   </td>
 
@@ -344,7 +342,9 @@ const LowStockAlertTable = ({ analytics }) => {
             <div className="modal-header-custom">
               <div className="restock-modal-title-group">
                 <h3>Restock Inventory</h3>
-                <p className="restock-product-subtitle">{restockProduct.name}</p>
+                <p className="restock-product-subtitle">
+                  {restockProduct.name} {restockProduct.price !== '—' ? `• Unit Price: ${restockProduct.price}` : ''}
+                </p>
               </div>
               <button
                 type="button"
@@ -450,4 +450,3 @@ const LowStockAlertTable = ({ analytics }) => {
 };
 
 export default LowStockAlertTable;
-

@@ -366,7 +366,200 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 30px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dt-header-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.dt-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-timeline-accept-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  background-color: var(--primary-orange, #ff6b00);
+  color: #ffffff;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 3px rgba(255, 107, 0, 0.25);
+  white-space: nowrap;
+}
+
+.btn-timeline-accept-header:hover:not(:disabled) {
+  background-color: var(--primary-orange-hover, #e66000);
+  transform: translateY(-1px);
+}
+
+.btn-timeline-advance-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  background-color: #f8fafc;
+  color: #0f172a;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-timeline-advance-header:hover:not(:disabled) {
+  background-color: #f1f5f9;
+  border-color: #94a3b8;
+}
+
+/* Timeline Action Banner for Pending Order Acceptance */
+.timeline-accept-action-banner {
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  box-shadow: 0 1px 3px rgba(217, 119, 6, 0.08);
+}
+
+.taab-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background-color: #fef08a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #b45309;
+  border: 1px solid #facc15;
+}
+
+.taab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.taab-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.taab-title {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #92400e;
+  margin: 0;
+}
+
+.taab-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background-color: #fef08a;
+  color: #854d0e;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  border: 1px solid #fde047;
+}
+
+.taab-desc {
+  font-size: 0.8125rem;
+  color: #78350f;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.taab-desc strong {
+  color: #92400e;
+  font-weight: 700;
+}
+
+.taab-actions {
+  margin-top: 6px;
+  display: flex;
+  gap: 10px;
+}
+
+.btn-timeline-accept-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border-radius: 8px;
+  border: none;
+  background-color: var(--primary-orange, #ff6b00);
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 5px rgba(255, 107, 0, 0.28);
+}
+
+.btn-timeline-accept-main:hover:not(:disabled) {
+  background-color: var(--primary-orange-hover, #e66000);
+  transform: translateY(-1px);
+}
+
+/* Success notification banner */
+.timeline-accept-success-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  background-color: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  border-radius: 10px;
+  margin-bottom: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.tasb-icon {
+  color: #059669;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.tasb-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.tasb-title {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #065f46;
+}
+
+.tasb-msg {
+  font-size: 0.8rem;
+  color: #047857;
+  font-weight: 500;
 }
 
 .dt-title {

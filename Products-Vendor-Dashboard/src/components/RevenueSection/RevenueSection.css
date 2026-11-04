@@ -20,15 +20,22 @@
 .revenue-header-row {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 16px;
   flex-wrap: wrap;
-  gap: 12px;
+  gap: 14px;
 }
 
 .revenue-balance-block {
   display: flex;
   flex-direction: column;
+  gap: 3px;
+}
+
+.revenue-balance-main-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
 
 .revenue-balance-amount {
@@ -39,41 +46,342 @@
   line-height: 1.15;
 }
 
-.revenue-balance-subtitle {
-  font-size: 0.82rem;
-  font-weight: 500;
-  color: #6b7280;
-  margin-top: 3px;
+.revenue-period-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  background-color: #f3f4f6;
+  color: #374151;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
 }
 
-/* Header Controls: Timeframe filter + View Mode toggle */
+.revenue-balance-subtitle {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #6b7280;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.subtitle-period-text {
+  color: #374151;
+  font-weight: 600;
+}
+
+.subtitle-dot {
+  color: #9ca3af;
+}
+
+.subtitle-alltime {
+  color: #6b7280;
+}
+
+.subtitle-alltime strong {
+  color: var(--primary-orange, #ff6b00);
+  font-weight: 700;
+}
+
+/* Header Controls */
 .revenue-controls-group {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
-/* Time Range Filter (Day, Weekly, Monthly) */
+/* Month & Year Navigator */
+.revenue-month-nav-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+}
+
+.month-nav-arrow-btn {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.month-nav-arrow-btn:hover {
+  background: #f9fafb;
+  color: #111827;
+  border-color: #d1d5db;
+}
+
+.revenue-month-picker-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #111827;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  white-space: nowrap;
+}
+
+.revenue-month-picker-btn:hover,
+.revenue-month-picker-btn.active {
+  border-color: var(--primary-orange, #ff6b00);
+  color: var(--primary-orange, #ff6b00);
+}
+
+.month-picker-cal-icon {
+  color: #6b7280;
+  transition: color 0.15s ease;
+}
+
+.revenue-month-picker-btn:hover .month-picker-cal-icon,
+.revenue-month-picker-btn.active .month-picker-cal-icon {
+  color: var(--primary-orange, #ff6b00);
+}
+
+.month-picker-chevron {
+  color: #9ca3af;
+  transition: transform 0.15s ease;
+}
+
+.month-picker-chevron.open {
+  transform: rotate(180deg);
+}
+
+/* Month & Year Dropdown Popover */
+.revenue-month-dropdown-menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  width: 260px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.12), 0 4px 8px rgba(0, 0, 0, 0.04);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  animation: dropdownFadeIn 0.15s ease-out;
+}
+
+@keyframes dropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown Year Selector Header */
+.month-dropdown-year-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px;
+}
+
+.year-nav-btn {
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  color: #4b5563;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  padding: 0;
+}
+
+.year-nav-btn:hover {
+  background: #f3f4f6;
+  color: #111827;
+}
+
+.year-display-text {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #111827;
+}
+
+.month-dropdown-year-pills {
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+}
+
+.year-pill-btn {
+  flex: 1;
+  padding: 3px 6px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f8fafc;
+  color: #64748b;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.12s ease;
+}
+
+.year-pill-btn:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.year-pill-btn.active {
+  background: #111827;
+  color: #ffffff;
+  border-color: #111827;
+}
+
+/* 12 Months Grid */
+.month-dropdown-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.month-grid-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 3px;
+  border-radius: 7px;
+  border: 1px solid #f1f5f9;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.76rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+}
+
+.month-grid-item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+.month-grid-item.selected {
+  background: #111827 !important;
+  color: #ffffff !important;
+  border-color: #111827 !important;
+  font-weight: 700;
+}
+
+.month-grid-item.current-now {
+  border-color: var(--primary-orange, #ff6b00);
+  color: var(--primary-orange, #ff6b00);
+}
+
+.month-grid-orders-badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  background: #e0f2fe;
+  color: #0284c7;
+  border-radius: 999px;
+  padding: 0 4px;
+  line-height: 1.2;
+}
+
+.month-grid-item.selected .month-grid-orders-badge {
+  background: var(--primary-orange, #ff6b00);
+  color: #ffffff;
+}
+
+/* Dropdown Footer */
+.month-dropdown-footer {
+  display: flex;
+  gap: 6px;
+  border-top: 1px solid #f1f5f9;
+  padding-top: 8px;
+}
+
+.month-footer-btn {
+  flex: 1;
+  padding: 5px 8px;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+  text-align: center;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s ease;
+}
+
+.month-footer-btn:hover {
+  background: #f8fafc;
+  color: #0f172a;
+}
+
+.month-footer-btn.primary {
+  background: #fff0e6;
+  color: var(--primary-orange, #ff6b00);
+  border-color: #fed7aa;
+}
+
+.month-footer-btn.primary:hover {
+  background: #ffe4cc;
+}
+
+/* Time Range Filter (Day, Weekly, Monthly, All Years) */
 .timeframe-segmented-control {
   background: #f4f5f7;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 3px;
+  border-radius: 10px;
+  padding: 2px;
   display: inline-flex;
   gap: 2px;
 }
 
 .timeframe-tab-btn {
-  padding: 5px 12px;
-  font-size: 0.78rem;
+  padding: 4px 10px;
+  font-size: 0.76rem;
   font-weight: 600;
   color: #6b7280;
-  border-radius: 9px;
+  border-radius: 7px;
   transition: all 0.15s ease;
   cursor: pointer;
   background: transparent;
   border: none;
+  white-space: nowrap;
 }
 
 .timeframe-tab-btn:hover:not(.active) {
@@ -87,26 +395,61 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
+/* All Years Sub-Mode Control */
+.all-years-mode-control {
+  background: #f4f5f7;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 2px;
+  display: inline-flex;
+  gap: 2px;
+}
+
+.all-years-mode-btn {
+  padding: 4px 8px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #6b7280;
+  border-radius: 7px;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  white-space: nowrap;
+}
+
+.all-years-mode-btn:hover:not(.active) {
+  color: #111827;
+}
+
+.all-years-mode-btn.active {
+  background: #ffffff;
+  color: #111827;
+  font-weight: 700;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+}
+
 /* View Mode Switcher (Line View | Bar View) */
 .viewmode-segmented-control {
   background: #f4f5f7;
   border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 3px;
+  border-radius: 10px;
+  padding: 2px;
   display: inline-flex;
   gap: 2px;
 }
 
 .viewmode-tab-btn {
-  padding: 5px 12px;
-  font-size: 0.78rem;
+  padding: 4px 10px;
+  font-size: 0.76rem;
   font-weight: 600;
   color: #6b7280;
-  border-radius: 9px;
+  border-radius: 7px;
   transition: all 0.15s ease;
   cursor: pointer;
   background: transparent;
   border: none;
+  white-space: nowrap;
 }
 
 .viewmode-tab-btn:hover:not(.active) {
@@ -117,7 +460,7 @@
   background: #ffffff;
   color: #111827;
   font-weight: 700;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
 
 /* Chart Canvas Wrapper */
@@ -149,23 +492,19 @@
 }
 
 .tooltip-value-amount {
-  font-size: 1.05rem;
+  font-size: 1.12rem;
   font-weight: 800;
   color: #111827;
 }
 
 .tooltip-orders-count {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  margin-top: 2px;
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: #10b981;
 }
 
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-  .revenue-section-card {
-    padding: 18px;
-  }
-
+/* Responsive adjustments */
+@media (max-width: 900px) {
   .revenue-header-row {
     flex-direction: column;
     align-items: flex-start;
@@ -173,14 +512,6 @@
 
   .revenue-controls-group {
     width: 100%;
-    justify-content: space-between;
-  }
-
-  .revenue-balance-amount {
-    font-size: 1.5rem;
-  }
-
-  .revenue-chart-canvas {
-    height: 260px;
+    justify-content: flex-start;
   }
 }

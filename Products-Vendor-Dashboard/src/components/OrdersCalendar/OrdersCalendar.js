@@ -99,7 +99,7 @@ const OrdersCalendar = ({ analytics }) => {
     day: new Date().getDate(),
     time: '10:00 am',
     address: '',
-    amount: 'Rs. 4,999'
+    amount: '₹4,999'
   });
 
   const currentYear = viewDate.getFullYear();
@@ -158,7 +158,7 @@ const OrdersCalendar = ({ analytics }) => {
         }
 
         const rawTotal = Number(o.total || o.totalAmount || 0);
-        const amountStr = rawTotal > 100 ? `Rs. ${rawTotal.toLocaleString()}` : `$${rawTotal.toFixed(2)}`;
+        const amountStr = `₹${rawTotal.toLocaleString('en-IN')}`;
 
         const addr = o.shippingAddress || o.address || {};
         let addressStr = '';
@@ -347,7 +347,7 @@ const OrdersCalendar = ({ analytics }) => {
           : 'Pending',
       timeStr: `${monthName.slice(0, 3)} ${dayNum} at ${newOrderForm.time || '10:00 am'}`,
       address: newOrderForm.address || 'India',
-      amount: newOrderForm.amount || 'Rs. 4,999',
+      amount: newOrderForm.amount || '₹4,999',
       createdAtMs: tempDate.getTime()
     };
 
@@ -361,7 +361,7 @@ const OrdersCalendar = ({ analytics }) => {
       day: dayNum,
       time: '10:00 am',
       address: '',
-      amount: 'Rs. 4,999'
+      amount: '₹4,999'
     });
   };
 
@@ -711,10 +711,10 @@ const OrdersCalendar = ({ analytics }) => {
                 </div>
 
                 <div className="modal-form-group">
-                  <label>Total Price (Rs.)</label>
+                  <label>Total Price (₹)</label>
                   <input
                     type="text"
-                    placeholder="Rs. 4,999"
+                    placeholder="₹4,999"
                     value={newOrderForm.amount}
                     onChange={(e) =>
                       setNewOrderForm({ ...newOrderForm, amount: e.target.value })

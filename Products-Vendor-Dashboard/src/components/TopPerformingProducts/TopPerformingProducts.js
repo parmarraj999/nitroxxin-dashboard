@@ -58,9 +58,9 @@ const TopPerformingProducts = ({ analytics }) => {
     const lowStock = Number(product.inventory?.lowStockThreshold ?? product.lowStock ?? 5);
     const status = product.status || 'published';
     const rawPrice = Number(product.pricing?.sellingPrice ?? product.price ?? 0);
-    const formattedPrice = rawPrice > 100 ? `Rs. ${rawPrice.toLocaleString()}` : `$${rawPrice.toFixed(2)}`;
+    const formattedPrice = `₹${rawPrice.toLocaleString('en-IN')}`;
     const revenue = Number(product.revenue || 0);
-    const formattedRevenue = revenue > 100 ? `Rs. ${revenue.toLocaleString()}` : `$${revenue.toFixed(2)}`;
+    const formattedRevenue = `₹${revenue.toLocaleString('en-IN')}`;
     const stockTotal = Math.max(stock, lowStock * 10, 50);
     const stockPercent = Math.min(100, Math.round((stock / stockTotal) * 100));
     const stockColor = stock <= lowStock ? 'var(--danger, #ef4444)' : 'var(--success, #10b981)';

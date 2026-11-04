@@ -1,6 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import {
   Check,
+  CheckCircle2,
+  PackageCheck,
+  Loader2,
   ArrowLeft,
   Mail,
   PhoneCall,
@@ -8,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useOrder } from '../../hooks/useOrders';
+import { useOrdersContext } from '../../context/OrdersContext';
 import { toDate } from '../../services/firebaseUtils';
 import './OrderDetails.css';
 
@@ -52,12 +56,17 @@ const OrderDetails = () => {
   const navigate = useNavigate();
   const { orderId } = useParams();
   const { order } = useOrder(orderId);
+  const { acceptOrder, changeOrderStatus } = useOrdersContext();
 
   const [selectedItemIds, setSelectedItemIds] = useState(new Set());
+  const [isAccepting, setIsAccepting] = useState(false);
+  const [acceptSuccess, setAcceptSuccess] = useState('');
+  const [localStatus, setLocalStatus] = useState(null);
 
   const created = toDate(order?.createdAt);
   const customer = order?.customer || {};
-  const rawStatus = (order?.status || 'delivered').toLowerCase();
+  const rawStatus = (localStatus || order?.status || 'pending').toLowerCase();
+  const isPendingOrder = rawStatus === 'pending' || rawStatus === 'new';
 
   // 1. Order ID Display
   const displayOrderId = order?.orderID || (order?.id ? (order.id.startsWith('#') ? order.id : `#${order.id}`) : '#NX-99824');
@@ -197,43 +206,106 @@ const OrderDetails = () => {
     timelineOverallClass = 'cancelled';
   }
 
-  // Determine Dynamic Timeline Steps (Original Live 4-step Tracker)
+  // Acceptance handler: confirms order and reduces stock for items
+  const handleAcceptOrder = async () => {
+    if (isAccepting || !orderId) return;
+
+    try {
+      setIsAccepting(true);
+      setAcceptSuccess('');
+
+      const orderItems = (Array.isArray(order?.items) && order.items.length > 0)
+        ? order.items
+        : items;
+
+      const result = await acceptOrder(orderId, orderItems, 'Order accepted by admin');
+
+      setLocalStatus('confirmed');
+      const updatedCount = result?.updatedProducts?.length ?? orderItems.length;
+      setAcceptSuccess(`Order #${displayOrderId} accepted successfully! Stock reduced for ${updatedCount} product(s).`);
+
+      setTimeout(() => {
+        setAcceptSuccess('');
+      }, 6000);
+    } catch (err) {
+      console.error('Failed to accept order:', err);
+      alert('Failed to accept order: ' + (err.message || 'Unknown error'));
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  // Next action for advancing order status
+  let nextAction = null;
+  if (rawStatus === 'confirmed') {
+    nextAction = { label: 'Pack Order', nextStatus: 'packed' };
+  } else if (rawStatus === 'packed') {
+    nextAction = { label: 'Ship Order', nextStatus: 'shipped' };
+  } else if (rawStatus === 'shipped' || rawStatus === 'in_transit') {
+    nextAction = { label: 'Mark as Delivered', nextStatus: 'delivered' };
+  }
+
+  const handleAdvanceStatus = async (nextStatus, label) => {
+    if (isAccepting || !orderId) return;
+    try {
+      setIsAccepting(true);
+      await changeOrderStatus(orderId, nextStatus, `Order marked as ${label}`);
+      setLocalStatus(nextStatus);
+    } catch (err) {
+      console.error(`Failed to update status:`, err);
+    } finally {
+      setIsAccepting(false);
+    }
+  };
+
+  // Determine Dynamic Timeline Steps (Comprehensive 5-step Tracker)
   const isDelivered = rawStatus === 'delivered';
   const isShipped = rawStatus === 'shipped' || rawStatus === 'delivered' || rawStatus === 'in_transit' || rawStatus === 'out_for_delivery';
   const isInTransit = rawStatus === 'shipped' || rawStatus === 'in_transit' || rawStatus === 'out_for_delivery';
+  const isPacked = rawStatus === 'packed' || isShipped;
   const isConfirmed = rawStatus !== 'pending' && rawStatus !== 'new' && rawStatus !== 'cancelled';
 
   const timelineSteps = [
     {
-      title: 'Order confirmed',
-      badgeType: isConfirmed ? 'done' : 'active',
-      state: isConfirmed ? 'done' : 'active',
-      description: `Payment received — order ${displayOrderId} confirmed`,
+      title: 'Order placed',
+      badgeType: 'done',
+      state: 'done',
+      description: `Payment received — order ${displayOrderId} placed by customer`,
       time: formatTimelineDate(created, 0)
     },
     {
-      title: 'Shipped',
-      badgeType: isShipped ? 'done' : (rawStatus === 'packed' ? 'active' : 'pending'),
-      state: isShipped ? 'done' : (rawStatus === 'packed' ? 'active' : 'pending'),
-      description: 'Picked up by courier — scanned at origin',
-      time: isShipped ? formatTimelineDate(created, 2) : '—',
+      title: isConfirmed ? 'Order accepted & confirmed' : 'Order confirmation',
+      badgeType: isConfirmed ? 'done' : 'active',
+      state: isConfirmed ? 'done' : 'active',
+      description: isConfirmed
+        ? 'Accepted by admin — inventory stock deducted'
+        : 'Awaiting admin/vendor acceptance',
+      time: isConfirmed ? formatTimelineDate(created, 0.5) : '—',
       stepNum: '2'
+    },
+    {
+      title: isPacked ? 'Packed & Prepared' : 'Packaging',
+      badgeType: isPacked ? 'done' : (isConfirmed ? 'active' : 'pending'),
+      state: isPacked ? 'done' : (isConfirmed ? 'active' : 'pending'),
+      description: isPacked ? 'Items packed and ready for carrier pickup' : 'Order packing pending',
+      time: isPacked ? formatTimelineDate(created, 2) : '—',
+      stepNum: '3'
     },
     {
       title: 'In transit',
       badgeType: isDelivered ? 'done' : (isInTransit ? 'active' : 'pending'),
       state: isDelivered ? 'done' : (isInTransit ? 'active' : 'pending'),
-      description: 'At regional hub — next: local delivery center',
+      description: 'At regional logistics hub — courier dispatched',
       time: (isInTransit || isDelivered) ? formatTimelineDate(created, 20) : '—',
-      stepNum: '3'
+      stepNum: '4'
     },
     {
       title: 'Delivered',
       badgeType: isDelivered ? 'done' : 'pending',
       state: isDelivered ? 'done' : 'pending',
-      description: 'Package will be delivered to your doorstep',
+      description: 'Package delivered to recipient address',
       time: isDelivered ? formatTimelineDate(created, 48) : '—',
-      stepNum: '4'
+      stepNum: '5'
     }
   ];
 
@@ -340,12 +412,106 @@ const OrderDetails = () => {
         {/* 2A. DELIVERY TIMELINE CARD */}
         <div className="delivery-timeline-card card">
           <div className="dt-header">
-            <h3 className="dt-title">Delivery timeline</h3>
-            <span className={`dt-header-status-badge dt-status-${timelineOverallClass}`}>
-              <span className="dt-header-dot"></span>
-              {timelineOverallStatus}
-            </span>
+            <div className="dt-header-title-wrap">
+              <h3 className="dt-title">Delivery timeline</h3>
+              <span className={`dt-header-status-badge dt-status-${timelineOverallClass}`}>
+                <span className="dt-header-dot"></span>
+                {timelineOverallStatus}
+              </span>
+            </div>
+
+            {/* Quick Action Button in Header */}
+            <div className="dt-header-actions">
+              {isPendingOrder && (
+                <button
+                  type="button"
+                  className="btn-timeline-accept-header"
+                  onClick={handleAcceptOrder}
+                  disabled={isAccepting}
+                  title="Accept this order and deduct items from inventory"
+                >
+                  {isAccepting ? (
+                    <>
+                      <Loader2 size={13} className="spin-icon-inline" />
+                      <span>Accepting...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Check size={13} strokeWidth={2.5} />
+                      <span>Accept Order</span>
+                    </>
+                  )}
+                </button>
+              )}
+
+              {!isPendingOrder && nextAction && (
+                <button
+                  type="button"
+                  className="btn-timeline-advance-header"
+                  onClick={() => handleAdvanceStatus(nextAction.nextStatus, nextAction.label)}
+                  disabled={isAccepting}
+                  title={`Advance order to ${nextAction.nextStatus}`}
+                >
+                  {isAccepting ? (
+                    <Loader2 size={13} className="spin-icon-inline" />
+                  ) : (
+                    <Check size={13} strokeWidth={2.5} />
+                  )}
+                  <span>{nextAction.label}</span>
+                </button>
+              )}
+            </div>
           </div>
+
+          {/* Success Notification Banner */}
+          {acceptSuccess && (
+            <div className="timeline-accept-success-banner">
+              <CheckCircle2 size={18} className="tasb-icon" />
+              <div className="tasb-text">
+                <span className="tasb-title">Order Confirmed!</span>
+                <span className="tasb-msg">{acceptSuccess}</span>
+              </div>
+            </div>
+          )}
+
+          {/* Prominent Action Banner inside Timeline when Order is Pending Acceptance */}
+          {isPendingOrder && (
+            <div className="timeline-accept-action-banner">
+              <div className="taab-icon-box">
+                <PackageCheck size={22} className="taab-icon" />
+              </div>
+              <div className="taab-content">
+                <div className="taab-title-row">
+                  <h4 className="taab-title">Action Required: Accept New Order</h4>
+                  <span className="taab-badge">Awaiting Acceptance</span>
+                </div>
+                <p className="taab-desc">
+                  Customer has placed this order. Accept to confirm the order and automatically deduct{' '}
+                  <strong>{totalItemCount} {totalItemCount === 1 ? 'unit' : 'units'}</strong> from your live product inventory.
+                </p>
+                <div className="taab-actions">
+                  <button
+                    type="button"
+                    className="btn-timeline-accept-main"
+                    onClick={handleAcceptOrder}
+                    disabled={isAccepting}
+                  >
+                    {isAccepting ? (
+                      <>
+                        <Loader2 size={15} className="spin-icon-inline" />
+                        <span>Accepting & Deducting Stock...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Check size={15} strokeWidth={2.5} />
+                        <span>Accept Order & Reduce Stock</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="dt-timeline-list">
             {timelineSteps.map((step, idx) => (

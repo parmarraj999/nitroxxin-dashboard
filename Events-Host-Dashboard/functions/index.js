@@ -18,6 +18,15 @@ const { sendTicketEmail } = require('./services/emailService');
 
 /**
  * ============================================================================
+ * PAUSE TOGGLE FOR TICKET EMAIL CLOUD FUNCTIONS
+ * ============================================================================
+ * Set PAUSE_TICKET_EMAILS to true to pause sending emails on ticket booking.
+ * Set to false (or environment variable PAUSE_TICKET_EMAILS=false) to resume.
+ */
+const PAUSE_TICKET_EMAILS = process.env.PAUSE_TICKET_EMAILS === 'false' ? false : true;
+
+/**
+ * ============================================================================
  * 1. AUTOMATED FIRESTORE TRIGGER: onBookingCreatedOrPaid
  * ============================================================================
  * Triggered automatically when a booking is created or updated in Firestore.
@@ -38,6 +47,12 @@ exports.onBookingCreatedOrPaid = onDocumentWritten(
   },
   async (event) => {
     const bookingId = event.params.bookingId;
+
+    // 0. Check if ticket emails are paused
+    if (PAUSE_TICKET_EMAILS) {
+      logger.info(`[PAUSED] onBookingCreatedOrPaid is currently paused. Skipping email processing for booking ${bookingId}.`);
+      return;
+    }
 
     // 1. Check if document was deleted
     if (!event.data?.after?.exists) {
@@ -257,6 +272,16 @@ exports.resendTicketEmail = onCall(
     region: 'us-central1',
   },
   async (request) => {
+    // 0. Check if ticket emails are paused
+    if (PAUSE_TICKET_EMAILS) {
+      logger.info(`[PAUSED] resendTicketEmail is currently paused. Request ignored.`);
+      return {
+        success: false,
+        paused: true,
+        message: 'Ticket email sending is currently paused.',
+      };
+    }
+
     const bookingId = request.data?.bookingId;
     if (!bookingId) {
       throw new HttpsError('invalid-argument', 'The function must be called with a valid "bookingId".');

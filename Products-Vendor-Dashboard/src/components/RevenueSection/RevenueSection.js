@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import {
   ResponsiveContainer,
   BarChart,
@@ -11,86 +11,49 @@ import {
   Tooltip,
   Cell
 } from 'recharts';
+import {
+  Calendar,
+  ChevronLeft,
+  ChevronRight,
+  ChevronDown,
+  RotateCcw
+} from 'lucide-react';
+import { useOrdersContext } from '../../context/OrdersContext';
+import { toDate } from '../../services/firebaseUtils';
 import './RevenueSection.css';
 
-// All 31 days of the month (Days 1 to 31)
-const allDaysOfMonthData = [
-  { name: '1', dayNum: 1, value: 2400, orders: 12 },
-  { name: '2', dayNum: 2, value: 3100, orders: 15 },
-  { name: '3', dayNum: 3, value: 2800, orders: 14 },
-  { name: '4', dayNum: 4, value: 3200, orders: 16 },
-  { name: '5', dayNum: 5, value: 3100, orders: 15 },
-  { name: '6', dayNum: 6, value: 2400, orders: 12 },
-  { name: '7', dayNum: 7, value: 2300, orders: 10 },
-  { name: '8', dayNum: 8, value: 2800, orders: 14 },
-  { name: '9', dayNum: 9, value: 3200, orders: 16 },
-  { name: '10', dayNum: 10, value: 3500, orders: 17 },
-  { name: '11', dayNum: 11, value: 3200, orders: 16 },
-  { name: '12', dayNum: 12, value: 3100, orders: 15 },
-  { name: '13', dayNum: 13, value: 3300, orders: 16 },
-  { name: '14', dayNum: 14, value: 3600, orders: 18 },
-  { name: '15', dayNum: 15, value: 3100, orders: 15 },
-  { name: '16', dayNum: 16, value: 3400, orders: 17 },
-  { name: '17', dayNum: 17, value: 3200, orders: 16 },
-  { name: '18', dayNum: 18, value: 3100, orders: 15 },
-  { name: '19', dayNum: 19, value: 3300, orders: 16 },
-  { name: '20', dayNum: 20, value: 9800, orders: 48 }, // Peak highlighted black bar matching orders calendar
-  { name: '21', dayNum: 21, value: 3000, orders: 15 },
-  { name: '22', dayNum: 22, value: 3200, orders: 16 },
-  { name: '23', dayNum: 23, value: 3100, orders: 15 },
-  { name: '24', dayNum: 24, value: 2900, orders: 14 },
-  { name: '25', dayNum: 25, value: 3400, orders: 17 },
-  { name: '26', dayNum: 26, value: 2800, orders: 14 },
-  { name: '27', dayNum: 27, value: 3100, orders: 15 },
-  { name: '28', dayNum: 28, value: 2900, orders: 14 },
-  { name: '29', dayNum: 29, value: 3200, orders: 16 },
-  { name: '30', dayNum: 30, value: 3400, orders: 17 },
-  { name: '31', dayNum: 31, value: 3275.96, orders: 16 }
+const monthsAbbr = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const monthsFull = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December'
 ];
 
-// All weeks of the month (Week 1 to Week 5)
-const allWeeksOfMonthData = [
-  { name: 'Week 1', shortName: 'W1', value: 19300, orders: 94, range: 'Days 1 - 7' },
-  { name: 'Week 2', shortName: 'W2', value: 22700, orders: 112, range: 'Days 8 - 14' },
-  { name: 'Week 3', shortName: 'W3', value: 28900, orders: 144, range: 'Days 15 - 21' }, // Peak highlighted black bar
-  { name: 'Week 4', shortName: 'W4', value: 21400, orders: 106, range: 'Days 22 - 28' },
-  { name: 'Week 5', shortName: 'W5', value: 9875.96, orders: 49, range: 'Days 29 - 31' }
-];
-
-// All 12 months of the year
-const monthlyData = [
-  { name: 'Jan', fullMonth: 'January', value: 9800, orders: 140 },
-  { name: 'Feb', fullMonth: 'February', value: 10000, orders: 152 },
-  { name: 'Mar', fullMonth: 'March', value: 8600, orders: 128 },
-  { name: 'Apr', fullMonth: 'April', value: 7100, orders: 105 },
-  { name: 'May', fullMonth: 'May', value: 6000, orders: 94 },
-  { name: 'Jun', fullMonth: 'June', value: 5400, orders: 88 },
-  { name: 'Jul', fullMonth: 'July', value: 9600, orders: 146 }, // Peak highlighted black bar matching reference image
-  { name: 'Aug', fullMonth: 'August', value: 6100, orders: 92 },
-  { name: 'Sep', fullMonth: 'September', value: 9500, orders: 139 },
-  { name: 'Oct', fullMonth: 'October', value: 9500, orders: 142 },
-  { name: 'Nov', fullMonth: 'November', value: 7000, orders: 110 },
-  { name: 'Dec', fullMonth: 'December', value: 4200, orders: 68 }
-];
-
-// Custom sleek tooltip
-const CustomTooltip = ({ active, payload, label, timeframe }) => {
+// Custom sleek tooltip showing Rupee currency
+const CustomTooltip = ({ active, payload, label, timeframe, allYearsMode, selectedMonthName, selectedYear }) => {
   if (active && payload && payload.length) {
     const data = payload[0].payload;
-    const formattedLabel =
-      timeframe === 'day'
-        ? `Day ${label}`
-        : timeframe === 'weekly'
-        ? `${label} (${data.range || ''})`
-        : data.fullMonth || label;
+    let formattedLabel = label;
+    if (timeframe === 'day') {
+      formattedLabel = `Day ${label} • ${selectedMonthName} ${selectedYear}`;
+    } else if (timeframe === 'weekly') {
+      formattedLabel = `${label} (${data.range || ''}) • ${selectedMonthName} ${selectedYear}`;
+    } else if (timeframe === 'monthly') {
+      formattedLabel = `${data.fullMonth || label} ${selectedYear}`;
+    } else if (timeframe === 'allYears') {
+      formattedLabel = allYearsMode === 'monthOnly'
+        ? `${selectedMonthName} ${label}`
+        : `Full Year ${label}`;
+    }
 
     return (
       <div className="revenue-custom-tooltip">
         <span className="tooltip-period-label">{formattedLabel}</span>
         <span className="tooltip-value-amount">
-          ${Number(data.value).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+          ₹{Number(data.value).toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
         </span>
-        <span className="tooltip-orders-count">{data.orders} orders recorded</span>
+        <span className="tooltip-orders-count">
+          {data.orders} {data.orders === 1 ? 'order' : 'orders'} recorded
+        </span>
       </div>
     );
   }
@@ -98,85 +61,558 @@ const CustomTooltip = ({ active, payload, label, timeframe }) => {
 };
 
 const RevenueSection = ({ analytics }) => {
-  // Timeframe selector: 'day' | 'weekly' | 'monthly' - 'day' is default as requested
+  const ordersCtx = useOrdersContext();
+  const realOrders = (ordersCtx?.orders && ordersCtx.orders.length > 0)
+    ? ordersCtx.orders
+    : (analytics?.orders || []);
+
+  const now = new Date();
+  const currentRealYear = now.getFullYear();
+  const currentRealMonth = now.getMonth();
+
+  // Selected Month & Year states
+  const [selectedYear, setSelectedYear] = useState(currentRealYear);
+  const [selectedMonth, setSelectedMonth] = useState(currentRealMonth);
+  const hasUserSelectedRef = useRef(false);
+
+  // Month Picker Dropdown state
+  const [isMonthPickerOpen, setIsMonthPickerOpen] = useState(false);
+  const monthPickerRef = useRef(null);
+
+  // Timeframe selector: 'day' | 'weekly' | 'monthly' | 'allYears'
   const [timeframe, setTimeframe] = useState('day');
 
-  // View mode switcher: 'bar' | 'line' (matching screenshot buttons: Line View | Bar View)
+  // For 'allYears' timeframe: 'total' (all months) or 'monthOnly' (that particular month across all years)
+  const [allYearsMode, setAllYearsMode] = useState('total');
+
+  // View mode switcher: 'bar' | 'line'
   const [viewMode, setViewMode] = useState('bar');
 
-  // Currently active/highlighted bar ('20' by default for day view)
-  const [activeItemName, setActiveItemName] = useState('20');
+  // Currently active/highlighted bar
+  const [activeItemName, setActiveItemName] = useState(null);
 
-  // Select appropriate dataset based on timeframe
+  // Close month dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (monthPickerRef.current && !monthPickerRef.current.contains(event.target)) {
+        setIsMonthPickerOpen(false);
+      }
+    };
+    if (isMonthPickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isMonthPickerOpen]);
+
+  // Derive available years from real orders and current year
+  const availableYears = useMemo(() => {
+    const yearsSet = new Set([currentRealYear, currentRealYear - 1, currentRealYear - 2]);
+    realOrders.forEach((o) => {
+      const dt = toDate(o.createdAt);
+      if (dt && !isNaN(dt.getTime())) {
+        yearsSet.add(dt.getFullYear());
+      }
+    });
+    return Array.from(yearsSet).sort((a, b) => b - a);
+  }, [realOrders, currentRealYear]);
+
+  // If user hasn't explicitly chosen yet, auto-select month with orders if current month is empty
+  useEffect(() => {
+    if (hasUserSelectedRef.current || !realOrders.length) return;
+
+    const hasCurrentMonthOrders = realOrders.some((o) => {
+      const dt = toDate(o.createdAt);
+      return dt && dt.getMonth() === currentRealMonth && dt.getFullYear() === currentRealYear;
+    });
+
+    if (!hasCurrentMonthOrders) {
+      for (const o of realOrders) {
+        const dt = toDate(o.createdAt);
+        if (dt && !isNaN(dt.getTime())) {
+          setSelectedYear(dt.getFullYear());
+          setSelectedMonth(dt.getMonth());
+          break;
+        }
+      }
+    }
+  }, [realOrders, currentRealMonth, currentRealYear]);
+
+  const selectedMonthName = monthsFull[selectedMonth];
+  const daysInMonth = useMemo(() => new Date(selectedYear, selectedMonth + 1, 0).getDate(), [selectedYear, selectedMonth]);
+
+  // Quick navigation: Previous Month
+  const handlePrevMonth = () => {
+    hasUserSelectedRef.current = true;
+    setActiveItemName(null);
+    if (selectedMonth === 0) {
+      setSelectedMonth(11);
+      setSelectedYear((y) => y - 1);
+    } else {
+      setSelectedMonth((m) => m - 1);
+    }
+  };
+
+  // Quick navigation: Next Month
+  const handleNextMonth = () => {
+    hasUserSelectedRef.current = true;
+    setActiveItemName(null);
+    if (selectedMonth === 11) {
+      setSelectedMonth(0);
+      setSelectedYear((y) => y + 1);
+    } else {
+      setSelectedMonth((m) => m + 1);
+    }
+  };
+
+  // Select month from dropdown
+  const handleSelectMonth = (monthIdx) => {
+    hasUserSelectedRef.current = true;
+    setSelectedMonth(monthIdx);
+    setIsMonthPickerOpen(false);
+    setActiveItemName(null);
+  };
+
+  // Select year from dropdown
+  const handleSelectYear = (year) => {
+    hasUserSelectedRef.current = true;
+    setSelectedYear(year);
+    setActiveItemName(null);
+  };
+
+  // Reset to today's month & year
+  const handleResetToCurrent = () => {
+    hasUserSelectedRef.current = true;
+    setSelectedYear(currentRealYear);
+    setSelectedMonth(currentRealMonth);
+    setIsMonthPickerOpen(false);
+    setActiveItemName(null);
+  };
+
+  // Total All-Time Balance
+  const totalAllTimeRevenue = useMemo(() => {
+    if (analytics?.revenue !== undefined && analytics.revenue > 0) {
+      return analytics.revenue;
+    }
+    return realOrders.reduce((sum, o) => sum + Number(o.total || o.totalAmount || 0), 0);
+  }, [analytics, realOrders]);
+
+  // Selected Month Revenue & Order Count
+  const { selectedMonthRevenue, selectedMonthOrderCount } = useMemo(() => {
+    const filtered = realOrders.filter((o) => {
+      const dt = toDate(o.createdAt);
+      return dt && dt.getMonth() === selectedMonth && dt.getFullYear() === selectedYear;
+    });
+    const rev = filtered.reduce((sum, o) => sum + Number(o.total || o.totalAmount || 0), 0);
+    return { selectedMonthRevenue: rev, selectedMonthOrderCount: filtered.length };
+  }, [realOrders, selectedMonth, selectedYear]);
+
+  // Selected Year Revenue & Order Count
+  const { selectedYearRevenue, selectedYearOrderCount } = useMemo(() => {
+    const filtered = realOrders.filter((o) => {
+      const dt = toDate(o.createdAt);
+      return dt && dt.getFullYear() === selectedYear;
+    });
+    const rev = filtered.reduce((sum, o) => sum + Number(o.total || o.totalAmount || 0), 0);
+    return { selectedYearRevenue: rev, selectedYearOrderCount: filtered.length };
+  }, [realOrders, selectedYear]);
+
+  // Selected Month across ALL Years Revenue & Order Count
+  const { allYearsMonthRevenue, allYearsMonthOrderCount } = useMemo(() => {
+    const filtered = realOrders.filter((o) => {
+      const dt = toDate(o.createdAt);
+      return dt && dt.getMonth() === selectedMonth;
+    });
+    const rev = filtered.reduce((sum, o) => sum + Number(o.total || o.totalAmount || 0), 0);
+    return { allYearsMonthRevenue: rev, allYearsMonthOrderCount: filtered.length };
+  }, [realOrders, selectedMonth]);
+
+  // Compute live daily breakdown for selected month (Days 1 to daysInMonth)
+  const allDaysOfMonthData = useMemo(() => {
+    const data = [];
+    for (let day = 1; day <= daysInMonth; day++) {
+      const dayOrders = realOrders.filter((o) => {
+        const dt = toDate(o.createdAt);
+        return (
+          dt &&
+          dt.getDate() === day &&
+          dt.getMonth() === selectedMonth &&
+          dt.getFullYear() === selectedYear
+        );
+      });
+
+      const dayRevenue = dayOrders.reduce((sum, o) => sum + Number(o.total || o.totalAmount || 0), 0);
+      data.push({
+        name: String(day),
+        dayNum: day,
+        value: Math.round(dayRevenue),
+        orders: dayOrders.length
+      });
+    }
+    return data;
+  }, [realOrders, selectedMonth, selectedYear, daysInMonth]);
+
+  // Compute live weekly breakdown for selected month (Weeks 1 to 5)
+  const allWeeksOfMonthData = useMemo(() => {
+    const weeksConfig = [
+      { name: 'Week 1', shortName: 'W1', start: 1, end: 7 },
+      { name: 'Week 2', shortName: 'W2', start: 8, end: 14 },
+      { name: 'Week 3', shortName: 'W3', start: 15, end: 21 },
+      { name: 'Week 4', shortName: 'W4', start: 22, end: 28 },
+      { name: 'Week 5', shortName: 'W5', start: 29, end: daysInMonth }
+    ];
+
+    return weeksConfig.map((w) => {
+      const weekOrders = realOrders.filter((o) => {
+        const dt = toDate(o.createdAt);
+        return (
+          dt &&
+          dt.getMonth() === selectedMonth &&
+          dt.getFullYear() === selectedYear &&
+          dt.getDate() >= w.start &&
+          dt.getDate() <= w.end
+        );
+      });
+
+      const weekRevenue = weekOrders.reduce((sum, o) => sum + Number(o.total || o.totalAmount || 0), 0);
+      return {
+        name: w.name,
+        shortName: w.shortName,
+        range: `Days ${w.start} - ${w.end}`,
+        value: Math.round(weekRevenue),
+        orders: weekOrders.length
+      };
+    });
+  }, [realOrders, selectedMonth, selectedYear, daysInMonth]);
+
+  // Compute live monthly breakdown for selected year (12 Months: Jan - Dec)
+  const monthlyData = useMemo(() => {
+    return monthsAbbr.map((m, idx) => {
+      const monthOrders = realOrders.filter((o) => {
+        const dt = toDate(o.createdAt);
+        return dt && dt.getMonth() === idx && dt.getFullYear() === selectedYear;
+      });
+
+      const monthRevenue = monthOrders.reduce((sum, o) => sum + Number(o.total || o.totalAmount || 0), 0);
+      return {
+        name: m,
+        monthIndex: idx,
+        fullMonth: monthsFull[idx],
+        value: Math.round(monthRevenue),
+        orders: monthOrders.length
+      };
+    });
+  }, [realOrders, selectedYear]);
+
+  // Compute live multi-year comparison data
+  const allYearsData = useMemo(() => {
+    const sortedYearsAsc = [...availableYears].sort((a, b) => a - b);
+
+    return sortedYearsAsc.map((yr) => {
+      let filteredOrders = [];
+      if (allYearsMode === 'monthOnly') {
+        // Only that chosen month across years
+        filteredOrders = realOrders.filter((o) => {
+          const dt = toDate(o.createdAt);
+          return dt && dt.getMonth() === selectedMonth && dt.getFullYear() === yr;
+        });
+      } else {
+        // Full year orders
+        filteredOrders = realOrders.filter((o) => {
+          const dt = toDate(o.createdAt);
+          return dt && dt.getFullYear() === yr;
+        });
+      }
+
+      const rev = filteredOrders.reduce((sum, o) => sum + Number(o.total || o.totalAmount || 0), 0);
+      return {
+        name: String(yr),
+        year: yr,
+        value: Math.round(rev),
+        orders: filteredOrders.length
+      };
+    });
+  }, [availableYears, realOrders, allYearsMode, selectedMonth]);
+
+  // Active chart dataset
   const chartData = useMemo(() => {
     if (timeframe === 'day') return allDaysOfMonthData;
     if (timeframe === 'weekly') return allWeeksOfMonthData;
-    return monthlyData;
-  }, [timeframe]);
+    if (timeframe === 'monthly') return monthlyData;
+    return allYearsData;
+  }, [timeframe, allDaysOfMonthData, allWeeksOfMonthData, monthlyData, allYearsData]);
 
-  // Handle timeframe tab change and set appropriate default active bar
+  // Effective highlighted bar
+  const peakItemName = useMemo(() => {
+    if (timeframe === 'monthly') {
+      return monthsAbbr[selectedMonth];
+    }
+    if (timeframe === 'allYears') {
+      return String(selectedYear);
+    }
+    if (!chartData || chartData.length === 0) return null;
+    let max = chartData[0];
+    for (const item of chartData) {
+      if (item.value > max.value) {
+        max = item;
+      }
+    }
+    return max.value > 0 ? max.name : chartData[0]?.name;
+  }, [timeframe, selectedMonth, selectedYear, chartData]);
+
+  const effectiveActiveName = activeItemName || peakItemName;
+
+  // Handle timeframe tab change
   const handleTimeframeChange = (newTimeframe) => {
     setTimeframe(newTimeframe);
-    if (newTimeframe === 'day') setActiveItemName('20');
-    else if (newTimeframe === 'weekly') setActiveItemName('Week 3');
-    else if (newTimeframe === 'monthly') setActiveItemName('Jul');
+    setActiveItemName(null);
   };
 
-  // Fixed available balance matching UI reference image
-  const balanceDisplay = '$102,175.96';
-
-  // Compute dynamic domain and ticks based on selected timeframe
+  // Dynamic Y-axis scale based on chart values
   const yAxisConfig = useMemo(() => {
-    if (timeframe === 'weekly') {
-      return {
-        domain: [0, 30000],
-        ticks: [0, 6000, 12000, 18000, 24000, 30000],
-        tickFormatter: (val) => (val === 0 ? '0k' : `${val / 1000}k`)
-      };
-    }
-    // Daily and Monthly have peak ~10k matching reference image
-    return {
-      domain: [0, 10000],
-      ticks: [0, 2000, 4000, 6000, 8000, 10000],
-      tickFormatter: (val) => (val === 0 ? '0k' : `${val / 1000}k`)
-    };
-  }, [timeframe]);
+    const maxVal = Math.max(...chartData.map((d) => d.value), 0);
+    let topDomain = 10000;
 
-  // Dynamic barSize to ensure bars stay sleek, narrow, and proportionate
+    if (maxVal > 0) {
+      if (maxVal <= 5000) topDomain = 5000;
+      else if (maxVal <= 10000) topDomain = 10000;
+      else if (maxVal <= 25000) topDomain = 25000;
+      else if (maxVal <= 50000) topDomain = 50000;
+      else if (maxVal <= 100000) topDomain = 100000;
+      else if (maxVal <= 250000) topDomain = 250000;
+      else topDomain = Math.ceil(maxVal * 1.25);
+    }
+
+    const step = topDomain / 5;
+    const ticks = [0, step, step * 2, step * 3, step * 4, topDomain];
+
+    return {
+      domain: [0, topDomain],
+      ticks,
+      tickFormatter: (val) => {
+        if (val === 0) return '₹0';
+        if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
+        if (val >= 1000) return `₹${Math.round(val / 1000)}k`;
+        return `₹${val}`;
+      }
+    };
+  }, [chartData]);
+
   const currentBarSize = useMemo(() => {
-    if (timeframe === 'day') return 10; // Sleek narrow bar for 31 days
-    if (timeframe === 'weekly') return 22; // Narrow bar for 5 weeks
-    return 18; // Narrow bar for 12 months (matching reference screenshot)
+    if (timeframe === 'day') return 10;
+    if (timeframe === 'weekly') return 24;
+    if (timeframe === 'monthly') return 18;
+    return 26; // allYears
   }, [timeframe]);
 
   const currentBarRadius = useMemo(() => {
     if (timeframe === 'day') return [3, 3, 3, 3];
-    return [6, 6, 6, 6];
+    return [5, 5, 5, 5];
   }, [timeframe]);
+
+  // Dynamic header amount and label based on active view
+  const { displayAmount, periodTag, periodSubtitle } = useMemo(() => {
+    if (timeframe === 'day' || timeframe === 'weekly') {
+      return {
+        displayAmount: `₹${Math.round(selectedMonthRevenue).toLocaleString('en-IN')}`,
+        periodTag: `${monthsAbbr[selectedMonth]} ${selectedYear}`,
+        periodSubtitle: `${selectedMonthName} ${selectedYear} Revenue • ${selectedMonthOrderCount} ${selectedMonthOrderCount === 1 ? 'order' : 'orders'}`
+      };
+    }
+    if (timeframe === 'monthly') {
+      return {
+        displayAmount: `₹${Math.round(selectedYearRevenue).toLocaleString('en-IN')}`,
+        periodTag: `Full Year ${selectedYear}`,
+        periodSubtitle: `Annual ${selectedYear} Revenue • ${selectedYearOrderCount} ${selectedYearOrderCount === 1 ? 'order' : 'orders'} across 12 months`
+      };
+    }
+    // allYears
+    if (allYearsMode === 'monthOnly') {
+      return {
+        displayAmount: `₹${Math.round(allYearsMonthRevenue).toLocaleString('en-IN')}`,
+        periodTag: `${selectedMonthName} Across All Years`,
+        periodSubtitle: `Combined ${selectedMonthName} Revenue across all recorded years • ${allYearsMonthOrderCount} orders`
+      };
+    }
+    return {
+      displayAmount: `₹${Math.round(totalAllTimeRevenue).toLocaleString('en-IN')}`,
+      periodTag: 'All-Time Total',
+      periodSubtitle: `Total Store Revenue • ${realOrders.length} orders total across all years`
+    };
+  }, [
+    timeframe,
+    allYearsMode,
+    selectedMonthRevenue,
+    selectedMonthOrderCount,
+    selectedYearRevenue,
+    selectedYearOrderCount,
+    allYearsMonthRevenue,
+    allYearsMonthOrderCount,
+    totalAllTimeRevenue,
+    selectedMonth,
+    selectedMonthName,
+    selectedYear,
+    realOrders.length
+  ]);
 
   return (
     <div className="revenue-section-card">
       {/* ================= HEADER ROW ================= */}
       <div className="revenue-header-row">
-        {/* Left: Available Balance */}
+        {/* Left: Dynamic Revenue Balance Block */}
         <div className="revenue-balance-block">
-          <span className="revenue-balance-amount">{balanceDisplay}</span>
-          <span className="revenue-balance-subtitle">
-            Available Balance
-            {timeframe === 'day' && ' • Daily Breakdown (31 Days)'}
-            {timeframe === 'weekly' && ' • Weekly Breakdown (5 Weeks)'}
-            {timeframe === 'monthly' && ' • Monthly Breakdown (12 Months)'}
-          </span>
+          <div className="revenue-balance-main-row">
+            <span className="revenue-balance-amount">{displayAmount}</span>
+            <span className="revenue-period-tag">{periodTag}</span>
+          </div>
+          <div className="revenue-balance-subtitle">
+            <span className="subtitle-period-text">{periodSubtitle}</span>
+            <span className="subtitle-dot">•</span>
+            <span className="subtitle-alltime">
+              All-Time Balance: <strong>₹{Math.round(totalAllTimeRevenue).toLocaleString('en-IN')}</strong>
+            </span>
+          </div>
         </div>
 
-        {/* Right Controls: Day/Weekly/Monthly + Line View/Bar View */}
+        {/* Right Controls: Month/Year Navigator + Timeframe + View Mode */}
         <div className="revenue-controls-group">
-          {/* Day, Weekly, Monthly segmented control */}
+          {/* Month & Year Navigator */}
+          <div className="revenue-month-nav-group" ref={monthPickerRef}>
+            <button
+              type="button"
+              className="month-nav-arrow-btn"
+              onClick={handlePrevMonth}
+              title="Previous Month"
+              aria-label="Previous Month"
+            >
+              <ChevronLeft size={15} />
+            </button>
+
+            <button
+              type="button"
+              className={`revenue-month-picker-btn ${isMonthPickerOpen ? 'active' : ''}`}
+              onClick={() => setIsMonthPickerOpen(!isMonthPickerOpen)}
+              title="Click to select month and year"
+            >
+              <Calendar size={13} className="month-picker-cal-icon" />
+              <span className="month-picker-text">{monthsAbbr[selectedMonth]} {selectedYear}</span>
+              <ChevronDown size={13} className={`month-picker-chevron ${isMonthPickerOpen ? 'open' : ''}`} />
+            </button>
+
+            <button
+              type="button"
+              className="month-nav-arrow-btn"
+              onClick={handleNextMonth}
+              title="Next Month"
+              aria-label="Next Month"
+            >
+              <ChevronRight size={15} />
+            </button>
+
+            {/* Dropdown Menu for Month & Year Picker */}
+            {isMonthPickerOpen && (
+              <div className="revenue-month-dropdown-menu">
+                {/* Year Header & Quick Pills */}
+                <div className="month-dropdown-year-header">
+                  <button
+                    type="button"
+                    className="year-nav-btn"
+                    onClick={() => handleSelectYear(selectedYear - 1)}
+                    title="Previous Year"
+                  >
+                    <ChevronLeft size={14} />
+                  </button>
+                  <span className="year-display-text">{selectedYear}</span>
+                  <button
+                    type="button"
+                    className="year-nav-btn"
+                    onClick={() => handleSelectYear(selectedYear + 1)}
+                    title="Next Year"
+                  >
+                    <ChevronRight size={14} />
+                  </button>
+                </div>
+
+                <div className="month-dropdown-year-pills">
+                  {availableYears.map((yr) => (
+                    <button
+                      key={yr}
+                      type="button"
+                      className={`year-pill-btn ${yr === selectedYear ? 'active' : ''}`}
+                      onClick={() => handleSelectYear(yr)}
+                    >
+                      {yr}
+                    </button>
+                  ))}
+                </div>
+
+                {/* 12 Months Grid */}
+                <div className="month-dropdown-grid">
+                  {monthsAbbr.map((m, idx) => {
+                    const isSelected = idx === selectedMonth;
+                    const isCurrent = idx === currentRealMonth && selectedYear === currentRealYear;
+                    const countInMonth = realOrders.filter((o) => {
+                      const dt = toDate(o.createdAt);
+                      return dt && dt.getMonth() === idx && dt.getFullYear() === selectedYear;
+                    }).length;
+
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        className={`month-grid-item ${isSelected ? 'selected' : ''} ${isCurrent && !isSelected ? 'current-now' : ''}`}
+                        onClick={() => handleSelectMonth(idx)}
+                      >
+                        <span className="month-grid-abbr">{m}</span>
+                        {countInMonth > 0 && (
+                          <span
+                            className="month-grid-orders-badge"
+                            title={`${countInMonth} orders in ${monthsFull[idx]} ${selectedYear}`}
+                          >
+                            {countInMonth}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Dropdown Footer Actions */}
+                <div className="month-dropdown-footer">
+                  <button
+                    type="button"
+                    className="month-footer-btn"
+                    onClick={handleResetToCurrent}
+                    title="Jump to current real-world month"
+                  >
+                    <RotateCcw size={11} style={{ marginRight: 4 }} />
+                    This Month
+                  </button>
+                  <button
+                    type="button"
+                    className="month-footer-btn primary"
+                    onClick={() => {
+                      setTimeframe('monthly');
+                      setIsMonthPickerOpen(false);
+                      setActiveItemName(null);
+                    }}
+                    title={`View all 12 months for year ${selectedYear}`}
+                  >
+                    All Year ({selectedYear})
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Timeframe Tabs: Day, Weekly, Monthly, All Years */}
           <div className="timeframe-segmented-control">
             <button
               type="button"
               className={`timeframe-tab-btn ${timeframe === 'day' ? 'active' : ''}`}
               onClick={() => handleTimeframeChange('day')}
+              title="Daily breakdown of selected month"
             >
               Day
             </button>
@@ -184,6 +620,7 @@ const RevenueSection = ({ analytics }) => {
               type="button"
               className={`timeframe-tab-btn ${timeframe === 'weekly' ? 'active' : ''}`}
               onClick={() => handleTimeframeChange('weekly')}
+              title="Weekly breakdown of selected month"
             >
               Weekly
             </button>
@@ -191,12 +628,43 @@ const RevenueSection = ({ analytics }) => {
               type="button"
               className={`timeframe-tab-btn ${timeframe === 'monthly' ? 'active' : ''}`}
               onClick={() => handleTimeframeChange('monthly')}
+              title="All 12 months of selected year"
             >
               Monthly
             </button>
+            <button
+              type="button"
+              className={`timeframe-tab-btn ${timeframe === 'allYears' ? 'active' : ''}`}
+              onClick={() => handleTimeframeChange('allYears')}
+              title="Multi-year comparison"
+            >
+              All Years
+            </button>
           </div>
 
-          {/* Line View | Bar View switcher (matches reference image) */}
+          {/* Sub-mode switcher when 'All Years' is active */}
+          {timeframe === 'allYears' && (
+            <div className="all-years-mode-control">
+              <button
+                type="button"
+                className={`all-years-mode-btn ${allYearsMode === 'total' ? 'active' : ''}`}
+                onClick={() => setAllYearsMode('total')}
+                title="Full annual totals across all years"
+              >
+                Full Year
+              </button>
+              <button
+                type="button"
+                className={`all-years-mode-btn ${allYearsMode === 'monthOnly' ? 'active' : ''}`}
+                onClick={() => setAllYearsMode('monthOnly')}
+                title={`Compare ${monthsAbbr[selectedMonth]} across all years`}
+              >
+                {monthsAbbr[selectedMonth]} Only
+              </button>
+            </div>
+          )}
+
+          {/* View Mode: Line View | Bar View */}
           <div className="viewmode-segmented-control">
             <button
               type="button"
@@ -222,10 +690,9 @@ const RevenueSection = ({ analytics }) => {
           {viewMode === 'bar' ? (
             <BarChart
               data={chartData}
-              margin={{ top: 15, right: 10, left: -20, bottom: 0 }}
-              barSize={currentBarSize} // Dynamically narrow bar width
+              margin={{ top: 15, right: 10, left: -10, bottom: 0 }}
+              barSize={currentBarSize}
             >
-              {/* Horizontal dashed grid lines at 0k, 2k, 4k, 6k, 8k, 10k */}
               <CartesianGrid
                 strokeDasharray="3 3"
                 vertical={false}
@@ -249,25 +716,37 @@ const RevenueSection = ({ analytics }) => {
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }}
+                tick={{ fontSize: 11, fill: '#9ca3af', fontWeight: 500 }}
                 tickFormatter={yAxisConfig.tickFormatter}
                 domain={yAxisConfig.domain}
                 ticks={yAxisConfig.ticks}
               />
 
               <Tooltip
-                content={<CustomTooltip timeframe={timeframe} />}
+                content={
+                  <CustomTooltip
+                    timeframe={timeframe}
+                    allYearsMode={allYearsMode}
+                    selectedMonthName={selectedMonthName}
+                    selectedYear={selectedYear}
+                  />
+                }
                 cursor={{ fill: 'rgba(0, 0, 0, 0.02)' }}
               />
 
-              {/* Narrow rounded bars with active black bar matching reference */}
               <Bar
                 dataKey="value"
                 radius={currentBarRadius}
-                onClick={(entry) => setActiveItemName(entry.name)}
+                onClick={(entry) => {
+                  if (timeframe === 'monthly' && entry.monthIndex !== undefined) {
+                    setSelectedMonth(entry.monthIndex);
+                    hasUserSelectedRef.current = true;
+                  }
+                  setActiveItemName(entry.name);
+                }}
               >
                 {chartData.map((entry) => {
-                  const isActive = entry.name === activeItemName;
+                  const isActive = entry.name === effectiveActiveName;
                   return (
                     <Cell
                       key={entry.name}
@@ -281,7 +760,7 @@ const RevenueSection = ({ analytics }) => {
           ) : (
             <LineChart
               data={chartData}
-              margin={{ top: 15, right: 10, left: -20, bottom: 0 }}
+              margin={{ top: 15, right: 10, left: -10, bottom: 0 }}
             >
               <CartesianGrid
                 strokeDasharray="3 3"
@@ -306,20 +785,34 @@ const RevenueSection = ({ analytics }) => {
               <YAxis
                 axisLine={false}
                 tickLine={false}
-                tick={{ fontSize: 12, fill: '#9ca3af', fontWeight: 500 }}
+                tick={{ fontSize: 11, fill: '#9ca3af', fontWeight: 500 }}
                 tickFormatter={yAxisConfig.tickFormatter}
                 domain={yAxisConfig.domain}
                 ticks={yAxisConfig.ticks}
               />
 
-              <Tooltip content={<CustomTooltip timeframe={timeframe} />} />
+              <Tooltip
+                content={
+                  <CustomTooltip
+                    timeframe={timeframe}
+                    allYearsMode={allYearsMode}
+                    selectedMonthName={selectedMonthName}
+                    selectedYear={selectedYear}
+                  />
+                }
+              />
 
               <Line
                 type="monotone"
                 dataKey="value"
                 stroke="#111827"
                 strokeWidth={2.5}
-                dot={{ r: timeframe === 'day' ? 2 : 4, fill: '#111827', strokeWidth: 1.5, stroke: '#ffffff' }}
+                dot={{
+                  r: timeframe === 'day' ? 2 : 4,
+                  fill: '#111827',
+                  strokeWidth: 1.5,
+                  stroke: '#ffffff'
+                }}
                 activeDot={{ r: 6, fill: '#111827' }}
               />
             </LineChart>

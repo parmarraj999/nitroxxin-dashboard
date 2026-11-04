@@ -6,7 +6,7 @@ import {
   Package,
   MapPin,
   Tag,
-  DollarSign,
+  IndianRupee,
   Calendar,
   SlidersHorizontal,
   Check,
@@ -89,7 +89,7 @@ const RecentOrdersTable = ({ analytics }) => {
       const shortId = order.orderID || (order.id ? (order.id.length > 8 ? order.id.slice(0, 7).toUpperCase() : order.id) : `ORD#${idx + 1}`);
 
       const rawPrice = Number(order.total || order.totalAmount || 0);
-      const formattedPrice = rawPrice > 100 ? `Rs. ${rawPrice.toLocaleString()}` : `$${rawPrice.toFixed(2)}`;
+      const formattedPrice = `₹${rawPrice.toLocaleString('en-IN')}`;
 
       return {
         id: order.id,
@@ -177,7 +177,7 @@ const RecentOrdersTable = ({ analytics }) => {
               </th>
               <th className="th-col th-price">
                 <div className="th-inner">
-                  <DollarSign size={13} className="th-icon" />
+                  <IndianRupee size={13} className="th-icon" />
                   <span>Price</span>
                 </div>
               </th>
