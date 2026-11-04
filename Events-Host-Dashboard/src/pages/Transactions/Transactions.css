@@ -425,9 +425,10 @@
 .ptable-checkbox-input {
   width: 15px;
   height: 15px;
-  accent-color: #18181b;
-  border: 1px solid #d4d4d8;
-  border-radius: 3px;
+  accent-color: #2563eb;
+  background-color: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 4px;
   cursor: pointer;
   vertical-align: middle;
 }

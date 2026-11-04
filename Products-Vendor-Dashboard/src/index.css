@@ -71,3 +71,48 @@ button {
   background: none;
   font-family: inherit;
 }
+
+/* =========================================================
+   UNIVERSAL LIGHT THEME TABLE CHECKBOXES
+   ========================================================= */
+table input[type="checkbox"],
+.custom-table-checkbox,
+.notion-checkbox,
+.exact-checkbox,
+.checkbox-col input[type="checkbox"],
+.th-checkbox input[type="checkbox"],
+.td-checkbox input[type="checkbox"],
+.th-col-check input[type="checkbox"],
+.td-col-check input[type="checkbox"] {
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 4px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  accent-color: #2563eb !important;
+  cursor: pointer !important;
+  vertical-align: middle !important;
+  outline: none !important;
+  margin: 0 auto !important;
+  display: inline-block !important;
+  box-shadow: none !important;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+table input[type="checkbox"]:hover,
+.custom-table-checkbox:hover,
+.notion-checkbox:hover,
+.exact-checkbox:hover,
+.checkbox-col input[type="checkbox"]:hover {
+  border-color: #94a3b8 !important;
+}
+
+table input[type="checkbox"]:focus-visible,
+.custom-table-checkbox:focus-visible,
+.notion-checkbox:focus-visible,
+.exact-checkbox:focus-visible {
+  outline: 2px solid #2563eb !important;
+  outline-offset: 1px !important;
+}

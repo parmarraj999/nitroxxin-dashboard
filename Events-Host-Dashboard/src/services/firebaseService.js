@@ -1293,8 +1293,8 @@ export const getHostAnalytics = async (hostId) => {
 
 export const calculateAnalytics = (events = [], registrations = []) => {
   const now = new Date();
-  const totalRevenue = events.reduce((sum, event) => sum + Number(event.revenue || 0), 0);
-  const activeEvents = events.filter((event) => event.status === 'Published').length;
+  const totalRevenue = events.reduce((sum, event) => sum + Number(event.revenue || event.gross || event.ticketPrice || event.price || 0), 0);
+  const activeEvents = events.filter((event) => event.status === 'Published' || event.status === 'Live' || event.status === 'Active').length;
   const completedEvents = events.filter((event) => event.status === 'Completed').length;
   const upcomingEvents = events.filter((event) => event.startDate && new Date(event.startDate) >= now).length;
   const totalViews = events.reduce((sum, event) => sum + Number(event.views || 0), 0);
@@ -1322,7 +1322,7 @@ export const calculateAnalytics = (events = [], registrations = []) => {
     })),
     revenueByEvent: events.map((event) => ({
       name: event.title,
-      revenue: Number(event.revenue || 0),
+      revenue: Number(event.revenue || event.gross || event.ticketPrice || event.price || 0),
       registrations: Number(event.registeredCount || 0),
     })),
     genderDistribution: groupBy(registrations, 'participant.gender'),

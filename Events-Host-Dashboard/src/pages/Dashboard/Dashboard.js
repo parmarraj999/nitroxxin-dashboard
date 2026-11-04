@@ -80,7 +80,7 @@ const CustomCashflowTooltip = ({ active, payload }) => {
 };
 
 const Dashboard = () => {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
   const hostId = user?.uid;
   const { events = [] } = useEvents({ hostId });
   const { registrations = [] } = useRegistrations({ hostId });
@@ -106,12 +106,126 @@ const Dashboard = () => {
   const [cashflowPeriod, setCashflowPeriod] = useState('This Month');
   const [selectedBarIndex, setSelectedBarIndex] = useState(null);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [customStartDate, setCustomStartDate] = useState('2026-10-01');
-  const [customEndDate, setCustomEndDate] = useState('2026-10-31');
+  const [customStartDate, setCustomStartDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 30);
+    return d.toISOString().split('T')[0];
+  });
+  const [customEndDate, setCustomEndDate] = useState(() => new Date().toISOString().split('T')[0]);
+
+  // Safe numerical parser for monetary amounts (strips commas, currency symbols, and extra spaces)
+  const parseSafeAmount = (val) => {
+    if (typeof val === 'number') return isNaN(val) ? 0 : val;
+    if (!val) return 0;
+    const cleaned = String(val).replace(/[^0-9.-]+/g, '');
+    const num = parseFloat(cleaned);
+    return isNaN(num) ? 0 : num;
+  };
+
+  // Safe date parser handling Firestore Timestamp, seconds, _seconds, strings, and Date objects
+  const parseItemDate = (val) => {
+    if (!val) return null;
+    if (typeof val?.toDate === 'function') {
+      try {
+        const d = val.toDate();
+        if (d instanceof Date && !isNaN(d.getTime())) return d;
+      } catch {}
+    }
+    if (val.seconds !== undefined) return new Date(val.seconds * 1000);
+    if (val._seconds !== undefined) return new Date(val._seconds * 1000);
+    if (val instanceof Date) return isNaN(val.getTime()) ? null : val;
+    const parsed = new Date(val);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  };
+
+  // Aggregate all real revenue transactions across Bookings, Payments, Registrations, and Events
+  const allRevenueItems = useMemo(() => {
+    const items = [];
+    const recordedEvents = new Set();
+
+    // 1. Direct Attendee Bookings
+    if (Array.isArray(bookings)) {
+      bookings.forEach((b) => {
+        const amt = parseSafeAmount(
+          b.amount || b.totalAmount || b.pricing?.finalAmount || b.ticketPrice || b.priceNumeric
+        );
+        const d = parseItemDate(b.createdAt || b.bookingDate || b.date);
+        const evId = b.eventId || b.event_id;
+        if (evId) recordedEvents.add(String(evId));
+        if (amt > 0 && d) {
+          items.push({ date: d, amount: amt, source: 'booking', eventId: evId });
+        }
+      });
+    }
+
+    // 2. Real-time Payments
+    if (Array.isArray(payments)) {
+      payments.forEach((p) => {
+        const amt = parseSafeAmount(p.amount || p.amountNum || p.totalAmount);
+        const d = parseItemDate(p.createdAt || p.date || p.timestamp);
+        if (amt > 0 && d) {
+          items.push({ date: d, amount: amt, source: 'payment' });
+        }
+      });
+    }
+
+    // 3. Registrations with Ticket Prices
+    if (Array.isArray(registrations)) {
+      registrations.forEach((r) => {
+        const amt = parseSafeAmount(r.ticketPrice || r.priceNumeric || r.amount);
+        const d = parseItemDate(r.registrationDate || r.createdAt);
+        const evId = r.eventId || r.event_id;
+        if (evId) recordedEvents.add(String(evId));
+        if (amt > 0 && d) {
+          items.push({ date: d, amount: amt, source: 'registration', eventId: evId });
+        }
+      });
+    }
+
+    // 4. Host Events (Gross revenue / ticket pricing from hosted events)
+    if (Array.isArray(events)) {
+      events.forEach((evt) => {
+        const evId = String(evt.id || evt.eventId || '');
+        if (!recordedEvents.has(evId)) {
+          const ticketPrice = parseSafeAmount(evt.ticketPrice || evt.price || 0);
+          const registeredCount = Number(evt.registeredCount || 0);
+          const calculatedGross = registeredCount > 0 && ticketPrice > 0
+            ? registeredCount * ticketPrice
+            : parseSafeAmount(evt.revenue || evt.gross || 0);
+
+          const finalAmt = calculatedGross > 0 ? calculatedGross : parseSafeAmount(evt.revenue || evt.gross || 0);
+          const d = parseItemDate(evt.startDate || evt.createdAt || evt.date);
+          if (finalAmt > 0 && d) {
+            items.push({ date: d, amount: finalAmt, source: 'event', eventId: evId });
+          }
+        }
+      });
+    }
+
+    return items;
+  }, [bookings, payments, registrations, events]);
 
   // 1. Overview Calculated Data (Strictly real data only - defaults to 0)
-  const totalCalculatedRevenue = Number(analytics.totalRevenue || 0);
-  const totalCalculatedTickets = Number(analytics.totalRegistrations || 0);
+  const totalCalculatedRevenue = useMemo(() => {
+    const txTotal = allRevenueItems.reduce((acc, it) => acc + (Number(it.amount) || 0), 0);
+    const eventsGross = events.reduce((sum, e) => {
+      const reg = Number(e.registeredCount || 0);
+      const pr = parseSafeAmount(e.ticketPrice || e.price || 0);
+      const gross = parseSafeAmount(e.revenue || e.gross || 0);
+      return sum + (reg > 0 && pr > 0 ? reg * pr : gross);
+    }, 0);
+    const analyticsRev = Number(analytics?.totalRevenue || 0);
+    return Math.max(txTotal, eventsGross, analyticsRev, 0);
+  }, [allRevenueItems, events, analytics]);
+
+  const totalCalculatedTickets = useMemo(() => {
+    const regCount = registrations.length || 0;
+    const bookCount = bookings.reduce((sum, b) => sum + Number(b.quantity || b.ticketsCount || b.ticketCount || 1), 0);
+    const eventsCount = events.reduce((sum, e) => sum + Number(e.registeredCount || e.sold || 0), 0);
+    const analyticsCount = Number(analytics?.totalRegistrations || 0);
+    return Math.max(regCount, bookCount, eventsCount, analyticsCount, 0);
+  }, [registrations, bookings, events, analytics]);
+
   const totalCalculatedEvents = Number(events.length || 0);
   const totalLiveEvents = events.filter((e) => e.status === 'Live' || e.status === 'Published').length || 0;
 
@@ -139,45 +253,6 @@ const Dashboard = () => {
     { v: totalCalculatedRevenue }
   ] : [{ v: 0 }, { v: 0 }], [totalCalculatedRevenue]);
 
-  // Aggregate all real revenue transactions
-  const allRevenueItems = useMemo(() => {
-    const items = [];
-    const parseItemDate = (val) => {
-      if (!val) return null;
-      if (typeof val?.toDate === 'function') return val.toDate();
-      if (val.seconds) return new Date(val.seconds * 1000);
-      if (val instanceof Date) return val;
-      const parsed = new Date(val);
-      return isNaN(parsed.getTime()) ? null : parsed;
-    };
-
-    if (Array.isArray(bookings)) {
-      bookings.forEach((b) => {
-        const amt = Number(b.amount || b.totalAmount || b.pricing?.finalAmount || b.ticketPrice || b.priceNumeric || 0);
-        const d = parseItemDate(b.createdAt || b.bookingDate);
-        if (amt > 0 && d) items.push({ date: d, amount: amt });
-      });
-    }
-
-    if (Array.isArray(payments)) {
-      payments.forEach((p) => {
-        const amt = Number(p.amount || p.amountNum || 0);
-        const d = parseItemDate(p.createdAt || p.date || p.timestamp);
-        if (amt > 0 && d) items.push({ date: d, amount: amt });
-      });
-    }
-
-    if (Array.isArray(registrations)) {
-      registrations.forEach((r) => {
-        const amt = Number(r.ticketPrice || r.priceNumeric || 0);
-        const d = parseItemDate(r.registrationDate || r.createdAt);
-        if (amt > 0 && d) items.push({ date: d, amount: amt });
-      });
-    }
-
-    return items;
-  }, [bookings, payments, registrations]);
-
   // 2. Revenue Analytics Bar Data calculated strictly from real transactions
   const cashflowDataMap = useMemo(() => {
     const now = new Date();
@@ -191,7 +266,12 @@ const Dashboard = () => {
     for (let d = 1; d <= daysInMonth; d++) {
       const dDate = new Date(currYear, currMonth, d);
       const dayAmt = allRevenueItems.reduce((acc, item) => {
-        if (item.date && item.date.getFullYear() === currYear && item.date.getMonth() === currMonth && item.date.getDate() === d) {
+        if (
+          item.date &&
+          item.date.getFullYear() === currYear &&
+          item.date.getMonth() === currMonth &&
+          item.date.getDate() === d
+        ) {
           return acc + item.amount;
         }
         return acc;
@@ -202,7 +282,7 @@ const Dashboard = () => {
         amount: dayAmt,
         fullDate: dDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
         day: dDate.toLocaleDateString('en-US', { weekday: 'short' }),
-        growth: '',
+        growth: dayAmt > 0 ? '+100%' : '',
         isPeak: false,
       });
     }
@@ -219,7 +299,12 @@ const Dashboard = () => {
     for (let i = 0; i < 7; i++) {
       const wDate = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + i);
       const wAmt = allRevenueItems.reduce((acc, item) => {
-        if (item.date && item.date.getFullYear() === wDate.getFullYear() && item.date.getMonth() === wDate.getMonth() && item.date.getDate() === wDate.getDate()) {
+        if (
+          item.date &&
+          item.date.getFullYear() === wDate.getFullYear() &&
+          item.date.getMonth() === wDate.getMonth() &&
+          item.date.getDate() === wDate.getDate()
+        ) {
           return acc + item.amount;
         }
         return acc;
@@ -228,7 +313,8 @@ const Dashboard = () => {
       weekDays.push({
         name: wDate.toLocaleDateString('en-US', { weekday: 'short' }),
         amount: wAmt,
-        fullDate: wDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric' }),
+        fullDate: wDate.toLocaleDateString('en-US', { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' }),
+        growth: wAmt > 0 ? '+100%' : '',
         isPeak: false,
       });
     }
@@ -244,11 +330,15 @@ const Dashboard = () => {
     const daysInLastMonth = new Date(lastMonthYear, lastMonthIdx + 1, 0).getDate();
     const lastMonthDays = [];
     let maxLastMonthAmount = 0;
-    for (let d = 1; d <= daysInLastMonth; d += 3) {
+    for (let d = 1; d <= daysInLastMonth; d++) {
       const lmDate = new Date(lastMonthYear, lastMonthIdx, d);
-      const lmEnd = new Date(lastMonthYear, lastMonthIdx, Math.min(daysInLastMonth, d + 2));
       const lmAmt = allRevenueItems.reduce((acc, item) => {
-        if (item.date && item.date.getFullYear() === lastMonthYear && item.date.getMonth() === lastMonthIdx && item.date.getDate() >= d && item.date.getDate() <= lmEnd.getDate()) {
+        if (
+          item.date &&
+          item.date.getFullYear() === lastMonthYear &&
+          item.date.getMonth() === lastMonthIdx &&
+          item.date.getDate() === d
+        ) {
           return acc + item.amount;
         }
         return acc;
@@ -257,7 +347,9 @@ const Dashboard = () => {
       lastMonthDays.push({
         name: String(d),
         amount: lmAmt,
-        fullDate: `${lmDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${lmEnd.getDate()}`,
+        fullDate: lmDate.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+        day: lmDate.toLocaleDateString('en-US', { weekday: 'short' }),
+        growth: lmAmt > 0 ? '+100%' : '',
         isPeak: false,
       });
     }
@@ -281,6 +373,7 @@ const Dashboard = () => {
         name: mName,
         amount: mAmt,
         fullDate: `${mName} ${currYear}`,
+        growth: mAmt > 0 ? '+100%' : '',
         isPeak: false,
       };
     });
@@ -289,18 +382,82 @@ const Dashboard = () => {
       if (peakY) peakY.isPeak = true;
     }
 
+    // 5. Custom Range
+    const customDays = [];
+    let maxCustomAmount = 0;
+    try {
+      const sDate = new Date(customStartDate || `${currYear}-01-01`);
+      const eDate = new Date(customEndDate || now);
+      if (!isNaN(sDate.getTime()) && !isNaN(eDate.getTime()) && eDate >= sDate) {
+        const dayDiff = Math.min(60, Math.ceil((eDate - sDate) / (1000 * 60 * 60 * 24)) + 1);
+        for (let i = 0; i < dayDiff; i++) {
+          const cur = new Date(sDate.getFullYear(), sDate.getMonth(), sDate.getDate() + i);
+          const cAmt = allRevenueItems.reduce((acc, item) => {
+            if (
+              item.date &&
+              item.date.getFullYear() === cur.getFullYear() &&
+              item.date.getMonth() === cur.getMonth() &&
+              item.date.getDate() === cur.getDate()
+            ) {
+              return acc + item.amount;
+            }
+            return acc;
+          }, 0);
+          if (cAmt > maxCustomAmount) maxCustomAmount = cAmt;
+          customDays.push({
+            name: `${cur.getMonth() + 1}/${cur.getDate()}`,
+            amount: cAmt,
+            fullDate: cur.toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }),
+            day: cur.toLocaleDateString('en-US', { weekday: 'short' }),
+            growth: cAmt > 0 ? '+100%' : '',
+            isPeak: false,
+          });
+        }
+        if (maxCustomAmount > 0) {
+          const peakC = customDays.find((item) => item.amount === maxCustomAmount);
+          if (peakC) peakC.isPeak = true;
+        }
+      }
+    } catch {}
+
     return {
       'This Month': thisMonthDays,
       'This Week': weekDays,
       'Last Month': lastMonthDays,
       'This Year': yearMonths,
+      'Custom Range': customDays.length ? customDays : thisMonthDays,
     };
-  }, [allRevenueItems]);
+  }, [allRevenueItems, customStartDate, customEndDate]);
 
-  const activeCashflowData = cashflowDataMap[cashflowPeriod] || cashflowDataMap['This Month'];
+  const activeCashflowData = useMemo(() => {
+    return cashflowDataMap[cashflowPeriod] || cashflowDataMap['This Month'] || [];
+  }, [cashflowDataMap, cashflowPeriod]);
+
+  // Compute period total revenue
+  const periodTotalRevenue = useMemo(() => {
+    return activeCashflowData.reduce((acc, item) => acc + (Number(item.amount) || 0), 0);
+  }, [activeCashflowData]);
+
+  // Calculate highest revenue point in active data for dynamic domain scale
+  const maxActiveAmount = useMemo(() => {
+    return activeCashflowData.reduce((max, item) => Math.max(max, Number(item.amount) || 0), 0);
+  }, [activeCashflowData]);
 
   const getCashflowHeadline = () => {
-    return currency(totalCalculatedRevenue);
+    if (periodTotalRevenue > 0) return currency(periodTotalRevenue);
+    if (totalCalculatedRevenue > 0 && (cashflowPeriod === 'This Year' || activeCashflowData.length === 0)) {
+      return currency(totalCalculatedRevenue);
+    }
+    return currency(periodTotalRevenue || 0);
+  };
+
+  const getCashflowLegendLabel = () => {
+    if (cashflowPeriod === 'This Week') return 'Weekly Daily Revenue';
+    if (cashflowPeriod === 'This Month') return 'Daily Revenue (This Month)';
+    if (cashflowPeriod === 'Last Month') return 'Daily Revenue (Last Month)';
+    if (cashflowPeriod === 'This Year') return 'Monthly Revenue (This Year)';
+    if (cashflowPeriod === 'Custom Range') return 'Custom Period Revenue';
+    return 'Daily Revenue';
   };
 
   const selectCardTimeframe = (cardId, tf) => {
@@ -1242,7 +1399,7 @@ const Dashboard = () => {
             <div className="cashflow-big-headline">{getCashflowHeadline()}</div>
             <div className="cashflow-single-legend">
               <span className="legend-ring-dot" style={{ borderColor: '#5457ff', backgroundColor: '#5457ff' }} />
-              <span>{cashflowPeriod === 'This Week' ? 'Weekly Daily Revenue' : 'Daily Revenue (This Month)'}</span>
+              <span>{getCashflowLegendLabel()}</span>
             </div>
           </div>
 
@@ -1252,7 +1409,7 @@ const Dashboard = () => {
               <BarChart
                 data={activeCashflowData}
                 margin={{ top: 15, right: 15, left: -10, bottom: 0 }}
-                barCategoryGap={cashflowPeriod === 'This Week' ? '25%' : '14%'}
+                barCategoryGap={cashflowPeriod === 'This Week' ? '25%' : (cashflowPeriod === 'This Year' ? '20%' : '14%')}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -1264,11 +1421,13 @@ const Dashboard = () => {
                   axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 11.5, fill: '#64748b', fontWeight: 500 }}
-                  interval={0}
+                  interval={cashflowPeriod === 'This Month' || cashflowPeriod === 'Last Month' ? (activeCashflowData.length > 25 ? 1 : 0) : 0}
                 />
                 <YAxis
                   axisLine={false}
                   tickLine={false}
+                  domain={[0, maxActiveAmount > 0 ? Math.ceil(maxActiveAmount * 1.15) : 5000]}
+                  allowDecimals={false}
                   tick={{ fontSize: 11, fill: '#94a3b8' }}
                   tickFormatter={(val) => {
                     if (val >= 10000000) return `₹${val / 10000000}Cr`;
@@ -1283,8 +1442,10 @@ const Dashboard = () => {
                 />
                 <Bar
                   dataKey="amount"
+                  background={{ fill: '#f1f3fd', radius: [20, 20, 20, 20] }}
+                  minPointSize={8}
                   radius={[20, 20, 20, 20]}
-                  barSize={cashflowPeriod === 'This Week' ? 36 : 14}
+                  barSize={cashflowPeriod === 'This Week' ? 36 : (cashflowPeriod === 'This Year' ? 24 : 14)}
                   cursor="pointer"
                   isAnimationActive={false}
                   onClick={(_, index) => setSelectedBarIndex(index)}
@@ -1292,11 +1453,12 @@ const Dashboard = () => {
                   {activeCashflowData.map((entry, index) => {
                     const isSelected = selectedBarIndex !== null
                       ? selectedBarIndex === index
-                      : (entry.isPeak || (cashflowPeriod === 'This Week' && entry.name === 'Wed'));
+                      : (entry.isPeak || (maxActiveAmount > 0 && entry.amount === maxActiveAmount));
+                    const hasPositiveAmount = entry.amount > 0;
                     return (
                       <Cell
                         key={`cell-${index}`}
-                        fill={isSelected ? '#5457ff' : '#edeefc'}
+                        fill={isSelected ? '#5457ff' : (hasPositiveAmount ? '#7073ff' : '#edeefc')}
                         style={{
                           transition: 'all 0.2s ease',
                           outline: 'none',

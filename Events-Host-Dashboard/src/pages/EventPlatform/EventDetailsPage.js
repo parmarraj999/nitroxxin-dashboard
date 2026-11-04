@@ -3526,35 +3526,6 @@ const EventDetailsPage = () => {
         {message && <div className="alert success">{message}</div>}
 
         {/* Sleek Apple Vision Pro Breadcrumb Navigation */}
-        <nav className="event-details-breadcrumbs" aria-label="Breadcrumb">
-          <button
-            type="button"
-            className="breadcrumb-crumb-btn"
-            onClick={goToDashboard}
-            title="Return to Dashboard"
-          >
-            <LayoutDashboard size={14} className="crumb-icon" />
-            <span>Dashboard</span>
-          </button>
-
-          <ChevronRight size={13} className="breadcrumb-arrow" />
-
-          <button
-            type="button"
-            className="breadcrumb-crumb-btn"
-            onClick={goToEvents}
-            title="View All Events"
-          >
-            <CalendarDays size={14} className="crumb-icon" />
-            <span>Events</span>
-          </button>
-
-          <ChevronRight size={13} className="breadcrumb-arrow" />
-
-          <span className="breadcrumb-current-text" title={event.title}>
-            {event.title}
-          </span>
-        </nav>
 
         {/* Apple Vision Pro Style Hero Banner Card */}
         <section className="apple-hero-card">

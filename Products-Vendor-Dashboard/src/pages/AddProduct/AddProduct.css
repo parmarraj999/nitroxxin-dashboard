@@ -1651,42 +1651,17 @@
   color: var(--text-main, #f8fafc);
 }
 
-/* General Custom Checkbox */
-input[type="checkbox"] {
-  appearance: none;
-  -webkit-appearance: none;
-  width: 20px;
-  height: 20px;
-  border: 2px solid var(--border-color, #475569);
-  border-radius: 5px;
-  background: var(--bg-surface, #1e293b);
+/* Custom Checkbox (Light Theme, Scoped to Add Product form if used) */
+.add-product-page input[type="checkbox"]:not(.toggle-input) {
+  appearance: auto;
+  -webkit-appearance: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+  border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
+  accent-color: #2563eb;
   cursor: pointer;
-  display: inline-grid;
-  place-content: center;
-  vertical-align: middle;
-  transition: all 0.2s ease;
-  margin: 0;
-  position: relative;
-}
-
-input[type="checkbox"]:hover {
-  border-color: var(--primary-orange, #ff5722);
-}
-
-input[type="checkbox"]:checked {
-  background: var(--primary-orange, #ff5722);
-  border-color: var(--primary-orange, #ff5722);
-  box-shadow: 0 0 8px rgba(255, 87, 34, 0.4);
-}
-
-input[type="checkbox"]:checked::after {
-  content: '';
-  width: 5px;
-  height: 10px;
-  border: solid white;
-  border-width: 0 2.5px 2.5px 0;
-  transform: rotate(45deg);
-  margin-bottom: 2px;
 }
 
 /* =========================================================

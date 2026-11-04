@@ -447,3 +447,21 @@
   cursor: not-allowed;
 }
 
+
+/* Table Checkbox Styling */
+.checkbox-col input[type="checkbox"] {
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  width: 16px !important;
+  height: 16px !important;
+  border-radius: 4px !important;
+  border: 1.5px solid #cbd5e1 !important;
+  background-color: #ffffff !important;
+  cursor: pointer !important;
+  accent-color: #2563eb !important;
+  vertical-align: middle !important;
+}
+
+.checkbox-col input[type="checkbox"]:hover {
+  border-color: #94a3b8 !important;
+}

@@ -1313,3 +1313,11 @@
     gap: 12px;
   }
 }
+
+/* Table Checkbox Overrides */
+.exact-checkbox {
+  appearance: auto !important;
+  -webkit-appearance: auto !important;
+  accent-color: #2563eb !important;
+  background-color: #ffffff !important;
+}

@@ -377,12 +377,20 @@
 }
 
 .custom-table-checkbox {
+  appearance: auto;
+  -webkit-appearance: auto;
   width: 16px;
   height: 16px;
   border-radius: 4px;
   border: 1.5px solid #cbd5e1;
+  background-color: #ffffff;
   cursor: pointer;
-  accent-color: #0f172a;
+  accent-color: #2563eb;
+  vertical-align: middle;
+}
+
+.custom-table-checkbox:hover {
+  border-color: #94a3b8;
 }
 
 /* Description Column (Avatar + Names) */
