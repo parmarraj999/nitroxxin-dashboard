@@ -42,23 +42,15 @@ import "./TicketDesigns.css";
 import "./EventPlatform.css";
 import "./EventForm.css";
 
+// 3 standard ticket classification options: Rider, Pillion, and Spectator (someone who comes to watch the event)
+const TICKET_FOR_OPTIONS = [
+  { value: "Rider", label: "Rider" },
+  { value: "Pillion", label: "Pillion" },
+  { value: "Spectator", label: "Spectator (Watch Event)" },
+];
+
 const ticketForCategoryMapping = {
-  'Night Rides': ["Rider", "Pillion", "Participant", "Custom"],
-  'Day Rides': ["Rider", "Pillion", "Participant", "Custom"],
-  'Monsoon Rides': ["Rider", "Pillion", "Participant", "Custom"],
-  'Morning Breakfast Rides': ["Rider", "Pillion", "Participant", "Custom"],
-  'Gravel / Offroad Rides': ["Rider", "Pillion", "Participant", "Custom"],
-  'Group Rides / Adventure Tour': ["Rider", "Pillion", "Driver", "Passenger", "Participant", "Camping", "Adventure Activity", "Custom"],
-  'Expeditions': ["Rider", "Pillion", "Driver", "Passenger", "Participant", "Camping", "Adventure Activity", "Custom"],
-  'International Rides': ["Rider", "Pillion", "Driver", "Passenger", "Participant", "Camping", "Adventure Activity", "Custom"],
-  'Workshops': ["Participant", "Student", "Spectator", "Workshop", "Track Session", "Custom"],
-  'Skill Clinics': ["Participant", "Student", "Spectator", "Workshop", "Track Session", "Custom"],
-  'Mountain Biking': ["Participant", "Spectator", "Team", "Custom"],
-  'Charity Rides': ["Rider", "Pillion", "Participant", "Sponsor", "Volunteer", "General Admission", "Custom"],
-  'Bike Festivals': ["General Admission", "VIP", "Premium", "Student", "Couple", "Family", "Child", "Senior Citizen", "Volunteer", "Media", "Sponsor", "Exhibitor", "Vendor", "Artist / Performer", "Camping", "Meet & Greet", "Custom"],
-  'Meetups': ["General Admission", "Participant", "VIP", "Couple", "Family", "Meet & Greet", "Custom"],
-  'Races & Stunt Shows': ["General Admission", "VIP", "Premium", "Spectator", "Participant", "Team", "Media", "Sponsor", "Track Session", "Custom"],
-  default: ["General Admission", "Participant", "Custom"]
+  default: TICKET_FOR_OPTIONS.map((opt) => opt.value),
 };
 
 const emptyPackage = () => ({
@@ -1738,9 +1730,12 @@ const EventForm = () => {
                                 }
                               >
                                 <option value="">Select ticket classification</option>
-                                {(ticketForCategoryMapping[form.category] || ticketForCategoryMapping.default).map((option) => (
-                                  <option key={option} value={option}>{option}</option>
+                                {TICKET_FOR_OPTIONS.map((option) => (
+                                  <option key={option.value} value={option.value}>{option.label}</option>
                                 ))}
+                                {item.ticketFor && !TICKET_FOR_OPTIONS.some((o) => o.value === item.ticketFor) && (
+                                  <option value={item.ticketFor}>{item.ticketFor}</option>
+                                )}
                               </select>
                               <ChevronDown size={14} className="select-dropdown-chevron" />
                             </div>

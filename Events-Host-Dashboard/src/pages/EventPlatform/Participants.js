@@ -1494,11 +1494,10 @@ const Participants = () => {
                     >
                       <option value="Rider">Rider</option>
                       <option value="Pillion">Pillion</option>
-                      <option value="Participant">Participant</option>
-                      <option value="VIP">VIP</option>
-                      <option value="Driver">Driver</option>
-                      <option value="Camping">Camping</option>
-                      <option value="Volunteer">Volunteer</option>
+                      <option value="Spectator">Spectator (Watch Event)</option>
+                      {newFormData.ticketFor && !["Rider", "Pillion", "Spectator"].includes(newFormData.ticketFor) && (
+                        <option value={newFormData.ticketFor}>{newFormData.ticketFor}</option>
+                      )}
                     </select>
                   </div>
 
