@@ -373,9 +373,17 @@ const EventDetailsPage = () => {
     });
   }, [profile?.city, profile?.email, profile?.fullName, profile?.phone, user?.email]);
 
+  const viewCountedRef = useRef('');
+  useEffect(() => {
+    if (eventId && viewCountedRef.current !== eventId) {
+      viewCountedRef.current = eventId;
+      incrementEventView(eventId).catch(() => { });
+    }
+  }, [eventId]);
+
   useEffect(() => {
     if (!eventId) return undefined;
-    incrementEventView(eventId).catch(() => { });
+    let isMounted = true;
 
     const summary = getEventSummary ? getEventSummary(eventId) : null;
     if (summary) {
@@ -384,35 +392,54 @@ const EventDetailsPage = () => {
     }
 
     const subscriber = subscribeToLiveEvent || subscribeToEvent;
-    return subscriber(
+    const unsubscribe = subscriber(
       eventId,
       (item) => {
+        if (!isMounted) return;
         if (item) {
           setEvent(item);
         }
         setLoading(false);
       },
       (err) => {
+        if (!isMounted) return;
         setError(err.message);
         setLoading(false);
       }
     );
-  }, [eventId, getEventSummary, subscribeToLiveEvent]);
+
+    return () => {
+      isMounted = false;
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
+  }, [eventId]);
 
   useEffect(() => {
     if (!eventId) return undefined;
+    let isMounted = true;
     setLoadingBookings(true);
-    return subscribeToEventBookings(
+    const unsubscribe = subscribeToEventBookings(
       eventId,
       (items) => {
+        if (!isMounted) return;
         setBookings(items);
         setLoadingBookings(false);
       },
       (err) => {
+        if (!isMounted) return;
         setError(err.message);
         setLoadingBookings(false);
       }
     );
+
+    return () => {
+      isMounted = false;
+      if (typeof unsubscribe === 'function') {
+        unsubscribe();
+      }
+    };
   }, [eventId]);
 
   const isHost = !event?.hostId || event?.hostId === user?.uid || profile?.role === 'Host';
@@ -712,15 +739,18 @@ const EventDetailsPage = () => {
     return list;
   }, [registrations, bookings, event?.city, event?.title, event?.id, event?.eventId, eventId]);
 
-  // Auto-sync event registeredCount in Firestore if it was inflated or out of sync
+  // Auto-sync event registeredCount in Firestore if it was inflated or out of sync (guarded to sync at most once)
+  const lastSyncedCountRef = useRef(null);
   useEffect(() => {
-    if (event && !loading && !loadingBookings && !loadingRegistrations) {
-      const trueCount = allParticipantsList.length;
-      if (event.registeredCount !== undefined && event.registeredCount !== trueCount && trueCount > 0) {
-        updateEvent(event.id || eventId, { registeredCount: trueCount }).catch(() => {});
-      }
+    if (!eventId || loading || loadingBookings || loadingRegistrations || !event) return;
+    const trueCount = allParticipantsList.length;
+    const docRegistered = Number(event.registeredCount ?? 0);
+
+    if (trueCount > 0 && docRegistered !== trueCount && lastSyncedCountRef.current !== `${eventId}_${trueCount}`) {
+      lastSyncedCountRef.current = `${eventId}_${trueCount}`;
+      updateEvent(event.id || eventId, { registeredCount: trueCount }).catch(() => {});
     }
-  }, [event, allParticipantsList.length, loading, loadingBookings, loadingRegistrations, eventId]);
+  }, [eventId, event?.id, event?.registeredCount, allParticipantsList.length, loading, loadingBookings, loadingRegistrations]);
 
   const analytics = useMemo(() => {
     const activeBookings = bookings.filter((booking) => !['cancelled', 'rejected'].includes(String(booking.status || '').toLowerCase().trim()));
@@ -1802,7 +1832,8 @@ const EventDetailsPage = () => {
   };
 
   useEffect(() => {
-    if (showLaptopScanModal && !laptopScanResult) {
+    if (!showLaptopScanModal) return undefined;
+    if (!laptopScanResult) {
       const timer = setTimeout(() => {
         startLaptopScanner();
       }, 300);
@@ -1811,7 +1842,7 @@ const EventDetailsPage = () => {
     return () => {
       stopLaptopScanner();
     };
-  }, [showLaptopScanModal, laptopScanResult, startLaptopScanner, stopLaptopScanner]);
+  }, [showLaptopScanModal, laptopScanResult]);
 
   const handleSearchCodeCheckIn = (e) => {
     if (e) e.preventDefault();

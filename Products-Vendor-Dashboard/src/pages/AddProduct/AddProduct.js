@@ -243,7 +243,7 @@ const AddProduct = () => {
       title: product.title || '',
       subtitle: product.subtitle || '',
       category: product.category || current.category,
-      subCategory: product.subCategory || current.subCategory,
+      subCategory: product.subcategory || product.subCategory || current.subCategory,
       gender: product.gender || product.attributes?.gender || current.gender || 'Unisex',
       childCategory: product.childCategory || current.childCategory,
       productType: product.productType || current.productType,
@@ -258,7 +258,7 @@ const AddProduct = () => {
         ...(product.inventory || {}),
         warehouse: product.shipping?.shippingOrigin || product.inventory?.warehouse || current.inventory.warehouse
       },
-      compatibility: { ...current.compatibility, ...(product.compatibilityDetail || {}), compatibleAccessories: product.compatibility || '' },
+      compatibility: { ...current.compatibility, ...(product.compatibilityDetail || product.compatibility || {}), compatibleAccessories: typeof product.compatibility === 'string' ? product.compatibility : (product.compatibility?.compatibleAccessories || '') },
       media: { ...current.media, ...(product.media || {}) },
       attributes: product.attributes || {},
       variants: product.variants || [],
@@ -385,134 +385,132 @@ const AddProduct = () => {
 
   const payload = (status) => {
     const isRiderWear = form.category === 'Rider Wear';
-    const customAttributes = form.customAttributes.filter((item) => item.key && item.value);
+    const customAttributes = (form.customAttributes || []).filter((item) => item.key && item.value);
     const attributeMap = customAttributes.reduce((acc, item) => ({ ...acc, [item.key]: item.value }), {
       ...form.attributes,
       ...(isRiderWear ? { gender: form.gender || form.attributes.gender || 'Unisex' } : {})
     });
-    const primaryCertification = Array.isArray(attributeMap.certification) ? attributeMap.certification.join(', ') : attributeMap.certification;
     const finalVendorId = product?.vendorId || activeVendorId;
-    const finalVendorName = form.vendorName || activeVendorName;
 
-    return {
-      vendorId: finalVendorId,
-      vendorName: finalVendorName,
-      vendorEmail: activeVendorEmail,
-      vendorPhone: activeVendorPhone,
-      vendorDetails: {
-        vendorId: finalVendorId,
-        vendorName: finalVendorName,
-        storeName: profile?.brandInformation?.brandName || profile?.businessDetails?.businessName || finalVendorName,
-        businessName: profile?.businessDetails?.businessName || finalVendorName,
-        displayName: profile?.displayName || user?.displayName || '',
-        email: activeVendorEmail,
-        phone: activeVendorPhone,
-        gstNumber: profile?.gstDetails?.gstNumber || '',
-        pan: profile?.businessDetails?.pan || '',
-        warehouseAddress: profile?.warehouseAddress || null,
-        returnAddress: profile?.returnAddress || null
-      },
+    // Rule 7: Clean media (only store in media object, no separate image or images at root)
+    const mediaPayload = cleanObject({
+      primaryImage: form.media?.primaryImage,
+      coverImage: form.media?.coverImage,
+      galleryImages: (form.media?.galleryImages || []).filter(Boolean)
+    });
+
+    // Rule 8: All pricing encapsulated in pricing object, nothing separate at root
+    const sellingPrice = money(form.pricing.sellingPrice);
+    const mrp = money(form.pricing.mrp);
+    const pricingPayload = cleanObject({
+      sellingPrice,
+      mrp: mrp || undefined,
+      offerPrice: money(form.pricing.offerPrice) || undefined,
+      costPrice: money(form.pricing.costPrice) || undefined,
+      dealerPrice: money(form.pricing.dealerPrice) || undefined,
+      wholesalePrice: money(form.pricing.wholesalePrice) || undefined,
+      discountPercent: (mrp && mrp > sellingPrice)
+        ? Math.round(((mrp - sellingPrice) / mrp) * 100)
+        : undefined,
+      gstRate: money(form.pricing.gstRate),
+      shippingFee: money(form.pricing.shippingFee) || undefined,
+      codCharges: form.pricing.codCharges !== undefined && form.pricing.codCharges !== '' ? money(form.pricing.codCharges) : undefined,
+      bulkDiscount: form.pricing.bulkDiscount || undefined,
+      flashSale: form.pricing.flashSale === 'Yes' ? 'Yes' : undefined,
+      couponEligibility: form.pricing.couponEligibility === 'No' ? 'No' : undefined
+    });
+
+    // Rule 8: All inventory encapsulated in inventory object, nothing separate at root
+    const inventoryPayload = cleanObject({
+      stockQuantity: money(form.inventory.stockQuantity),
+      lowStockThreshold: form.inventory.lowStockThreshold !== '' ? money(form.inventory.lowStockThreshold) : 5,
+      warehouse: form.inventory.warehouse || undefined,
+      minimumStock: money(form.inventory.minimumStock) || undefined,
+      maximumStock: money(form.inventory.maximumStock) || undefined,
+      reservedStock: money(form.inventory.reservedStock) || undefined,
+      batchNumber: form.inventory.batchNumber || undefined,
+      serialNumber: form.inventory.serialNumber || undefined
+    });
+
+    // Rule 8: Single compatibility object (not duplicated as compatibility, compatibilityDetail, universalProduct)
+    const compatibilityPayload = cleanObject({
+      bikeBrand: form.compatibility?.bikeBrand || undefined,
+      bikeModel: form.compatibility?.bikeModel || undefined,
+      compatibleAccessories: form.compatibility?.compatibleAccessories || undefined,
+      universalProduct: form.compatibility?.universalProduct !== false ? true : false
+    });
+
+    // Variants (clean variant objects with variant-specific pricing, stock, sku, options)
+    const variantsPayload = Array.isArray(form.variants) && form.variants.length > 0 ? form.variants.map((v) => cleanObject({
+      id: v.id,
+      sku: v.sku,
+      options: v.options,
+      price: v.price !== undefined && v.price !== '' ? Number(v.price) : sellingPrice,
+      mrp: v.mrp ? Number(v.mrp) : undefined,
+      stock: v.stock !== undefined && v.stock !== '' ? Number(v.stock) : 0
+    })).filter(Boolean) : undefined;
+
+    // SEO (tags only, no duplicate keywords array)
+    const seoTags = tagsFromText(form.tags);
+    const seoPayload = cleanObject({
+      seoTitle: form.seoTitle || undefined,
+      metaDescription: form.seoDescription || undefined,
+      slug: form.slug || undefined,
+      tags: seoTags.length > 0 ? seoTags : undefined
+    });
+
+    // Dynamic attributes
+    const cleanedAttributes = cleanObject(attributeMap);
+
+    const productData = {
+      // Rule 1: name/title (only title)
       title: form.title,
-      subtitle: form.subtitle,
+
+      // Rule 3: brand/brandName (only brand)
       brand: form.brand,
-      gender: isRiderWear ? (form.gender || form.attributes.gender || 'Unisex') : '',
-      manufacturer: form.manufacturer,
-      countryOfManufacture: form.countryOfManufacture,
+
+      // Rule 4: category/categoryName (only category)
       category: form.category,
-      subCategory: form.subCategory,
-      childCategory: form.childCategory || '',
-      productType: form.productType,
-      collection: form.collection,
+
+      // Rule 5: subcategory/subCategory (only subcategory)
+      subcategory: form.subCategory || form.subcategory,
+
+      // Rule 6: only add vendorId (no vendorName, vendorEmail, vendorPhone, vendorDetails)
+      vendorId: finalVendorId,
+
+      // Product identity & descriptions
       sku: form.sku,
-      barcode: form.barcode || '',
-      qrCode: form.qrCode,
-      shortDescription: form.shortDescription || form.fullDescription.slice(0, 180),
       fullDescription: form.fullDescription,
+      shortDescription: form.shortDescription || undefined,
+      subtitle: form.subtitle || undefined,
+      productType: form.productType || undefined,
+      countryOfManufacture: form.countryOfManufacture || undefined,
+      manufacturer: form.manufacturer || undefined,
+      collection: form.collection || undefined,
+      warranty: form.warranty || undefined,
+      returnPolicy: form.returnPolicy || undefined,
+      replacementPolicy: form.replacementPolicy || undefined,
+      careInstructions: form.careInstructions || undefined,
       highlights: listFromText(form.highlights),
       features: listFromText(form.features),
-      specifications: listFromText(form.specifications),
       boxContents: listFromText(form.boxContents),
-      warranty: form.warranty,
-      returnPolicy: form.returnPolicy,
-      replacementPolicy: form.replacementPolicy,
-      installationGuide: form.installationGuide,
-      careInstructions: form.careInstructions,
       faq: listFromText(form.faq),
-      videoLinks: tagsFromText(form.videoLinks),
-      manualPdf: form.manualPdf,
-      certificates: form.certificates,
-      weight: attributeMap.weight || '',
-      dimensions: {
-        length: attributeMap.length || '',
-        width: attributeMap.width || '',
-        height: attributeMap.height || '',
-        unit: 'cm'
-      },
-      pricing: {
-        mrp: money(form.pricing.mrp),
-        sellingPrice: money(form.pricing.sellingPrice),
-        offerPrice: money(form.pricing.offerPrice),
-        costPrice: money(form.pricing.costPrice),
-        dealerPrice: money(form.pricing.dealerPrice),
-        wholesalePrice: money(form.pricing.wholesalePrice),
-        discountPercent: form.pricing.mrp ? Math.max(0, Math.round(((money(form.pricing.mrp) - money(form.pricing.sellingPrice)) / money(form.pricing.mrp)) * 100)) : 0,
-        gstRate: money(form.pricing.gstRate),
-        platformFee: money(form.pricing.platformFee),
-        shippingFee: money(form.pricing.shippingFee),
-        codCharges: money(form.pricing.codCharges),
-        bulkDiscount: form.pricing.bulkDiscount,
-        flashSale: form.pricing.flashSale,
-        couponEligibility: form.pricing.couponEligibility
-      },
-      inventory: {
-        stockQuantity: money(form.inventory.stockQuantity),
-        reservedStock: money(form.inventory.reservedStock),
-        incomingStock: money(form.inventory.incomingStock),
-        minimumStock: money(form.inventory.minimumStock),
-        maximumStock: money(form.inventory.maximumStock),
-        lowStockThreshold: money(form.inventory.lowStockThreshold),
-        restockDate: form.inventory.restockDate,
-        batchNumber: form.inventory.batchNumber,
-        serialNumber: form.inventory.serialNumber,
-        warehouse: form.inventory.warehouse
-      },
-      shipping: {
-        dispatchTime: '24-48 hours',
-        shippingOrigin: form.inventory.warehouse,
-        codAvailable: form.pricing.codCharges !== '',
-        returnPolicy: form.returnPolicy
-      },
-      compatibility: form.compatibility.compatibleAccessories,
-      compatibilityDetail: form.compatibility,
-      universalProduct: form.compatibility.universalProduct,
-      variants: form.variants,
-      attributes: {
-        ...attributeMap,
-        primaryCertification,
-        generatedSearchFilters: Object.entries(attributeMap)
-          .filter(([, value]) => value !== '' && value !== false)
-          .map(([key, value]) => ({ key, value }))
-      },
-      customAttributes,
-      media: form.media,
-      seo: {
-        seoTitle: form.seoTitle,
-        metaDescription: form.seoDescription,
-        slug: form.slug,
-        tags: tagsFromText(form.tags),
-        keywords: tagsFromText(form.tags),
-        compatibleBikes: [form.compatibility.bikeBrand, form.compatibility.bikeModel].filter(Boolean),
-        badges: [form.category, form.subCategory, form.brand].filter(Boolean)
-      },
-      safety: {
-        BIS: String(primaryCertification || '').includes('ISI'),
-        DOT: String(primaryCertification || '').includes('DOT'),
-        ECE: String(primaryCertification || '').includes('ECE'),
-        CELevel1: String(attributeMap.ceArmour || '').includes('Level 1'),
-        CELevel2: String(attributeMap.ceArmour || '').includes('Level 2')
-      },
+
+      // Rule 7: Media in media object only (no separate image or images)
+      media: mediaPayload,
+
+      // Rule 8: Objects without duplicate root fields
+      pricing: pricingPayload,
+      inventory: inventoryPayload,
+      compatibility: compatibilityPayload,
+      variants: variantsPayload && variantsPayload.length > 0 ? variantsPayload : undefined,
+      attributes: cleanedAttributes,
+      seo: seoPayload,
+
       status
     };
+
+    return cleanObject(productData) || {};
   };
 
   const save = async (status) => {

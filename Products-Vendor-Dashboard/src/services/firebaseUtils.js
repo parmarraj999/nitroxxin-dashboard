@@ -31,20 +31,22 @@ export const withVendor = (data, vendorId) => ({
 
 export const cleanObject = (value) => {
   if (Array.isArray(value)) {
-    return value.map(cleanObject).filter((item) => item !== undefined);
+    const cleanedArr = value.map(cleanObject).filter((item) => item !== undefined && item !== null && item !== '');
+    return cleanedArr.length > 0 ? cleanedArr : undefined;
   }
 
   if (value && typeof value === 'object' && !(value instanceof File) && !(value instanceof Date)) {
-    return Object.entries(value).reduce((acc, [key, item]) => {
+    const cleanedObj = Object.entries(value).reduce((acc, [key, item]) => {
       const cleaned = cleanObject(item);
-      if (cleaned !== undefined && cleaned !== '') {
+      if (cleaned !== undefined && cleaned !== null && cleaned !== '') {
         acc[key] = cleaned;
       }
       return acc;
     }, {});
+    return Object.keys(cleanedObj).length > 0 ? cleanedObj : undefined;
   }
 
-  return value === undefined ? undefined : value;
+  return (value === undefined || value === null || value === '') ? undefined : value;
 };
 
 export const addTimestamps = (data) => ({

@@ -36,6 +36,8 @@ export const RegistrationsProvider = ({ children }) => {
 
   // In-memory cache for event bookings
   const bookingsCache = useRef(new Map());
+  const registrationsRef = useRef(registrations);
+  registrationsRef.current = registrations;
 
   // ---------------------------------------------------------------------------
   // SINGLE CENTRAL REAL-TIME SUBSCRIPTION FOR HOST'S REGISTRATIONS
@@ -78,9 +80,9 @@ export const RegistrationsProvider = ({ children }) => {
   const getEventRegistrations = useCallback(
     (eventId) => {
       if (!eventId) return [];
-      return registrations.filter((r) => r.eventId === eventId);
+      return registrationsRef.current.filter((r) => r.eventId === eventId);
     },
-    [registrations]
+    []
   );
 
   const subscribeToEventBookingsCached = useCallback((eventId, callback) => {

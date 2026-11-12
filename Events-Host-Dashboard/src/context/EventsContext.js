@@ -79,6 +79,8 @@ export const EventsProvider = ({ children }) => {
 
   // Cache for complete full event documents
   const fullEventDetailsCache = useRef(new Map());
+  const eventsRef = useRef(events);
+  eventsRef.current = events;
 
   // ---------------------------------------------------------------------------
   // 1. LIGHTWEIGHT REAL-TIME SUBSCRIPTION FOR HOST'S EVENT LISTINGS
@@ -144,14 +146,27 @@ export const EventsProvider = ({ children }) => {
 
         fullEventDetailsCache.current.set(eventId, fullDoc);
 
-        // Sync live counters back to event summary list
-        setEvents((prev) =>
-          prev.map((e) =>
+        // Sync live counters back to event summary list only if summary fields actually changed
+        setEvents((prev) => {
+          const existing = prev.find((e) => e.id === eventId || e.eventId === eventId);
+          const updated = toEventListingSummary(fullDoc);
+          if (
+            existing &&
+            existing.registeredCount === updated.registeredCount &&
+            existing.views === updated.views &&
+            existing.revenue === updated.revenue &&
+            existing.status === updated.status &&
+            existing.title === updated.title &&
+            existing.capacity === updated.capacity
+          ) {
+            return prev;
+          }
+          return prev.map((e) =>
             e.id === eventId || e.eventId === eventId
-              ? { ...e, ...toEventListingSummary(fullDoc) }
+              ? { ...e, ...updated }
               : e
-          )
-        );
+          );
+        });
 
         if (callback) callback(fullDoc);
       },
@@ -190,9 +205,9 @@ export const EventsProvider = ({ children }) => {
   const getEventSummary = useCallback(
     (eventId) => {
       if (!eventId) return null;
-      return events.find((e) => e.id === eventId || e.eventId === eventId) || null;
+      return eventsRef.current.find((e) => e.id === eventId || e.eventId === eventId) || null;
     },
-    [events]
+    []
   );
 
   /**
@@ -206,13 +221,13 @@ export const EventsProvider = ({ children }) => {
         if (fullEventDetailsCache.current.has(eventId)) {
           return fullEventDetailsCache.current.get(eventId);
         }
-        const foundSummary = events.find((e) => e.id === eventId || e.eventId === eventId);
+        const foundSummary = eventsRef.current.find((e) => e.id === eventId || e.eventId === eventId);
         if (foundSummary) return foundSummary;
       }
 
       return getFullEvent(eventId, forceRefresh);
     },
-    [events, getFullEvent]
+    [getFullEvent]
   );
 
   // ---------------------------------------------------------------------------
@@ -223,7 +238,7 @@ export const EventsProvider = ({ children }) => {
       if (!eventId || !payload) return;
 
       const current = fullEventDetailsCache.current.get(eventId) ||
-        events.find((e) => e.id === eventId || e.eventId === eventId);
+        eventsRef.current.find((e) => e.id === eventId || e.eventId === eventId);
 
       // Calculate diff to avoid writing unchanged fields to Firestore
       const diff = {};
@@ -253,7 +268,7 @@ export const EventsProvider = ({ children }) => {
       const fieldsToWrite = hasChanges ? diff : payload;
       await apiUpdateEvent(eventId, fieldsToWrite);
     },
-    [events]
+    []
   );
 
   const createEvent = useCallback(async (payload) => {

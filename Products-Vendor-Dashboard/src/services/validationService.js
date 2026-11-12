@@ -14,11 +14,14 @@ export const validateProductPayload = (product, { publish = false } = {}) => {
   const publishFields = [
     'fullDescription',
     'pricing.sellingPrice',
-    'inventory.stockQuantity',
-    'shipping.returnPolicy'
+    'inventory.stockQuantity'
   ];
 
   requireFields(product, publish ? [...baseFields, ...publishFields] : baseFields, 'Product');
+
+  if (publish && !(product.returnPolicy || product.shipping?.returnPolicy)) {
+    throw new Error('Product missing required field: returnPolicy');
+  }
 
   const price = Number(product.pricing?.sellingPrice || 0);
   const stock = Number(product.inventory?.stockQuantity || 0);

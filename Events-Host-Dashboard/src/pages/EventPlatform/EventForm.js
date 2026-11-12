@@ -20,12 +20,14 @@ import {
   UploadCloud,
   AlertCircle,
   Bike,
-  RotateCcw
+  RotateCcw,
+  Smartphone
 } from "lucide-react";
 import AppLayout from "../../components/AppLayout/AppLayout";
 import LoadingState from "../../components/States/LoadingState";
 import { useAuth } from "../../context/AuthContext";
 import { useData } from "../../context/DataContext";
+import LiveMobilePrototype from "./LiveMobilePrototype";
 import {
   createEvent,
   getEvent,
@@ -271,6 +273,7 @@ const EventForm = () => {
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
   const [firestoreTemplates, setFirestoreTemplates] = useState([]);
+  const [showMobilePreview, setShowMobilePreview] = useState(true);
 
   // Use cached ticket templates from DataContext (saves Firestore reads)
   useEffect(() => {
@@ -783,12 +786,23 @@ const EventForm = () => {
               </p>
             </div>
           </div>
-          {form.status && (
-            <span className={`event-status-pill status-${form.status.toLowerCase()}`}>
-              <span className="status-dot-indicator" />
-              {form.status}
-            </span>
-          )}
+          <div className="builder-header-actions-right">
+            <button
+              type="button"
+              className={`builder-preview-toggle-btn ${showMobilePreview ? "active" : ""}`}
+              onClick={() => setShowMobilePreview((prev) => !prev)}
+              title={showMobilePreview ? "Hide live mobile preview" : "Show live mobile preview"}
+            >
+              <Smartphone size={15} />
+              <span>{showMobilePreview ? "Hide Mobile Preview" : "Show Mobile Preview"}</span>
+            </button>
+            {form.status && (
+              <span className={`event-status-pill status-${form.status.toLowerCase()}`}>
+                <span className="status-dot-indicator" />
+                {form.status}
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Advanced Connected 9-Step Stepper (NO SLIDER) */}
@@ -837,7 +851,9 @@ const EventForm = () => {
           </div>
         )}
 
-        <form className="event-form" onSubmit={submit}>
+        <div className={`builder-split-layout ${!showMobilePreview ? "no-preview" : ""}`}>
+          <div className="builder-form-pane">
+            <form className="event-form" onSubmit={submit}>
           {/* STEP 0: DETAILS */}
           {currentStep === 0 && (
             <section className="form-section">
@@ -2147,7 +2163,24 @@ const EventForm = () => {
               )}
             </div>
           </div>
-        </form>
+            </form>
+          </div>
+
+          {showMobilePreview && (
+            <aside className="builder-preview-aside">
+              <div className="preview-aside-sticky-card">
+                <div className="preview-aside-header">
+                  <div className="preview-live-pill">
+                    <span className="live-pulse-ring" />
+                    <span>Live Mobile Prototype</span>
+                  </div>
+                  <span className="preview-aside-device-hint">iPhone 16 Pro View</span>
+                </div>
+                <LiveMobilePrototype form={form} files={files} />
+              </div>
+            </aside>
+          )}
+        </div>
       </main>
     </AppLayout>
   );

@@ -94,63 +94,18 @@ export const emptyProduct = {
   title: '',
   brand: '',
   category: '',
-  subCategory: '',
+  subcategory: '',
   sku: '',
-  shortDescription: '',
   fullDescription: '',
-  colorOptions: [],
-  sizeOptions: [],
-  weight: '',
-  dimensions: { length: '', width: '', height: '', unit: 'cm' },
-  material: '',
-  warranty: '',
-  countryOfManufacture: '',
-  compatibility: '',
-  keyFeatures: [],
-  safety: {
-    BIS: false,
-    DOT: false,
-    ECE: false,
-    CELevel1: false,
-    CELevel2: false
-  },
+  returnPolicy: '',
   pricing: {
-    mrp: 0,
-    sellingPrice: 0,
-    discountPercent: 0,
-    gstRate: 0
+    sellingPrice: 0
   },
   inventory: {
-    stockQuantity: 0,
-    lowStockThreshold: 5
+    stockQuantity: 0
   },
-  shipping: {
-    dispatchTime: '',
-    shippingOrigin: '',
-    codAvailable: false,
-    returnPolicy: ''
-  },
-  seo: {
-    seoTitle: '',
-    metaDescription: '',
-    tags: [],
-    keywords: [],
-    compatibleBikes: [],
-    badges: []
-  },
-  attributes: {},
-  media: {
-    primaryImage: '',
-    galleryImages: [],
-    lifestyleImages: [],
-    sizeCharts: [],
-    certificationImages: [],
-    brandLogos: [],
-    videos: []
-  },
-  status: PRODUCT_STATUSES.draft,
-  averageRating: 0,
-  reviewCount: 0
+  media: {},
+  status: PRODUCT_STATUSES.draft
 };
 
 export const collectionStructure = {

@@ -91,7 +91,7 @@ const ProductDetails = () => {
           <p>{product?.subtitle || product?.shortDescription || product?.fullDescription || 'No product description added yet.'}</p>
           <div className="summary-chips">
             <span>{product?.category || 'Uncategorized'}</span>
-            <span>{product?.subCategory || 'No subcategory'}</span>
+            <span>{product?.subcategory || product?.subCategory || 'No subcategory'}</span>
             <span>{product?.productType || 'Product'}</span>
             <span>{product?.universalProduct ? 'Universal fit' : 'Vehicle specific'}</span>
           </div>

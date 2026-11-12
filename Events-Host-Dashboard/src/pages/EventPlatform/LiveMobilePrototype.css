@@ -1,0 +1,408 @@
+/* =========================================================================
+   LIVE MOBILE PROTOTYPE WITH PREMADE IPHONE CHASSIS PNG OVERLAY
+   Uses public/assets/images/iphone_chassis.png (433 × 885 px)
+   Zero CSS simulated chassis or dynamic islands - uses pure transparent PNG
+   ========================================================================= */
+
+.mobile-prototype-container {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  width: 100%;
+  user-select: none;
+}
+
+/* The Mockup Frame matching the 433 × 885 aspect ratio of iphone_chassis.png */
+.iphone-mockup-frame {
+  position: relative;
+  width: 326px;
+  height: 666px; /* 326px * (885 / 433) = 666px */
+  margin: 0 auto;
+}
+
+/* Premade iPhone PNG Chassis Overlay */
+.iphone-chassis-png-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  z-index: 50;
+  filter: drop-shadow(0 20px 45px rgba(0, 0, 0, 0.45));
+}
+
+/* Screen Viewport positioned exactly inside the PNG's transparent screen bounds (Left: 5.08%, Top: 2.15%) */
+.iphone-screen-viewport {
+  position: absolute;
+  top: 1.2%;
+  bottom: 1.15%;
+  left: 3.08%;
+  right: 3.3%;
+  border-radius: 38px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #0e0f14;
+  color: #f1f5f9;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  box-sizing: border-box;
+  padding: 65px 5px 11px 12px;
+  z-index: 10;
+}
+
+.iphone-screen-viewport::-webkit-scrollbar {
+  width: 3px;
+}
+
+.iphone-screen-viewport::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 3px;
+}
+
+/* Floating header buttons on either side of Dynamic Island */
+.screen-floating-header {
+  position: absolute;
+  top: 27px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 25;
+}
+
+.floating-circle-btn {
+  width: 29px;
+  height: 29px;
+  border-radius: 50%;
+  background: rgba(20, 22, 28, 0.72);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.floating-circle-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: scale(1.05);
+}
+
+/* Hero Cover Banner */
+.iphone-banner-wrap {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #181924;
+  margin-top: 4px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.iphone-banner-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.iphone-banner-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.15) 0%, rgba(0, 0, 0, 0.5) 100%);
+  pointer-events: none;
+}
+
+.iphone-banner-watermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: #ffffff;
+  background: rgba(0, 0, 0, 0.35);
+  padding: 12px;
+}
+
+.iphone-banner-watermark span {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #e2e8f0;
+}
+
+.iphone-banner-watermark strong {
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+}
+
+/* Horizontal Gallery Strip */
+.iphone-gallery-strip {
+  display: flex;
+  gap: 7px;
+  margin-top: 10px;
+  margin-bottom: 14px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding-bottom: 2px;
+}
+
+.iphone-gallery-strip::-webkit-scrollbar {
+  display: none;
+}
+
+.iphone-thumb-card {
+  width: 63px;
+  height: 63px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1e202c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.iphone-thumb-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Event Title */
+.iphone-event-title {
+  font-size: 18px;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin: 0 0 10px 0;
+  word-break: break-word;
+}
+
+/* Badges Row */
+.iphone-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.iphone-pill-category {
+  display: inline-flex;
+  align-items: center;
+  padding: 3.5px 9px;
+  border-radius: 9999px;
+  background: #172554;
+  color: #60a5fa;
+  border: 1px solid #1e3a8a;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+.iphone-pill-date {
+  display: inline-flex;
+  align-items: center;
+  padding: 3.5px 9px;
+  border-radius: 9999px;
+  background: #064e3b;
+  color: #34d399;
+  border: 1px solid #065f46;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+}
+
+/* Location Indicator Row */
+.iphone-location-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+  font-size: 11px;
+  color: #94a3b8;
+  margin-bottom: 16px;
+  line-height: 1.4;
+}
+
+.location-bar-pip {
+  color: #475569;
+  font-weight: 700;
+  user-select: none;
+}
+
+.location-text {
+  color: #94a3b8;
+  word-break: break-word;
+}
+
+/* Section Headings */
+.iphone-content-section {
+  margin-bottom: 14px;
+}
+
+.iphone-section-heading {
+  font-size: 14.5px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 6px 0;
+  letter-spacing: -0.01em;
+}
+
+.iphone-about-text {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: #cbd5e1;
+  margin: 0;
+  word-break: break-word;
+}
+
+/* Itinerary Section */
+.itinerary-header-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.itinerary-header-line {
+  flex: 1;
+  height: 1px;
+  background: #1e202c;
+}
+
+.iphone-itinerary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.iphone-itinerary-card {
+  background: #14151e;
+  border: 1px solid #222432;
+  border-radius: 11px;
+  padding: 9px 11px;
+}
+
+.itinerary-card-top {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+
+.itinerary-info-tag {
+  background: #2e1065;
+  color: #c084fc;
+  border: 1px solid #4c1d95;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 1.5px 5.5px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.itinerary-day-label {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.itinerary-card-desc {
+  font-size: 10.5px;
+  line-height: 1.45;
+  color: #94a3b8;
+  margin: 0;
+}
+
+/* Extra Bike Requirement Badge */
+.iphone-bike-req-pill {
+  margin-top: 10px;
+  margin-bottom: 14px;
+  background: rgba(234, 88, 12, 0.12);
+  border: 1px solid rgba(234, 88, 12, 0.35);
+  border-radius: 8px;
+  padding: 7px 10px;
+  font-size: 10.5px;
+  color: #fb923c;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+
+.iphone-bike-req-pill strong {
+  color: #ffedd5;
+}
+
+/* Bottom Floating Dock Bar */
+.iphone-bottom-bar {
+  position: sticky;
+  bottom: 0;
+  margin: 18px -12px -64px -12px;
+  padding: 10px 14px 12px 14px;
+  background: rgba(14, 15, 20, 0.94);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-top: 1px solid #1e202b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 30;
+  border-bottom-left-radius: 38px;
+  border-bottom-right-radius: 38px;
+}
+
+.bottom-bar-price-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.price-label {
+  font-size: 9px;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 600;
+}
+
+.price-value {
+  font-size: 16.5px;
+  font-weight: 900;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.iphone-book-btn {
+  background: #ffffff;
+  color: #000000;
+  border: none;
+  border-radius: 9999px;
+  padding: 8px 18px;
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(255, 255, 255, 0.18);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+
+.iphone-book-btn:hover {
+  background: #f1f5f9;
+  transform: scale(1.03);
+}

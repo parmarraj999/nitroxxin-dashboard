@@ -1,5 +1,4 @@
 import {
-  addDoc,
   collection,
   deleteDoc,
   doc,
@@ -10,6 +9,7 @@ import {
   query,
   runTransaction,
   serverTimestamp,
+  setDoc,
   updateDoc,
   where,
   writeBatch
@@ -21,17 +21,44 @@ import { validateProductPayload } from './validationService';
 
 const normalizeProduct = (data, vendorId) => {
   const resolvedVendorId = data?.vendorId || vendorId || getVendorId();
-  return cleanObject(withVendor({
+
+  // Strip duplicate / redundant keys (Rule 1, 2, 3, 4, 5, 6, 7, 8)
+  const {
+    name,
+    productName,
+    productId,
+    brandName,
+    categoryName,
+    subCategory,
+    subCategoryName,
+    vendorName,
+    vendorEmail,
+    vendorPhone,
+    vendorDetails,
+    image,
+    images,
+    compatibilityDetail,
+    universalProduct,
+    keywords,
+    ...rest
+  } = data || {};
+
+  const clean = cleanObject({
     ...emptyProduct,
-    ...data,
-    vendorId: resolvedVendorId,
-    pricing: { ...emptyProduct.pricing, ...(data.pricing || {}) },
-    inventory: { ...emptyProduct.inventory, ...(data.inventory || {}) },
-    shipping: { ...emptyProduct.shipping, ...(data.shipping || {}) },
-    seo: { ...emptyProduct.seo, ...(data.seo || {}) },
-    safety: { ...emptyProduct.safety, ...(data.safety || {}) },
-    media: { ...emptyProduct.media, ...(data.media || {}) }
-  }, resolvedVendorId));
+    ...rest,
+    // Rule 1: only title
+    title: rest.title || name || productName || '',
+    // Rule 3: only brand
+    brand: rest.brand || brandName || '',
+    // Rule 4: only category
+    category: rest.category || categoryName || '',
+    // Rule 5: only subcategory
+    subcategory: rest.subcategory || subCategory || subCategoryName || '',
+    // Rule 6: only vendorId
+    vendorId: resolvedVendorId
+  }) || {};
+
+  return clean;
 };
 
 export const listProducts = async (options = {}) => {
@@ -67,21 +94,31 @@ export const getProduct = async (productId) => {
 
 export const createProduct = async (data, { status = PRODUCT_STATUSES.draft, vendorId } = {}) => {
   const resolvedVendorId = data?.vendorId || vendorId || getVendorId();
-  const product = addTimestamps(normalizeProduct({ ...data, status, vendorId: resolvedVendorId }, resolvedVendorId));
-  validateProductPayload(product, { publish: status === PRODUCT_STATUSES.published });
-  const productRef = await addDoc(collection(db, COLLECTIONS.products), product);
-  const inventoryRef = doc(db, COLLECTIONS.inventory, productRef.id);
+  const normalized = normalizeProduct({ ...data, status, vendorId: resolvedVendorId }, resolvedVendorId);
+  validateProductPayload(normalized, { publish: status === PRODUCT_STATUSES.published });
 
-  await updateDoc(productRef, { productId: productRef.id });
+  // Generate document ref with auto-id
+  const productRef = doc(collection(db, COLLECTIONS.products));
+
+  // Rule 2: id/productId (only id)
+  const productWithId = addTimestamps({
+    id: productRef.id,
+    ...normalized
+  });
+
+  // Single setDoc write (no redundant updateDoc!)
+  await setDoc(productRef, productWithId);
+
+  const inventoryRef = doc(db, COLLECTIONS.inventory, productRef.id);
   await runTransaction(db, async (transaction) => {
     transaction.set(inventoryRef, {
       vendorId: resolvedVendorId,
       productId: productRef.id,
-      stock: Number(product.inventory?.stockQuantity || 0),
+      stock: Number(normalized.inventory?.stockQuantity || 0),
       reservedStock: 0,
-      availableStock: Number(product.inventory?.stockQuantity || 0),
-      lowStockThreshold: Number(product.inventory?.lowStockThreshold || 5),
-      warehouseId: product.shipping?.shippingOrigin || '',
+      availableStock: Number(normalized.inventory?.stockQuantity || 0),
+      lowStockThreshold: Number(normalized.inventory?.lowStockThreshold || 5),
+      warehouseId: normalized.inventory?.warehouse || normalized.shipping?.shippingOrigin || '',
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     });
@@ -94,7 +131,36 @@ export const updateProduct = async (productId, data) => {
   if (data.status === PRODUCT_STATUSES.published && data.title) {
     validateProductPayload(data, { publish: data.status === PRODUCT_STATUSES.published });
   }
-  await updateDoc(docRef(COLLECTIONS.products, productId), touch(cleanObject(data)));
+
+  // Strip duplicate / redundant keys (Rule 1, 2, 3, 4, 5, 6, 7, 8)
+  const {
+    name,
+    productName,
+    productId: _ignoredPid,
+    brandName,
+    categoryName,
+    subCategory,
+    subCategoryName,
+    vendorName,
+    vendorEmail,
+    vendorPhone,
+    vendorDetails,
+    image,
+    images,
+    compatibilityDetail,
+    keywords,
+    ...rest
+  } = data || {};
+
+  const cleanData = cleanObject({
+    ...rest,
+    ...(rest.title || name ? { title: rest.title || name } : {}),
+    ...(rest.brand || brandName ? { brand: rest.brand || brandName } : {}),
+    ...(rest.category || categoryName ? { category: rest.category || categoryName } : {}),
+    ...(rest.subcategory || subCategory ? { subcategory: rest.subcategory || subCategory } : {})
+  }) || {};
+
+  await updateDoc(docRef(COLLECTIONS.products, productId), touch(cleanData));
   if (data.inventory) {
     await updateInventoryForProduct(productId, {
       stock: Number(data.inventory.stockQuantity || 0),
