@@ -843,8 +843,31 @@ const EventDetailsPage = () => {
   };
 
   const changeEventStatus = async (status) => {
-    await updateEvent(event.id, { status });
-    setMessage(`Event status updated to ${status}.`);
+    try {
+      const targetId = event?.id || eventId;
+      if (!targetId) return;
+      await updateEvent(targetId, { status });
+      setEvent((prev) => (prev ? { ...prev, status } : prev));
+      setMessage(`Event status updated to ${status}.`);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      console.warn('Status update error:', err);
+      setError(`Failed to update status: ${err.message}`);
+      setTimeout(() => setError(''), 4000);
+    }
+  };
+
+  const handleCompleteEvent = async () => {
+    const isCompleted = event?.status === 'Completed' || event?.status === 'Complete';
+    if (isCompleted) {
+      if (window.confirm('This event is currently marked as Completed. Do you want to reopen it to Published?')) {
+        await changeEventStatus('Published');
+      }
+      return;
+    }
+    if (window.confirm(`Mark "${event?.title || 'this event'}" as Completed? This confirms the event/ride has concluded.`)) {
+      await changeEventStatus('Completed');
+    }
   };
 
   const exportEventReport = () => {
