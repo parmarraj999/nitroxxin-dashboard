@@ -46,6 +46,7 @@ import {
   Info,
   Loader2,
   XCircle,
+  Lock,
   Smartphone,
   Camera,
   KeyRound,
