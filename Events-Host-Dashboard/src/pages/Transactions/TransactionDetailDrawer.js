@@ -48,7 +48,10 @@ const TransactionDetailDrawer = ({ transaction, onClose }) => {
       >
         {/* Header */}
         <div className="tx-drawer-header">
-          <h2 className="tx-drawer-title">Transaction Details</h2>
+          <div className="tx-drawer-header-text">
+            <h2 className="tx-drawer-title">Transaction Details</h2>
+            <p className="tx-drawer-sub">Transaction information and attendee receipt breakdown</p>
+          </div>
           <button 
             type="button" 
             className="tx-drawer-close-btn" 
@@ -152,7 +155,7 @@ const TransactionDetailDrawer = ({ transaction, onClose }) => {
 
           {/* Billing Information Card */}
           <div className="tx-info-card">
-            <h3 className="tx-info-card-title">Billing Information</h3>
+            <h3 className="tx-info-card-title section-heading">Billing Information</h3>
             <div className="tx-info-card-rows">
               <div className="tx-card-row">
                 <span className="tx-card-key">Street Address</span>
@@ -179,7 +182,7 @@ const TransactionDetailDrawer = ({ transaction, onClose }) => {
 
           {/* Shipping / Attendee Details Card */}
           <div className="tx-info-card">
-            <h3 className="tx-info-card-title">Shipping Information</h3>
+            <h3 className="tx-info-card-title section-heading">Shipping Information</h3>
             <div className="tx-info-card-rows">
               <div className="tx-card-row">
                 <span className="tx-card-key">Street Address</span>

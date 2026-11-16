@@ -10,8 +10,8 @@
   padding: 24px 32px 64px;
   background-color: #f6f8fa; /* Soft background from Image 3 */
   min-height: 100vh;
-  font-family: 'Poppins', sans-serif;
-  color: #111827;
+  font-family: 'Inter', sans-serif;
+  color: #111111;
 }
 
 /* 1. TOP HEADER ROW */
@@ -40,18 +40,22 @@
 }
 
 .dash-user-welcome h1 {
-  font-size: 20px;
-  font-weight: 700;
-  color: #111827;
-  letter-spacing: -0.015em;
+  font-family: 'Inter', sans-serif;
+  font-size: 48px;
+  font-weight: 600;
+  line-height: 56px;
+  color: #111111;
+  letter-spacing: -0.02em;
   margin: 0;
-  line-height: 1.2;
 }
 
 .dash-user-welcome p {
-  font-size: 13px;
-  color: #6b7280;
-  margin: 3px 0 0 0;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #8A8A8A;
+  margin: 4px 0 0 0;
 }
 
 .dash-top-actions {
@@ -70,9 +74,11 @@
   border-radius: 9px;
   border: 1px solid #e5e7eb;
   background-color: #ffffff;
-  color: #374151;
-  font-size: 13px;
+  color: #5F6368;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
   font-weight: 500;
+  line-height: 20px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
@@ -80,7 +86,7 @@
 .dash-select-pill:hover {
   background-color: #f9fafb;
   border-color: #d1d5db;
-  color: #111827;
+  color: #111111;
 }
 
 .dash-icon-btn {
@@ -121,8 +127,10 @@
   border-radius: 9px;
   background-color: #ff6a00;
   color: #ffffff;
-  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
   font-weight: 600;
+  line-height: 20px;
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -283,17 +291,20 @@
 }
 
 .stat-card-value {
-  font-size: 28px;
-  font-weight: 600;
-  color: #0f172a;
-  line-height: 1.1;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: #111111;
+  line-height: 42px;
   letter-spacing: -0.02em;
 }
 
 .stat-card-label {
-  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
   font-weight: 500;
-  color: #64748b;
+  line-height: 16px;
+  color: #6B7280;
 }
 
 .stat-card-sparkline-wrap {
@@ -340,6 +351,11 @@
 }
 
 .cashflow-title-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 16px;
+  color: #6B7280;
   font-size: 14.5px;
   font-weight: 600;
   color: #64748b;
@@ -511,11 +527,12 @@
 }
 
 .cashflow-big-headline {
+  font-family: 'Inter', sans-serif;
   font-size: 36px;
   font-weight: 700;
-  color: #0f172a;
-  letter-spacing: -0.03em;
-  line-height: 1.1;
+  color: #111111;
+  letter-spacing: -0.02em;
+  line-height: 42px;
 }
 
 .cashflow-single-legend {
@@ -1305,7 +1322,7 @@
   color: #111827;
   margin: 0;
   letter-spacing: -0.02em;
-  font-family: 'Poppins', sans-serif;
+  font-family: 'Inter', sans-serif;
 }
 
 .live-event-location {

@@ -502,7 +502,7 @@ const Dashboard = () => {
           list.push({
             id,
             name: r.participantName || r.participant?.fullName || 'Registered Participant',
-            email: r.participantEmail || r.participant?.email || 'guest@nitroxx.com',
+            email: r.participantEmail || r.participant?.email || r.email || r.userEmail || 'rider@nitroxx.com',
             phone: r.participantPhone || r.participant?.phone || '+91 98000 00000',
             avatar: r.participantPhoto || `https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80`,
             avatarInitial: (r.participantName || 'R').charAt(0).toUpperCase(),
@@ -987,8 +987,8 @@ const Dashboard = () => {
         <header className="dash-header-row">
           <div className="dash-user-welcome">
             <div>
-              <h1 style={{ fontSize: '16px', fontWeight: '500', color: 'grey' }}>Welcome back,</h1>
-              <h1 style={{ fontSize: '28px', fontWeight: '700' }}>{profile?.displayName || user?.displayName || 'Host'}</h1>
+              <h1>Welcome back,</h1>
+              <h1>{profile?.displayName || user?.displayName || 'Host'}</h1>
             </div>
           </div>
 

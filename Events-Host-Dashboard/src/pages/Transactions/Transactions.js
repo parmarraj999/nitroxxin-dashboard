@@ -485,23 +485,15 @@ const Transactions = () => {
           </div>
         )}
 
-        {/* Page Header matching Participants UI */}
+        {/* Page Header */}
         <div className="ptable-header-section">
           <div className="ptable-header-title-block">
-            <div className="ptable-badge-icon">
-              <ReceiptText size={20} strokeWidth={2} />
-            </div>
-            <div>
-              <h1 className="ptable-main-title">Transactions & Payouts</h1>
-              <p className="ptable-sub-title">
-                Comprehensive directory of attendee ticket bookings, payouts, refunds, and revenue transactions.
-              </p>
-            </div>
+              <h1 className="ptable-main-title">Transactions</h1>
           </div>
 
           <div className="ptable-header-actions">
             <button 
-              className="ptable-btn-secondary"
+              className="ptable-btn-primary"
               onClick={handleExportAllFilteredCSV}
               title="Export all or filtered records to CSV"
             >
@@ -511,23 +503,35 @@ const Transactions = () => {
           </div>
         </div>
 
-        {/* Metric Quick-Strip matching Participants UI */}
-        <div className="ptable-metric-strip">
-          <div className="metric-pill-item">
-            <span className="metric-pill-label">Total Volume:</span>
-            <span className="metric-pill-val">{totalVolumeFormatted} ({transactions.length} Records)</span>
+        {/* Metric Cards Grid */}
+        <div className="tx-stats-grid">
+          <div className="tx-stat-card">
+            <span className="tx-card-heading">Total Volume</span>
+            <div className="tx-main-number">{totalVolumeFormatted}</div>
+            <div className="tx-small-stat">
+              <span>↑ {transactions.length} Total Records</span>
+            </div>
           </div>
-          <div className="metric-pill-item">
-            <span className="metric-pill-label">Success / Paid:</span>
-            <span className="metric-pill-val text-green">{totalSuccess} Completed ({Math.round((totalSuccess / transactions.length) * 100 || 0)}%)</span>
+          <div className="tx-stat-card">
+            <span className="tx-card-heading">Success / Paid</span>
+            <div className="tx-main-number">{totalSuccess}</div>
+            <div className="tx-small-stat">
+              <span>{Math.round((totalSuccess / (transactions.length || 1)) * 100)}% Completed</span>
+            </div>
           </div>
-          <div className="metric-pill-item">
-            <span className="metric-pill-label">In Progress:</span>
-            <span className="metric-pill-val text-blue">{totalInProgress} Processing</span>
+          <div className="tx-stat-card">
+            <span className="tx-card-heading">In Progress</span>
+            <div className="tx-main-number">{totalInProgress}</div>
+            <div className="secondary-text">
+              <span>{totalInProgress} Processing</span>
+            </div>
           </div>
-          <div className="metric-pill-item">
-            <span className="metric-pill-label">Pending / Review:</span>
-            <span className="metric-pill-val text-amber">{totalPending} Pending</span>
+          <div className="tx-stat-card">
+            <span className="tx-card-heading">Pending / Review</span>
+            <div className="tx-main-number">{totalPending}</div>
+            <div className="secondary-text">
+              <span>{totalPending} Pending</span>
+            </div>
           </div>
         </div>
 

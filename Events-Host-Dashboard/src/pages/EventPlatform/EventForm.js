@@ -270,6 +270,7 @@ const EventForm = () => {
   const [currentStep, setCurrentStep] = useState(0);
   const [loading, setLoading] = useState(Boolean(eventId));
   const [saving, setSaving] = useState(false);
+  const [savingAction, setSavingAction] = useState("");
   const [error, setError] = useState("");
   const [progress, setProgress] = useState(0);
   const [firestoreTemplates, setFirestoreTemplates] = useState([]);
@@ -615,9 +616,11 @@ const EventForm = () => {
       throw new Error("Complete or remove each itinerary item.");
   };
 
-  const submit = async (event) => {
-    event.preventDefault();
+  const submit = async (event, forcedStatus = null) => {
+    if (event && event.preventDefault) event.preventDefault();
     if (currentStep !== steps.length - 1) return;
+    const targetStatus = forcedStatus || form.status || (eventId ? "Draft" : "Waiting for Approval");
+    setSavingAction(targetStatus === "Draft" ? "draft" : "publish");
     setSaving(true);
     setError("");
     try {
@@ -683,7 +686,7 @@ const EventForm = () => {
         ticketTemplateId: form.ticketTemplateId || form.ticketDesign || "",
         ticketTemplateUrl: form.ticketTemplateUrl || "",
         ticketTemplateName: form.ticketTemplateName || "",
-        status: form.status || (eventId ? "Draft" : "Published"),
+        status: targetStatus,
         hostId: user.uid,
         hostName: profile?.fullName || "",
         hostPhotoURL: profile?.photoURL || "",
@@ -731,6 +734,7 @@ const EventForm = () => {
       setError(err.message);
     } finally {
       setSaving(false);
+      setSavingAction("");
     }
   };
 
@@ -853,7 +857,7 @@ const EventForm = () => {
 
         <div className={`builder-split-layout ${!showMobilePreview ? "no-preview" : ""}`}>
           <div className="builder-form-pane">
-            <form className="event-form" onSubmit={submit}>
+            <form className="event-form" onSubmit={(e) => e.preventDefault()}>
           {/* STEP 0: DETAILS */}
           {currentStep === 0 && (
             <section className="form-section">
@@ -923,8 +927,6 @@ const EventForm = () => {
                     >
                       <option value="Draft">Draft</option>
                       <option value="Published">Published</option>
-                      <option value="Completed">Completed</option>
-                      <option value="Cancelled">Cancelled</option>
                     </select>
                     <ChevronDown size={14} className="select-dropdown-chevron" />
                   </div>
@@ -2147,19 +2149,47 @@ const EventForm = () => {
                   {currentStep === steps.length - 2 ? <Eye size={16} /> : <ChevronRight size={16} />}
                 </button>
               ) : (
-                <button type="submit" className="dock-action-btn submit" disabled={saving}>
-                  {saving ? (
-                    <>
-                      <span className="dock-spinner-icon" />
-                      <span>Saving...</span>
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 size={16} />
-                      <span>{eventId ? "Update Event" : "Save as Draft"}</span>
-                    </>
-                  )}
-                </button>
+                <div className="dock-dual-submit-group">
+                  <button
+                    type="button"
+                    className="dock-action-btn draft-btn"
+                    disabled={saving}
+                    onClick={(e) => submit(e, "Draft")}
+                    title="Save event as a Draft"
+                  >
+                    {saving && savingAction === "draft" ? (
+                      <>
+                        <span className="dock-spinner-icon" />
+                        <span>Saving Draft...</span>
+                      </>
+                    ) : (
+                      <>
+                        <FileText size={15} />
+                        <span>Save as Draft</span>
+                      </>
+                    )}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="dock-action-btn submit publish-btn"
+                    disabled={saving}
+                    onClick={(e) => submit(e, "Waiting for Approval")}
+                    title="Submit event for review and approval"
+                  >
+                    {saving && savingAction === "publish" ? (
+                      <>
+                        <span className="dock-spinner-icon" />
+                        <span>Publishing...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 size={16} />
+                        <span>Publish</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -3109,7 +3139,7 @@ const EventPreview = ({ form, files, progress }) => (
       <p className="upload-progress">Uploading files: {progress}%</p>
     )}
     <p className="section-note" style={{ marginTop: "16px" }}>
-      Saving will add this event as a draft in My Events.
+      Click <strong>Save as Draft</strong> to save without publishing, or <strong>Publish</strong> to submit for admin review (Waiting for Approval).
     </p>
   </section>
 );

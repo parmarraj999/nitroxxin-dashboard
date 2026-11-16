@@ -1,13 +1,13 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
 :root {
   --bg-body: #f8f9fc;
   --bg-sidebar: #ffffff;
   --bg-card: #ffffff;
 
-  --text-main: #1e293b;
+  --text-main: #111111;
   --text-muted: #64748b;
-  --text-light: #94a3b8;
+  --text-light: #8A8A8A;
 
   --primary-blue: #2563eb;
   --primary-blue-hover: #1d4ed8;
@@ -16,7 +16,7 @@
   --primary-orange: #f97316;
   --primary-orange-hover: #ea580c;
 
-  --success: #10b981;
+  --success: #16A34A;
   --success-light: #d1fae5;
   --danger: #ef4444;
   --danger-light: #fee2e2;
@@ -33,6 +33,130 @@
   --radius-md: 0.5rem;
   --radius-lg: 0.75rem;
   --radius-xl: 1rem;
+
+  /* =========================================================================
+     GLOBAL TYPOGRAPHY DESIGN SYSTEM TOKENS
+     ========================================================================= */
+  --font-family-base: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+  /* 1. Page Title */
+  --typo-page-title-font: 'Inter', sans-serif;
+  --typo-page-title-size: 32px;
+  --typo-page-title-weight: 600;
+  --typo-page-title-line: 36px;
+  --typo-page-title-color: #111111;
+
+  /* 2. Breadcrumb */
+  --typo-breadcrumb-font: 'Inter', sans-serif;
+  --typo-breadcrumb-size: 13px;
+  --typo-breadcrumb-weight: 500;
+  --typo-breadcrumb-line: 18px;
+  --typo-breadcrumb-color: #8A8A8A;
+
+  /* 3. Card Heading */
+  --typo-card-heading-font: 'Inter', sans-serif;
+  --typo-card-heading-size: 12px;
+  --typo-card-heading-weight: 500;
+  --typo-card-heading-line: 16px;
+  --typo-card-heading-color: #6B7280;
+
+  /* 4. Main Number */
+  --typo-main-number-font: 'Inter', sans-serif;
+  --typo-main-number-size: 36px;
+  --typo-main-number-weight: 700;
+  --typo-main-number-line: 42px;
+  --typo-main-number-color: #111111;
+
+  /* 5. Small Stats */
+  --typo-small-stats-font: 'Inter', sans-serif;
+  --typo-small-stats-size: 13px;
+  --typo-small-stats-weight: 500;
+  --typo-small-stats-line: 18px;
+  --typo-small-stats-color: #16A34A;
+
+  /* 6. Navigation */
+  --typo-navigation-font: 'Inter', sans-serif;
+  --typo-navigation-size: 14px;
+  --typo-navigation-weight: 500;
+  --typo-navigation-line: 20px;
+  --typo-navigation-color: #5F6368;
+
+  /* 7. Selected Nav */
+  --typo-selected-nav-font: 'Inter', sans-serif;
+  --typo-selected-nav-size: 14px;
+  --typo-selected-nav-weight: 600;
+  --typo-selected-nav-line: 20px;
+  --typo-selected-nav-color: #111111;
+
+  /* 8. Modal Title */
+  --typo-modal-title-font: 'Inter', sans-serif;
+  --typo-modal-title-size: 24px;
+  --typo-modal-title-weight: 600;
+  --typo-modal-title-line: 30px;
+  --typo-modal-title-color: #111111;
+
+  /* 9. Modal Subtitle */
+  --typo-modal-subtitle-font: 'Inter', sans-serif;
+  --typo-modal-subtitle-size: 13px;
+  --typo-modal-subtitle-weight: 400;
+  --typo-modal-subtitle-line: 18px;
+  --typo-modal-subtitle-color: #7A7A7A;
+
+  /* 10. Section Heading */
+  --typo-section-heading-font: 'Inter', sans-serif;
+  --typo-section-heading-size: 13px;
+  --typo-section-heading-weight: 600;
+  --typo-section-heading-line: 18px;
+  --typo-section-heading-color: #2F2F2F;
+
+  /* 11. Input Text */
+  --typo-input-text-font: 'Inter', sans-serif;
+  --typo-input-text-size: 14px;
+  --typo-input-text-weight: 500;
+  --typo-input-text-line: 20px;
+  --typo-input-text-color: #111111;
+
+  /* 12. Label */
+  --typo-label-font: 'Inter', sans-serif;
+  --typo-label-size: 13px;
+  --typo-label-weight: 500;
+  --typo-label-line: 18px;
+  --typo-label-color: #555555;
+
+  /* 13. Checkbox Label */
+  --typo-checkbox-label-font: 'Inter', sans-serif;
+  --typo-checkbox-label-size: 13px;
+  --typo-checkbox-label-weight: 500;
+  --typo-checkbox-label-line: 18px;
+  --typo-checkbox-label-color: #333333;
+
+  /* 14. Table Header */
+  --typo-table-header-font: 'Inter', sans-serif;
+  --typo-table-header-size: 12px;
+  --typo-table-header-weight: 600;
+  --typo-table-header-line: 16px;
+  --typo-table-header-color: #8B8B8B;
+
+  /* 15. Table Data */
+  --typo-table-data-font: 'Inter', sans-serif;
+  --typo-table-data-size: 14px;
+  --typo-table-data-weight: 500;
+  --typo-table-data-line: 20px;
+  --typo-table-data-color: #111111;
+
+  /* 16. Secondary Text */
+  --typo-secondary-text-font: 'Inter', sans-serif;
+  --typo-secondary-text-size: 12px;
+  --typo-secondary-text-weight: 400;
+  --typo-secondary-text-line: 16px;
+  --typo-secondary-text-color: #8A8A8A;
+
+  /* 17. Button */
+  --typo-button-font: 'Inter', sans-serif;
+  --typo-button-size: 14px;
+  --typo-button-weight: 600;
+  --typo-button-line: 20px;
+  --typo-button-color: #ffffff;
 }
 
 * {
@@ -42,9 +166,9 @@
 }
 
 body {
-  font-family: "Poppins", sans-serif;
+  font-family: var(--font-family-base);
   background-color: var(--bg-body);
-  color: var(--text-main);
+  color: #111111;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -52,6 +176,7 @@ body {
 a {
   text-decoration: none;
   color: inherit;
+  font-family: inherit;
 }
 
 button {
@@ -59,4 +184,290 @@ button {
   border: none;
   background: none;
   font-family: inherit;
+}
+
+/* =========================================================================
+   GLOBAL TYPOGRAPHY UTILITY CLASSES & BASE ELEMENT OVERRIDES
+   ========================================================================= */
+
+/* 1. Page Title: Inter, 48px, 600, 56px, #111111 */
+h1,
+.page-title,
+.dash-user-welcome h1,
+.ptable-main-title,
+.event-page-title,
+.main-page-title {
+  font-family: var(--typo-page-title-font) !important;
+  font-size: var(--typo-page-title-size) !important;
+  font-weight: var(--typo-page-title-weight) !important;
+  line-height: var(--typo-page-title-line) !important;
+  color: var(--typo-page-title-color) !important;
+  letter-spacing: -0.02em;
+}
+
+@media (max-width: 900px) {
+  h1,
+  .page-title,
+  .dash-user-welcome h1,
+  .ptable-main-title,
+  .event-page-title,
+  .main-page-title {
+    font-size: 32px !important;
+    line-height: 40px !important;
+  }
+}
+
+/* 2. Breadcrumb: Inter, 13px, 500, 18px, #8A8A8A */
+.breadcrumb,
+.tx-breadcrumb,
+.page-breadcrumb,
+.breadcrumb-nav,
+nav[aria-label="Breadcrumb"],
+nav[aria-label="breadcrumb"] {
+  font-family: var(--typo-breadcrumb-font) !important;
+  font-size: var(--typo-breadcrumb-size) !important;
+  font-weight: var(--typo-breadcrumb-weight) !important;
+  line-height: var(--typo-breadcrumb-line) !important;
+  color: var(--typo-breadcrumb-color) !important;
+}
+
+/* 3. Card Heading: Inter, 12px, 500, 16px, #6B7280 */
+.card-heading,
+.tx-card-heading,
+.stat-title,
+.stat-card-label,
+.kpi-title,
+.metric-pill-label,
+.cashflow-title-text,
+.card-label-heading,
+.tx-amount-label {
+  font-family: var(--typo-card-heading-font) !important;
+  font-size: var(--typo-card-heading-size) !important;
+  font-weight: var(--typo-card-heading-weight) !important;
+  line-height: var(--typo-card-heading-line) !important;
+  color: var(--typo-card-heading-color) !important;
+}
+
+/* 4. Main Number: Inter, 36px, 700, 42px, #111111 */
+.main-number,
+.tx-main-number,
+.stat-value,
+.stat-card-value,
+.kpi-value,
+.cashflow-big-headline,
+.tx-amount-value,
+.metric-pill-val.main-num,
+.dash-main-stat-num {
+  font-family: var(--typo-main-number-font) !important;
+  font-size: var(--typo-main-number-size) !important;
+  font-weight: var(--typo-main-number-weight) !important;
+  line-height: var(--typo-main-number-line) !important;
+  color: var(--typo-main-number-color) !important;
+  letter-spacing: -0.02em;
+}
+
+/* 5. Small Stats: Inter, 13px, 500, 18px, #16A34A */
+.small-stats,
+.tx-small-stat,
+.stat-badge,
+.kpi-trend.positive,
+.metric-pill-val.text-green,
+.badge-success,
+.stat-delta-positive {
+  font-family: var(--typo-small-stats-font) !important;
+  font-size: var(--typo-small-stats-size) !important;
+  font-weight: var(--typo-small-stats-weight) !important;
+  line-height: var(--typo-small-stats-line) !important;
+  color: var(--typo-small-stats-color) !important;
+}
+
+/* 6. Navigation: Inter, 14px, 500, 20px, #5F6368 */
+.sidebar-nav-item,
+.pagination-nav-btn,
+.pagination-page-number,
+.nav-link-item,
+.ptable-select-input,
+.dash-select-pill,
+.tab-btn {
+  font-family: var(--typo-navigation-font) !important;
+  font-size: var(--typo-navigation-size) !important;
+  font-weight: var(--typo-navigation-weight) !important;
+  line-height: var(--typo-navigation-line) !important;
+  color: var(--typo-navigation-color) !important;
+}
+
+/* 7. Selected Nav: Inter, 14px, 600, 20px, #111111 */
+.sidebar-nav-item.active,
+.sidebar-nav-item.active .item-label,
+.pagination-page-number.active,
+.selected-nav,
+.tab-btn.active,
+.nav-link-item.active {
+  font-family: var(--typo-selected-nav-font) !important;
+  font-size: var(--typo-selected-nav-size) !important;
+  font-weight: var(--typo-selected-nav-weight) !important;
+  line-height: var(--typo-selected-nav-line) !important;
+  color: var(--typo-selected-nav-color) !important;
+}
+
+/* 8. Modal Title: Inter, 24px, 600, 30px, #111111 */
+.modal-title,
+.tx-drawer-title,
+.dialog-title,
+.drawer-title,
+.modal-header h2,
+.modal-header h3 {
+  font-family: var(--typo-modal-title-font) !important;
+  font-size: var(--typo-modal-title-size) !important;
+  font-weight: var(--typo-modal-title-weight) !important;
+  line-height: var(--typo-modal-title-line) !important;
+  color: var(--typo-modal-title-color) !important;
+  letter-spacing: -0.01em;
+}
+
+/* 9. Modal Subtitle: Inter, 13px, 400, 18px, #7A7A7A */
+.modal-subtitle,
+.tx-drawer-sub,
+.dialog-subtitle,
+.drawer-subtitle,
+.modal-header p {
+  font-family: var(--typo-modal-subtitle-font) !important;
+  font-size: var(--typo-modal-subtitle-size) !important;
+  font-weight: var(--typo-modal-subtitle-weight) !important;
+  line-height: var(--typo-modal-subtitle-line) !important;
+  color: var(--typo-modal-subtitle-color) !important;
+}
+
+/* 10. Section Heading: Inter, 13px, 600, 18px, #2F2F2F */
+h2,
+h3,
+.section-heading,
+.tx-info-card-title,
+.card-section-title,
+.chips-title,
+.form-section-title,
+.sub-section-title {
+  font-family: var(--typo-section-heading-font);
+  font-size: var(--typo-section-heading-size);
+  font-weight: var(--typo-section-heading-weight);
+  line-height: var(--typo-section-heading-line);
+  color: var(--typo-section-heading-color);
+}
+
+/* 11. Input Text: Inter, 14px, 500, 20px, #111111 */
+input[type="text"],
+input[type="search"],
+input[type="email"],
+input[type="password"],
+input[type="number"],
+input[type="tel"],
+select,
+textarea,
+.search-input,
+.ptable-search-input,
+.page-size-dropdown,
+.form-control-input {
+  font-family: var(--typo-input-text-font) !important;
+  font-size: var(--typo-input-text-size) !important;
+  font-weight: var(--typo-input-text-weight) !important;
+  line-height: var(--typo-input-text-line) !important;
+  color: var(--typo-input-text-color) !important;
+}
+
+/* 12. Label: Inter, 13px, 500, 18px, #555555 */
+label,
+.label,
+.input-label,
+.form-label,
+.select-prefix-label,
+.size-label,
+.field-label {
+  font-family: var(--typo-label-font) !important;
+  font-size: var(--typo-label-size) !important;
+  font-weight: var(--typo-label-weight) !important;
+  line-height: var(--typo-label-line) !important;
+  color: var(--typo-label-color) !important;
+}
+
+/* 13. Checkbox Label: Inter, 13px, 500, 18px, #333333 */
+.checkbox-label,
+.bulk-badge-count,
+input[type="checkbox"] + label {
+  font-family: var(--typo-checkbox-label-font) !important;
+  font-size: var(--typo-checkbox-label-size) !important;
+  font-weight: var(--typo-checkbox-label-weight) !important;
+  line-height: var(--typo-checkbox-label-line) !important;
+  color: var(--typo-checkbox-label-color) !important;
+}
+
+/* 14. Table Header: Inter, 12px, 600, 16px, #8B8B8B */
+th,
+.ptable-th,
+.event-table th,
+.table-header,
+.th-content-flex span,
+.th-label {
+  font-family: var(--typo-table-header-font) !important;
+  font-size: var(--typo-table-header-size) !important;
+  font-weight: var(--typo-table-header-weight) !important;
+  line-height: var(--typo-table-header-line) !important;
+  color: var(--typo-table-header-color) !important;
+}
+
+/* 15. Table Data: Inter, 14px, 500, 20px, #111111 */
+td,
+.ptable-td,
+.event-table td,
+.table-data,
+.tx-user-name,
+.tx-category-text,
+.tx-date-text,
+.tx-time-text,
+.tx-email-text,
+.tx-amount-text,
+.tx-detail-val,
+.tx-card-val,
+.city-text,
+.event-title {
+  font-family: var(--typo-table-data-font) !important;
+  font-size: var(--typo-table-data-size) !important;
+  font-weight: var(--typo-table-data-weight) !important;
+  line-height: var(--typo-table-data-line) !important;
+  color: var(--typo-table-data-color) !important;
+}
+
+/* 16. Secondary Text: Inter, 12px, 400, 16px, #8A8A8A */
+.secondary-text,
+.text-secondary,
+.sub-text,
+.pagination-count-label,
+.tx-user-sub,
+.ptable-sub-title,
+.dash-user-welcome p,
+.tx-detail-key,
+.tx-card-key,
+.filter-chip,
+.organizer-name {
+  font-family: var(--typo-secondary-text-font) !important;
+  font-size: var(--typo-secondary-text-size) !important;
+  font-weight: var(--typo-secondary-text-weight) !important;
+  line-height: var(--typo-secondary-text-line) !important;
+  color: var(--typo-secondary-text-color) !important;
+}
+
+/* 17. Button: Inter, 14px, 600, 20px, White */
+.btn-primary,
+button.primary,
+.ptable-btn-primary,
+.tx-drawer-btn.primary,
+.dash-primary-btn,
+.bulk-bar-btn,
+.btn-submit,
+.btn-create,
+.btn-action-primary {
+  font-family: var(--typo-button-font) !important;
+  font-size: var(--typo-button-size) !important;
+  font-weight: var(--typo-button-weight) !important;
+  line-height: var(--typo-button-line) !important;
+  color: var(--typo-button-color) !important;
 }

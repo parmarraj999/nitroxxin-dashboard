@@ -16,6 +16,7 @@ import {
   Search,
   Sparkles,
   Star,
+  Tag,
   Ticket,
   Trash2,
   X,
@@ -630,11 +631,13 @@ const EventList = () => {
                         {/* Status Column */}
                         <div className="event-metric-col metric-col-status">
                           <span className="metric-col-header">Status</span>
-                          <span className={`status-badge-pill ${event.status ? event.status.toLowerCase() : 'published'}`}>
-                            {event.status === 'Draft' ? (
+                          <span className={`status-badge-pill ${event.status ? event.status.toLowerCase().replace(/\s+/g, '-') : 'published'}`}>
+                            {event.status === 'Draft' || event.status === 'Waiting for Approval' ? (
                               <Clock size={13} className="status-check-icon" />
                             ) : event.status === 'Cancelled' ? (
                               <X size={13} className="status-check-icon" />
+                            ) : event.status === 'Sold Out' ? (
+                              <Tag size={13} className="status-check-icon" />
                             ) : (
                               <CheckCircle2 size={13} className="status-check-icon" strokeWidth={2.5} />
                             )}

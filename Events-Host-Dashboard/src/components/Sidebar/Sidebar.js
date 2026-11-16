@@ -12,7 +12,9 @@ import {
   X,
   Send,
   Bot,
-  ReceiptText
+  ReceiptText,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import './Sidebar.css';
@@ -21,6 +23,36 @@ const Sidebar = () => {
   const { profile, logout, isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  const [isContracted, setIsContracted] = useState(() => {
+    try {
+      return localStorage.getItem('nitroxx_sidebar_contracted') === 'true';
+    } catch (e) {
+      return false;
+    }
+  });
+
+  const toggleContracted = () => {
+    setIsContracted(prev => {
+      const next = !prev;
+      try {
+        localStorage.setItem('nitroxx_sidebar_contracted', String(next));
+      } catch (e) {}
+      return next;
+    });
+  };
+
+  // Keyboard shortcut (⌘B or Ctrl+B) to toggle sidebar collapse/expand
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+        e.preventDefault();
+        toggleContracted();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [aiModalOpen, setAiModalOpen] = useState(false);
@@ -122,37 +154,81 @@ const Sidebar = () => {
 
   return (
     <>
-      <aside className="minimal-sidebar">
-        {/* Header with black badge, workspace switcher, and search button */}
-        <div className="sidebar-top-bar" ref={workspaceRef}>
-          <button
-            className={`workspace-trigger ${workspaceMenuOpen ? 'active' : ''}`}
-            onClick={() => {
-              setWorkspaceMenuOpen(!workspaceMenuOpen);
-              navigate(isPreview ? '/dashboard-preview' : '/dashboard');
-            }}
-            title="Go to Dashboard"
-          >
-            <div className="workspace-badge">
-              <svg
-                className="cmd-icon"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
+      <aside className={`minimal-sidebar ${isContracted ? 'contracted' : ''}`}>
+        {/* Header with black badge, workspace switcher, and toggle collapse button */}
+        <div className={`sidebar-top-bar ${isContracted ? 'contracted' : ''}`} ref={workspaceRef}>
+          {!isContracted ? (
+            <>
+              <button
+                className={`workspace-trigger ${workspaceMenuOpen ? 'active' : ''}`}
+                onClick={() => {
+                  setWorkspaceMenuOpen(!workspaceMenuOpen);
+                  navigate(isPreview ? '/dashboard-preview' : '/dashboard');
+                }}
+                title="Go to Dashboard"
               >
-                <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0 3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
-              </svg>
+                <div className="workspace-badge">
+                  <svg
+                    className="cmd-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0 3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
+                  </svg>
+                </div>
+                <span className="workspace-name">{profile?.organization || 'Nitroxx Inc'}</span>
+              </button>
+              <button
+                type="button"
+                className="sidebar-toggle-btn"
+                onClick={toggleContracted}
+                title="Contract sidebar (Ctrl+B)"
+                aria-label="Contract sidebar"
+              >
+                <ChevronLeft size={16} />
+              </button>
+            </>
+          ) : (
+            <div className="sidebar-contracted-top">
+              <button
+                className="workspace-trigger contracted"
+                onClick={() => navigate(isPreview ? '/dashboard-preview' : '/dashboard')}
+                title="Go to Dashboard"
+              >
+                <div className="workspace-badge">
+                  <svg
+                    className="cmd-icon"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  >
+                    <path d="M18 3a3 3 0 0 0-3 3v12a3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0 3-3H6a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3V6a3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3h12a3 3 0 0 0 3-3 3 3 0 0 0-3-3z" />
+                  </svg>
+                </div>
+              </button>
+              <button
+                type="button"
+                className="sidebar-toggle-btn contracted"
+                onClick={toggleContracted}
+                title="Expand sidebar (Ctrl+B)"
+                aria-label="Expand sidebar"
+              >
+                <ChevronRight size={16} />
+              </button>
             </div>
-            <span className="workspace-name">{profile?.organization || 'Nitroxx Inc'}</span>
-          </button>
+          )}
         </div>
 
         {/* Workspaces Section */}
         <div className="sidebar-section-container">
-          <div style={{ width: '100%', height: '2px', backgroundColor: '#ebebea', margin: '0 0px' }}></div>
+          <div style={{ width: '100%', height: '1px', backgroundColor: '#ebebea', margin: '4px 0' }}></div>
           <nav className="sidebar-nav-list">
             {workspaceItems.map((item, index) => {
               const Icon = item.icon;
@@ -162,12 +238,14 @@ const Sidebar = () => {
                 <NavLink
                   key={index}
                   to={destination}
+                  data-tooltip={item.label}
+                  title={isContracted ? item.label : ''}
                   className={({ isActive: linkActive }) =>
-                    `sidebar-nav-item ${active || linkActive ? 'active' : ''}`
+                    `sidebar-nav-item ${active || linkActive ? 'active' : ''} ${isContracted ? 'contracted' : ''}`
                   }
                 >
-                  <Icon className="item-icon" size={16} strokeWidth={1.75} />
-                  <span className="item-label">{item.label}</span>
+                  <Icon className="item-icon" size={18} strokeWidth={1.75} />
+                  {!isContracted && <span className="item-label">{item.label}</span>}
                 </NavLink>
               );
             })}
@@ -175,33 +253,61 @@ const Sidebar = () => {
         </div>
 
         {/* User Profile at Bottom (Minimal, Notion / Linear styled) */}
-        <div className="sidebar-bottom-bar">
-          <div 
-            className="sidebar-user-pill"
-            onClick={() => navigate(isPreview ? '/profile-preview' : '/profile')}
-            title="View Profile"
-            style={{ cursor: 'pointer' }}
-          >
-            <img
-              src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx'}
-              alt={profile?.fullName || 'User'}
-              className="user-avatar-mini"
-            />
-            <div className="user-details">
-              <span className="user-name">{profile?.fullName || 'Nitroxx User'}</span>
-              <span className="user-role">{profile?.role || 'Host'}</span>
-            </div>
-            <button
-              className="user-logout-btn"
-              title="Sign Out"
-              onClick={(e) => {
-                e.stopPropagation();
-                logout();
-              }}
+        <div className={`sidebar-bottom-bar ${isContracted ? 'contracted' : ''}`}>
+          {!isContracted ? (
+            <div 
+              className="sidebar-user-pill"
+              onClick={() => navigate(isPreview ? '/profile-preview' : '/profile')}
+              title="View Profile"
+              style={{ cursor: 'pointer' }}
             >
-              <LogOut size={15} strokeWidth={1.8} />
-            </button>
-          </div>
+              <img
+                src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx'}
+                alt={profile?.fullName || 'User'}
+                className="user-avatar-mini"
+              />
+              <div className="user-details">
+                <span className="user-name">{profile?.fullName || 'Nitroxx User'}</span>
+                <span className="user-role">{profile?.role || 'Host'}</span>
+              </div>
+              <button
+                className="user-logout-btn"
+                title="Sign Out"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  logout();
+                }}
+              >
+                <LogOut size={15} strokeWidth={1.8} />
+              </button>
+            </div>
+          ) : (
+            <div className="sidebar-user-contracted">
+              <div 
+                className="sidebar-user-pill contracted"
+                onClick={() => navigate(isPreview ? '/profile-preview' : '/profile')}
+                title={`Profile: ${profile?.fullName || 'Nitroxx User'}`}
+                data-tooltip="Profile"
+              >
+                <img
+                  src={profile?.photoURL || 'https://i.pravatar.cc/150?u=nitroxx'}
+                  alt={profile?.fullName || 'User'}
+                  className="user-avatar-mini"
+                />
+              </div>
+              <button
+                className="user-logout-btn contracted"
+                title="Sign Out"
+                data-tooltip="Sign Out"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  logout();
+                }}
+              >
+                <LogOut size={16} strokeWidth={1.8} />
+              </button>
+            </div>
+          )}
         </div>
       </aside>
 

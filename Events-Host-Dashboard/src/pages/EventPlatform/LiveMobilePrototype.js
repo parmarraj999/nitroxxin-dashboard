@@ -98,6 +98,9 @@ const LiveMobilePrototype = ({ form = {}, files = {} }) => {
   // Category
   const category = form?.category || 'Night Rides';
 
+  // Check Sold Out status
+  const isSoldOut = form?.status === 'Sold Out' || form?.status === 'Sold';
+
   // Date and Time
   const dateTimeDisplay = formatPreviewDateTime(form?.startDate, form?.startTime);
 
@@ -201,6 +204,7 @@ const LiveMobilePrototype = ({ form = {}, files = {} }) => {
           <div className="iphone-badge-row">
             <span className="iphone-pill-category">{category}</span>
             <span className="iphone-pill-date">{dateTimeDisplay}</span>
+            {isSoldOut && <span className="iphone-pill-sold">Sold Out</span>}
           </div>
 
           {/* Location line with vertical bar indicator */}
@@ -253,8 +257,12 @@ const LiveMobilePrototype = ({ form = {}, files = {} }) => {
               <span className="price-label">Starts from</span>
               <span className="price-value">{priceDisplay}</span>
             </div>
-            <button type="button" className="iphone-book-btn">
-              Book Ticket
+            <button
+              type="button"
+              className={`iphone-book-btn ${isSoldOut ? 'sold-out' : ''}`}
+              disabled={isSoldOut}
+            >
+              {isSoldOut ? 'Sold Out' : 'Book Ticket'}
             </button>
           </div>
         </div>

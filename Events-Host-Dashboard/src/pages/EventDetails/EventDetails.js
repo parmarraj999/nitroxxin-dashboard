@@ -227,8 +227,12 @@ const EventDetails = () => {
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                   {isExpanded ? <ChevronUp size={16} style={{ color: '#38bdf8' }} /> : <ChevronDown size={16} style={{ color: '#94a3b8' }} />}
                                   <div className="booking-user" style={{ display: 'flex', flexDirection: 'column' }}>
-                                    <span className="booking-name" style={{ fontWeight: '500', color: '#f8fafc' }}>{booking.attendee?.name || 'Guest'}</span>
-                                    <span className="booking-email" style={{ fontSize: '13px', color: '#94a3b8' }}>{booking.attendee?.email || booking.attendee?.phone || ''}</span>
+                                    <span className="booking-name" style={{ fontWeight: '500', color: '#f8fafc' }}>
+                                      {booking.bookingContact?.name || booking.attendee?.name || booking.customerName || booking.participantName || booking.userName || booking.name || 'Registered Attendee'}
+                                    </span>
+                                    <span className="booking-email" style={{ fontSize: '13px', color: '#94a3b8' }}>
+                                      {booking.bookingContact?.email || booking.attendee?.email || booking.customerEmail || booking.email || booking.attendee?.phone || booking.bookingContact?.phone || ''}
+                                    </span>
                                   </div>
                                 </div>
                               </td>
@@ -268,7 +272,7 @@ const EventDetails = () => {
                                           </div>
                                         ))
                                       ) : (
-                                        <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No guest details provided.</p>
+                                        <p style={{ color: '#94a3b8', fontStyle: 'italic' }}>No additional attendee details provided.</p>
                                       )}
                                     </div>
 

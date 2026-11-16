@@ -1223,6 +1223,20 @@
   border: 1.2px solid #fcd34d;
 }
 
+.event-meta-status-pill.sold-out,
+.event-meta-status-pill.sold {
+  background-color: #fee2e2;
+  color: #dc2626;
+  border: 1.2px solid #fca5a5;
+  font-weight: 700;
+}
+
+.event-meta-status-pill.waiting-for-approval {
+  background-color: #fef9c3;
+  color: #854d0e;
+  border: 1.2px solid #fde047;
+}
+
 .event-meta-status-pill.cancelled,
 .event-meta-status-pill.rejected {
   background-color: #fee2e2;
@@ -1253,133 +1267,136 @@
 }
 
 /* =========================================================================
-   QUICK ACTION PILL BUTTONS (MATCHING REFERENCE UI WITH CIRCULAR ICON BADGE)
+   CLEAN & MINIMAL ACTION RAIL (NORMAL BUTTONS, SIMPLE ICONS, NO RAINBOW COLORS)
    ========================================================================= */
+.quick-action-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin: 16px 0 20px 0;
+  padding: 0;
+}
+
+.quick-action-btn,
 .quick-pill-btn {
   display: inline-flex;
   align-items: center;
-  gap: 9px;
-  padding: 6px 16px 6px 6px;
-  border-radius: 9999px;
-  border: none;
+  gap: 7px;
+  padding: 7px 14px;
+  border-radius: 9px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  color: #334155;
   font-family: inherit;
-  font-size: 13.5px;
-  font-weight: 600;
-  color: #ffffff;
+  font-size: 13px;
+  font-weight: 550;
   cursor: pointer;
-  text-decoration: none;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: all 0.15s ease;
   white-space: nowrap;
-  line-height: 1;
   user-select: none;
+  text-decoration: none;
+  line-height: 1.4;
 }
 
+.quick-action-btn:hover,
 .quick-pill-btn:hover {
-  transform: translateY(-1.5px);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.14);
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  transform: translateY(-1px);
 }
 
+.quick-action-btn:active,
 .quick-pill-btn:active {
   transform: translateY(0);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  background: #f1f5f9;
 }
 
-/* Circular icon badge on the left of pill button */
-.quick-pill-icon-circle {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.28);
-  color: #ffffff;
+.quick-action-btn svg,
+.quick-pill-btn svg {
+  color: #64748b;
   flex-shrink: 0;
-  transition: background 0.18s ease;
+  transition: color 0.15s ease;
 }
 
-.quick-pill-btn:hover .quick-pill-icon-circle {
-  background: rgba(255, 255, 255, 0.38);
+.quick-action-btn:hover svg,
+.quick-pill-btn:hover svg {
+  color: #0f172a;
 }
 
-.quick-pill-label {
-  display: inline-block;
-  letter-spacing: -0.01em;
+/* Active Status Pill (Subtle Neutral Highlight) */
+.quick-action-btn.status-active {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #0f172a;
 }
 
-/* COLOR THEMES FOR EACH ACTION */
-
-/* Blue (Create Event / Primary - Matching reference screenshot) */
-.quick-pill-btn.blue {
-  background: #1d72fe;
+/* Working Complete Event Button Styling */
+.quick-action-btn.complete-btn {
+  color: #1e293b;
 }
 
-.quick-pill-btn.blue:hover {
-  background: #1562e0;
+.quick-action-btn.complete-btn:hover {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #166534;
 }
 
-/* Emerald Green (Publish Event) */
-.quick-pill-btn.green {
-  background: #10b981;
+.quick-action-btn.complete-btn:hover svg {
+  color: #16a34a;
 }
 
-.quick-pill-btn.green:hover {
-  background: #059669;
+.quick-action-btn.complete-btn.completed-active {
+  background: #f0fdf4;
+  border-color: #86efac;
+  color: #15803d;
+  font-weight: 600;
 }
 
-/* Amber / Warm Gold (Pause Booking) */
-.quick-pill-btn.amber {
-  background: #f59e0b;
+.quick-action-btn.complete-btn.completed-active svg {
+  color: #16a34a;
 }
 
-.quick-pill-btn.amber:hover {
-  background: #d97706;
+/* Sold Out Button Styling */
+.quick-action-btn.sold-btn {
+  color: #1e293b;
 }
 
-/* Violet / Purple (Close Booking) */
-.quick-pill-btn.purple {
-  background: #8b5cf6;
+.quick-action-btn.sold-btn:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
 }
 
-.quick-pill-btn.purple:hover {
-  background: #7c3aed;
+.quick-action-btn.sold-btn:hover svg {
+  color: #dc2626;
 }
 
-/* Cyan / Sky (Duplicate Event) */
-.quick-pill-btn.cyan {
-  background: #0ea5e9;
+.quick-action-btn.sold-btn.sold-active {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+  font-weight: 600;
 }
 
-.quick-pill-btn.cyan:hover {
-  background: #0284c7;
+.quick-action-btn.sold-btn.sold-active svg {
+  color: #dc2626;
 }
 
-/* Teal / Mint (Reports) */
-.quick-pill-btn.teal {
-  background: #14b8a6;
-}
-
-.quick-pill-btn.teal:hover {
-  background: #0d9488;
-}
-
-/* Orange / Sunset (Broadcast) */
-.quick-pill-btn.orange {
-  background: #f97316;
-}
-
-.quick-pill-btn.orange:hover {
-  background: #ea580c;
-}
-
-/* Crimson Red (Delete Event) */
-.quick-pill-btn.red {
-  background: #ef4444;
-}
-
+/* Delete Button (Subtle Neutral with Soft Red on Hover) */
+.quick-action-btn.delete-btn:hover,
 .quick-pill-btn.red:hover {
-  background: #dc2626;
+  color: #dc2626;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.quick-action-btn.delete-btn:hover svg,
+.quick-pill-btn.red:hover svg {
+  color: #dc2626;
 }
 
 .sticky-summary {

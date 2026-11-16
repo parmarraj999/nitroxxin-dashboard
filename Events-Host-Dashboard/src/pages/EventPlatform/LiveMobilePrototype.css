@@ -406,3 +406,31 @@
   background: #f1f5f9;
   transform: scale(1.03);
 }
+
+.iphone-book-btn.sold-out {
+  background: #27272a;
+  color: #a1a1aa;
+  border: 1px solid #3f3f46;
+  cursor: not-allowed;
+  box-shadow: none;
+  opacity: 0.9;
+}
+
+.iphone-book-btn.sold-out:hover {
+  background: #27272a;
+  transform: none;
+}
+
+.iphone-pill-sold {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(239, 68, 68, 0.18);
+  color: #f87171;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}

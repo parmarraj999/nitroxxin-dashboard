@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState, useRef, useCallback } from 'react';
-import { useNavigate, useParams, useLocation, Link } from 'react-router-dom';
+import { useNavigate, useParams, useLocation, Link, Router } from 'react-router-dom';
 import {
   Check,
   CheckCircle2,
@@ -60,6 +60,7 @@ import EventDetailsSkeleton, { ParticipantTableSkeleton, TransactionTableSkeleto
 import { useAuth } from '../../context/AuthContext';
 import { useEventsContext } from '../../context/EventsContext';
 import { TicketPassView } from './ticketDesigns';
+import LiveMobilePrototype from './LiveMobilePrototype';
 import './TicketDesigns.css';
 import { useRegistrations } from '../../hooks/useRegistrations';
 import {
@@ -230,10 +231,6 @@ const EventDetailsPage = () => {
     !isAuthenticated ||
     (typeof sessionStorage !== 'undefined' && sessionStorage.getItem('nitroxx_preview_mode') === 'true');
 
-  const goToDashboard = useCallback(() => {
-    navigate(isPreview ? '/dashboard-preview' : '/dashboard');
-  }, [navigate, isPreview]);
-
   const goToEvents = useCallback(() => {
     navigate(isPreview ? '/events-preview' : '/events');
   }, [navigate, isPreview]);
@@ -306,7 +303,8 @@ const EventDetailsPage = () => {
   const [meterFilter, setMeterFilter] = useState('All');
   const [copiedEventId, setCopiedEventId] = useState(false);
 
-  // 3 Check-In Modes States (Phone, Laptop Webcam, Code Entry)
+  // 3 Check-In Modes States (Phone, Laptop Webcam, Code Entry) + Live Mobile Prototype View
+  const [showMobilePreviewModal, setShowMobilePreviewModal] = useState(false);
   const [showPhoneScanModal, setShowPhoneScanModal] = useState(false);
   const [showLaptopScanModal, setShowLaptopScanModal] = useState(false);
   const [showCodeCheckInModal, setShowCodeCheckInModal] = useState(false);
@@ -908,6 +906,8 @@ const EventDetailsPage = () => {
     if (!event) return 'Draft';
     if (event.status === 'Cancelled') return 'Cancelled';
     if (event.status === 'Draft') return 'Draft';
+    if (event.status === 'Sold Out' || event.status === 'Sold') return 'Sold Out';
+    if (event.status === 'Waiting for Approval') return 'Waiting for Approval';
     if (event.startDate) {
       const sDate = event.startDate.toDate ? event.startDate.toDate() : new Date(event.startDate);
       if (!isNaN(sDate.getTime()) && sDate > new Date()) {
@@ -2037,6 +2037,137 @@ const EventDetailsPage = () => {
     const linkedUserIds = new Set();
     const linkedPhones = new Set();
 
+    // Helper to resolve real customer identity from all possible booking & registration attributes
+    const resolveBookingPerson = (b) => {
+      // 1. Direct match with registration document
+      const matchedReg = (registrations || []).find((r) => {
+        if (!r) return false;
+        if (b.registrationId && (r.id === b.registrationId || r.registrationId === b.registrationId)) return true;
+        if (r.bookingId && (b.bookingId === r.bookingId || b.id === r.bookingId || b.orderId === r.bookingId)) return true;
+        if (r.id && (r.id.endsWith(`_${b.id}`) || r.id === `${b.eventId}_${b.userId}_${b.id}`)) return true;
+        if (r.ticketNumber && (b.ticketNumber === r.ticketNumber || b.ticketCode === r.ticketNumber)) return true;
+        if (r.ticketCode && (b.ticketNumber === r.ticketCode || b.ticketCode === r.ticketCode)) return true;
+        if (b.userId && r.userId && b.userId === r.userId) return true;
+        const bEmail = (b.bookingContact?.email || b.attendee?.email || b.email || b.userEmail || '').toLowerCase().trim();
+        const rEmail = (r.participantEmail || r.participant?.email || r.email || '').toLowerCase().trim();
+        if (bEmail && rEmail && bEmail === rEmail) return true;
+        return false;
+      });
+
+      // 2. Direct match with already resolved participants list
+      const matchedPart = (allParticipantsList || []).find((p) => {
+        if (!p) return false;
+        if (p.rawBooking?.id && (p.rawBooking.id === b.id || p.rawBooking.id === b.bookingId)) return true;
+        if (p.bookingId && (p.bookingId === b.id || p.bookingId === b.bookingId || p.bookingId === b.orderId)) return true;
+        if (p.id && (p.id === b.id || p.id === b.bookingId || p.id === b.registrationId)) return true;
+        if (p.ticketNumber && (p.ticketNumber === b.ticketNumber || p.ticketNumber === b.ticketCode)) return true;
+        if (b.userId && p.userId && b.userId === p.userId) return true;
+        const bEmail = (b.bookingContact?.email || b.attendee?.email || b.email || b.userEmail || '').toLowerCase().trim();
+        if (bEmail && p.email && bEmail === p.email.toLowerCase().trim()) return true;
+        return false;
+      });
+
+      const att0 = (Array.isArray(b.attendees) && b.attendees[0]) || null;
+
+      // Check all candidate name fields (ensuring real user data takes precedence over placeholder "Guest")
+      const candidateName = (
+        b.bookingContact?.name ||
+        b.bookingContact?.fullName ||
+        att0?.name ||
+        att0?.fullName ||
+        b.attendee?.name ||
+        b.attendee?.fullName ||
+        b.participantName ||
+        b.participant?.fullName ||
+        b.participant?.name ||
+        b.userName ||
+        b.user?.name ||
+        b.user?.fullName ||
+        b.user?.displayName ||
+        b.customerName ||
+        b.fullName ||
+        b.name ||
+        b.riderName ||
+        b.rider?.name ||
+        b.contact?.name ||
+        b.billingDetails?.name ||
+        b.billingAddress?.name ||
+        b.billingContact?.name ||
+        b.paymentDetails?.name ||
+        b.paymentDetails?.notes?.name ||
+        (matchedPart?.name && matchedPart.name.toLowerCase() !== 'participant' && matchedPart.name.toLowerCase() !== 'guest' ? matchedPart.name : '') ||
+        matchedReg?.participantName ||
+        matchedReg?.participant?.fullName ||
+        matchedReg?.fullName ||
+        matchedReg?.name ||
+        ''
+      ).trim();
+
+      const candidateEmail = (
+        b.bookingContact?.email ||
+        att0?.email ||
+        b.attendee?.email ||
+        b.email ||
+        b.userEmail ||
+        b.user?.email ||
+        b.participantEmail ||
+        b.participant?.email ||
+        b.customerEmail ||
+        (matchedPart?.email && matchedPart.email !== 'N/A' ? matchedPart.email : '') ||
+        matchedReg?.participantEmail ||
+        matchedReg?.participant?.email ||
+        matchedReg?.email ||
+        ''
+      ).trim();
+
+      const candidatePhone = (
+        b.bookingContact?.phone ||
+        att0?.phone ||
+        b.attendee?.phone ||
+        b.phone ||
+        b.userPhone ||
+        b.user?.phone ||
+        b.participantPhone ||
+        b.participant?.phone ||
+        b.customerPhone ||
+        (matchedPart?.phone && matchedPart.phone !== 'N/A' ? matchedPart.phone : '') ||
+        matchedReg?.participantPhone ||
+        matchedReg?.participant?.phone ||
+        matchedReg?.phone ||
+        ''
+      ).trim();
+
+      // Resolve final non-guest real name
+      let finalName = candidateName;
+      if (!finalName || finalName.toLowerCase() === 'guest' || finalName.toLowerCase() === 'guest user') {
+        if (matchedPart?.name && matchedPart.name.toLowerCase() !== 'guest' && matchedPart.name.toLowerCase() !== 'participant') {
+          finalName = matchedPart.name;
+        } else if (matchedReg?.participantName) {
+          finalName = matchedReg.participantName;
+        } else if (matchedReg?.participant?.fullName) {
+          finalName = matchedReg.participant?.fullName;
+        } else if (candidateEmail && candidateEmail.includes('@') && !candidateEmail.includes('guest@')) {
+          const emailPrefix = candidateEmail.split('@')[0];
+          const cleaned = emailPrefix.replace(/[._-]+/g, ' ').replace(/\d+/g, '').trim();
+          finalName = cleaned
+            ? cleaned.split(' ').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+            : 'Registered Attendee';
+        } else if (candidatePhone && candidatePhone !== 'N/A') {
+          finalName = `Rider (${candidatePhone.slice(-4)})`;
+        } else {
+          finalName = 'Registered Attendee';
+        }
+      }
+
+      return {
+        name: finalName,
+        email: candidateEmail || 'N/A',
+        phone: candidatePhone || 'N/A',
+        matchedReg,
+        matchedPart,
+      };
+    };
+
     // 1. Process Bookings (Primary financial transaction records)
     (bookings || []).forEach((b, idx) => {
       // Primary uniqueness key for booking document
@@ -2056,11 +2187,22 @@ const EventDetailsPage = () => {
       const isFailed = b.status === 'cancelled' || b.status === 'rejected';
       const status = isFailed ? 'Failed' : isPaid ? 'Success' : 'Pending';
       const dateObj = asDate(b.createdAt) || new Date();
-      const customerName = b.bookingContact?.name || b.attendee?.name || b.name || 'Guest User';
-      const customerEmail = (b.bookingContact?.email || b.attendee?.email || b.email || b.userEmail || '').trim();
-      const category = b.tierName || b.packageName || b.joinAs || (amountNum === 0 ? 'Free Pass' : 'Ticket Booking');
+      
+      // Resolve comprehensive real customer data (No "Guest" fallback)
+      const person = resolveBookingPerson(b);
+      const customerName = person.name;
+      const customerEmail = person.email !== 'N/A' ? person.email : '';
+      const customerPhone = person.phone !== 'N/A' ? person.phone : '';
+
+      const category = b.tierName || b.packageName || b.joinAs || person.matchedPart?.tierName || person.matchedReg?.tierName || person.matchedReg?.ticketType || (amountNum === 0 ? 'Free Pass' : 'Ticket Booking');
       const ticketsCount = Number(
-        b.totalTickets || (b.attendeeCounts?.adults || 0) + (b.attendeeCounts?.children || 0) || 1
+        b.totalTickets ||
+        (b.attendeeCounts?.adults || 0) + (b.attendeeCounts?.children || 0) ||
+        (Array.isArray(b.attendees) && b.attendees.length) ||
+        (Array.isArray(b.tickets) && b.tickets.length) ||
+        person.matchedPart?.ticketsCount ||
+        person.matchedReg?.ticketsCount ||
+        1
       );
 
       // Collect all identifier linkages so corresponding registration docs are not duplicated
@@ -2112,6 +2254,26 @@ const EventDetailsPage = () => {
         });
       }
 
+      const enrichedBooking = {
+        ...b,
+        name: customerName,
+        customerName,
+        customerEmail: customerEmail || 'N/A',
+        customerPhone: customerPhone || 'N/A',
+        attendee: {
+          name: customerName,
+          email: customerEmail || 'N/A',
+          phone: customerPhone || 'N/A',
+          ...(b.attendee || {}),
+        },
+        bookingContact: {
+          name: customerName,
+          email: customerEmail || 'N/A',
+          phone: customerPhone || 'N/A',
+          ...(b.bookingContact || {}),
+        },
+      };
+
       list.push({
         id: b.id || `tx-${idx}`,
         orderId,
@@ -2122,14 +2284,16 @@ const EventDetailsPage = () => {
         time: dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
         timestamp: dateObj.getTime(),
         email: customerEmail || 'N/A',
+        phone: customerPhone || 'N/A',
         status,
         amount: currency(amountNum),
         amountNum,
         avatar:
           b.userPhoto ||
           b.photoURL ||
+          person.matchedPart?.avatar ||
           `https://images.unsplash.com/photo-${1535713875002 + (idx % 10)}?auto=format&fit=crop&w=150&q=80`,
-        rawBooking: b,
+        rawBooking: enrichedBooking,
       });
     });
 
@@ -2170,8 +2334,9 @@ const EventDetailsPage = () => {
       const isPaid = r.paymentStatus === 'Paid' || amountNum === 0 || r.status === 'Confirmed';
       const status = isPaid ? 'Success' : 'Pending';
       const dateObj = asDate(r.registrationDate || r.createdAt) || new Date();
-      const customerName = r.participantName || r.participant?.fullName || r.fullName || 'Participant';
+      const customerName = r.participantName || r.participant?.fullName || r.participant?.name || r.fullName || r.name || r.userName || (rEmail ? rEmail.split('@')[0] : 'Registered Attendee');
       const customerEmail = rEmail || 'N/A';
+      const customerPhone = rPhone || 'N/A';
       const category = r.ticketType || r.tierName || (amountNum === 0 ? 'Free Pass' : 'Direct Registration');
       const ticketsCount = Number(r.ticketsCount || r.tickets || 1);
 
@@ -2185,6 +2350,7 @@ const EventDetailsPage = () => {
         time: dateObj.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true }),
         timestamp: dateObj.getTime(),
         email: customerEmail,
+        phone: customerPhone,
         status,
         amount: currency(amountNum),
         amountNum,
@@ -2202,15 +2368,19 @@ const EventDetailsPage = () => {
           createdAt: r.registrationDate || r.createdAt,
           total: amountNum,
           amount: amountNum,
+          name: customerName,
+          customerName,
+          customerEmail,
+          customerPhone,
           attendee: {
             name: customerName,
             email: customerEmail,
-            phone: r.participantPhone || r.participant?.phone || r.phone || 'N/A',
+            phone: customerPhone,
           },
           bookingContact: {
             name: customerName,
             email: customerEmail,
-            phone: r.participantPhone || r.participant?.phone || r.phone || 'N/A',
+            phone: customerPhone,
           },
           totalTickets: ticketsCount,
           attendanceStatus: r.attendanceStatus || 'Not Checked In',
@@ -2224,7 +2394,7 @@ const EventDetailsPage = () => {
     list.sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
 
     return list;
-  }, [bookings, registrations, eventId, event?.id]);
+  }, [bookings, registrations, eventId, event?.id, allParticipantsList]);
 
   // Distinct Filter Options for Transactions
   const transactionTimeframeOptions = ['All', '1D', '7D', '1M', '1Y'];
@@ -3600,24 +3770,13 @@ const EventDetailsPage = () => {
             <div className="apple-hero-top-left-actions">
               <button
                 type="button"
-                className="apple-hero-back-pill"
-                onClick={goToDashboard}
-                title="Return to Dashboard"
+                className="apple-hero-back-pill"  
+                onClick={()=>Router.back()}
+                title="Back"
               >
                 <ChevronLeft size={15} />
-                <span>Dashboard</span>
+                <span>Back</span>
               </button>
-
-              <div
-                className="apple-hero-brand-badge clickable"
-                onClick={goToDashboard}
-                title="Go to Nitroxx Dashboard"
-                style={{ cursor: 'pointer' }}
-              >
-                <span className="apple-hero-brand-dot" />
-                <Zap size={14} className="apple-hero-brand-icon" />
-                <span className="apple-hero-brand-name">NITROXX</span>
-              </div>
             </div>
 
             <div className="apple-hero-top-right">
@@ -3787,74 +3946,82 @@ const EventDetailsPage = () => {
           <section className="quick-action-rail">
             <button
               type="button"
-              className="quick-pill-btn green"
-              onClick={() => changeEventStatus('Published')}
-              title="Publish Event"
+              className={`quick-action-btn sold-btn ${event?.status === 'Sold Out' || event?.status === 'Sold' ? 'status-active sold-active' : ''}`}
+              onClick={() => changeEventStatus(event?.status === 'Sold Out' || event?.status === 'Sold' ? 'Published' : 'Sold Out')}
+              title={event?.status === 'Sold Out' || event?.status === 'Sold' ? 'Reopen Bookings (Currently Sold Out)' : 'Mark Event as Sold Out'}
             >
-              <span className="quick-pill-icon-circle">
-                <PlayCircle size={15} />
-              </span>
-              <span className="quick-pill-label">Publish</span>
+              <Tag size={15} />
+              <span>{event?.status === 'Sold Out' || event?.status === 'Sold' ? 'Sold Out (Active)' : 'Sold Out'}</span>
             </button>
 
             <button
               type="button"
-              className="quick-pill-btn amber"
+              className={`quick-action-btn ${event?.status === 'Draft' || event?.status === 'Paused' ? 'status-active' : ''}`}
               onClick={() => changeEventStatus('Draft')}
               title="Pause Booking"
             >
-              <span className="quick-pill-icon-circle">
-                <PauseCircle size={15} />
-              </span>
-              <span className="quick-pill-label">Pause Booking</span>
+              <PauseCircle size={15} />
+              <span>Pause Booking</span>
             </button>
 
             <button
               type="button"
-              className="quick-pill-btn purple"
-              onClick={() => changeEventStatus('Completed')}
-              title="Close Booking"
+              className={`quick-action-btn complete-btn ${event?.status === 'Completed' || event?.status === 'Complete' ? 'completed-active' : ''}`}
+              onClick={handleCompleteEvent}
+              title={event?.status === 'Completed' || event?.status === 'Complete' ? 'Event is Completed (Click to reopen)' : 'Mark Event as Completed'}
             >
-              <span className="quick-pill-icon-circle">
-                <CheckCircle2 size={15} />
-              </span>
-              <span className="quick-pill-label">Close Booking</span>
+              <CheckCircle2 size={15} />
+              <span>{event?.status === 'Completed' || event?.status === 'Complete' ? 'Completed' : 'Complete Event'}</span>
             </button>
 
             <button
               type="button"
-              className="quick-pill-btn cyan"
+              className={`quick-action-btn ${event?.status === 'Closed' ? 'status-active' : ''}`}
+              onClick={() => changeEventStatus(event?.status === 'Closed' ? 'Published' : 'Closed')}
+              title={event?.status === 'Closed' ? 'Reopen Bookings' : 'Close Bookings'}
+            >
+              <Lock size={15} />
+              <span>{event?.status === 'Closed' ? 'Reopen Booking' : 'Close Booking'}</span>
+            </button>
+
+            <button
+              type="button"
+              className="quick-action-btn"
+              onClick={() => setShowMobilePreviewModal(true)}
+              title="Preview Website / Live Mobile Prototype"
+            >
+              <Eye size={15} />
+              <span>Preview Website</span>
+            </button>
+
+            <button
+              type="button"
+              className="quick-action-btn"
               onClick={() => duplicateEvent(event)}
               title="Duplicate Event"
             >
-              <span className="quick-pill-icon-circle">
-                <Copy size={15} />
-              </span>
-              <span className="quick-pill-label">Duplicate</span>
+              <Copy size={15} />
+              <span>Duplicate</span>
             </button>
 
             <button
               type="button"
-              className="quick-pill-btn teal"
+              className="quick-action-btn"
               onClick={exportEventReport}
               title="Export Event Reports"
             >
-              <span className="quick-pill-icon-circle">
-                <Download size={15} />
-              </span>
-              <span className="quick-pill-label">Reports</span>
+              <Download size={15} />
+              <span>Reports</span>
             </button>
 
             <button
               type="button"
-              className="quick-pill-btn red"
+              className="quick-action-btn delete-btn"
               onClick={removeEvent}
               title="Delete Event"
             >
-              <span className="quick-pill-icon-circle">
-                <Trash2 size={15} />
-              </span>
-              <span className="quick-pill-label">Delete</span>
+              <Trash2 size={15} />
+              <span>Delete</span>
             </button>
           </section>
         )}
@@ -3864,17 +4031,6 @@ const EventDetailsPage = () => {
           {/* Top Horizontal Bar with Tabs and Status Pill */}
           <nav className="event-horizontal-tabs-bar">
             <div className="event-horizontal-tabs-nav">
-              <button
-                type="button"
-                className="event-tab-btn back-dash-tab"
-                onClick={goToDashboard}
-                title="Return to Host Dashboard"
-              >
-                <ChevronLeft size={15} />
-                <span>Dashboard</span>
-              </button>
-
-              <div className="event-tab-divider" />
 
               <button
                 type="button"
@@ -4032,18 +4188,37 @@ const EventDetailsPage = () => {
               <div className="booking-detail-grid">
                 <div className="booking-detail-card">
                   <h3>Contact Information</h3>
-                  {selectedBooking.bookingContact ? (
-                    <>
-                      <p><span className="label">Name:</span> {selectedBooking.bookingContact.name}</p>
-                      <p><span className="label">Phone:</span> {selectedBooking.bookingContact.phone}</p>
-                    </>
-                  ) : (
-                    <>
-                      <p><span className="label">Name:</span> {selectedBooking.attendee?.name || 'Guest'}</p>
-                      <p><span className="label">Email:</span> {selectedBooking.attendee?.email || 'N/A'}</p>
-                      <p><span className="label">Phone:</span> {selectedBooking.attendee?.phone || 'N/A'}</p>
-                    </>
-                  )}
+                  <p>
+                    <span className="label">Name:</span>{' '}
+                    <strong>
+                      {selectedBooking.customerName ||
+                        selectedBooking.bookingContact?.name ||
+                        selectedBooking.attendee?.name ||
+                        selectedBooking.participantName ||
+                        selectedBooking.name ||
+                        selectedBooking.fullName ||
+                        selectedBooking.userName ||
+                        'Registered Attendee'}
+                    </strong>
+                  </p>
+                  <p>
+                    <span className="label">Email:</span>{' '}
+                    {selectedBooking.customerEmail ||
+                      selectedBooking.bookingContact?.email ||
+                      selectedBooking.attendee?.email ||
+                      selectedBooking.email ||
+                      selectedBooking.userEmail ||
+                      'N/A'}
+                  </p>
+                  <p>
+                    <span className="label">Phone:</span>{' '}
+                    {selectedBooking.customerPhone ||
+                      selectedBooking.bookingContact?.phone ||
+                      selectedBooking.attendee?.phone ||
+                      selectedBooking.phone ||
+                      selectedBooking.userPhone ||
+                      'N/A'}
+                  </p>
                   {selectedBooking.emergencyContact && (
                     <>
                       <h4 style={{ marginTop: '12px', marginBottom: '8px', color: 'var(--text-main)', fontSize: '15px' }}>Emergency Contact</h4>
@@ -4109,9 +4284,9 @@ const EventDetailsPage = () => {
                     <tbody>
                       {selectedBooking.attendees.map((att, idx) => (
                         <tr key={idx}>
-                          <td><strong>{att.name}</strong></td>
-                          <td>{att.email || 'N/A'}</td>
-                          <td>{att.phone || 'N/A'}</td>
+                          <td><strong>{att.name || selectedBooking.customerName || selectedBooking.attendee?.name || selectedBooking.bookingContact?.name || 'Attendee'}</strong></td>
+                          <td>{att.email || selectedBooking.customerEmail || selectedBooking.attendee?.email || selectedBooking.bookingContact?.email || 'N/A'}</td>
+                          <td>{att.phone || selectedBooking.customerPhone || selectedBooking.attendee?.phone || selectedBooking.bookingContact?.phone || 'N/A'}</td>
                           <td>{att.idType || 'N/A'}</td>
                         </tr>
                       ))}
@@ -5016,6 +5191,49 @@ const EventDetailsPage = () => {
                     </div>
                   </div>
                 )}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* =========================================================================
+            LIVE MOBILE PROTOTYPE / WEBSITE PREVIEW MODAL
+           ========================================================================= */}
+        {showMobilePreviewModal && (
+          <div className="checkin-modal-backdrop" onClick={() => setShowMobilePreviewModal(false)}>
+            <div
+              className="checkin-modal-card mobile-preview-modal"
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                maxWidth: '430px',
+                background: '#090a0f',
+                padding: '16px 20px 24px 20px',
+                borderRadius: '20px',
+                border: '1px solid rgba(255, 255, 255, 0.15)',
+              }}
+            >
+              <div className="checkin-modal-header" style={{ marginBottom: '14px', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                <div className="modal-title-lockup">
+                  <div className="modal-icon-badge phone" style={{ background: '#3b82f6' }}>
+                    <Smartphone size={20} />
+                  </div>
+                  <div>
+                    <h3 style={{ color: '#ffffff' }}>Website Mobile View</h3>
+                    <p style={{ color: '#94a3b8' }}>Live attendee ticketing preview</p>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="checkin-modal-close"
+                  onClick={() => setShowMobilePreviewModal(false)}
+                  title="Close modal"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'center' }}>
+                <LiveMobilePrototype form={event} files={{}} />
               </div>
             </div>
           </div>

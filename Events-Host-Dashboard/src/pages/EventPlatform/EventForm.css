@@ -86,6 +86,10 @@
 .event-status-pill.status-draft .status-dot-indicator { background: #f59e0b; }
 .event-status-pill.status-completed .status-dot-indicator { background: #2563eb; }
 .event-status-pill.status-cancelled .status-dot-indicator { background: #dc2626; }
+.event-status-pill[class*="waiting"] .status-dot-indicator,
+.event-status-pill.status-waiting-for-approval .status-dot-indicator { background: #eab308; }
+.event-status-pill[class*="sold"] .status-dot-indicator,
+.event-status-pill.status-sold-out .status-dot-indicator { background: #ef4444; }
 
 /* =========================================================================
    ADVANCED CONNECTED 9-STEP STEPPER (ZERO SLIDER / ZERO SCROLLBAR)
@@ -1547,6 +1551,29 @@
 .dock-action-btn.next:hover {
   background: #f4f4f5;
   transform: translateY(-1px);
+}
+
+.dock-dual-submit-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dock-action-btn.draft-btn {
+  background: rgba(255, 255, 255, 0.16);
+  color: #f4f4f5;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+}
+
+.dock-action-btn.draft-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.26);
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.dock-action-btn.draft-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .dock-action-btn.submit {

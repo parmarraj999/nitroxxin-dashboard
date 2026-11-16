@@ -73,19 +73,23 @@
 }
 
 .kpi-title {
-  color: #64748b;
-  font-size: 13px;
+  font-family: 'Inter', sans-serif;
+  color: #6B7280;
+  font-size: 12px;
   font-weight: 500;
+  line-height: 16px;
   margin: 0;
-  letter-spacing: -0.01em;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
 }
 
 .kpi-value {
-  font-size: 30px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 10px 0 12px;
-  line-height: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 36px;
+  font-weight: 700;
+  color: #111111;
+  margin: 8px 0 10px;
+  line-height: 42px;
   letter-spacing: -0.02em;
 }
 
@@ -93,13 +97,14 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
-  font-weight: 600;
-  line-height: 1;
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
 }
 
 .kpi-trend.positive {
-  color: #16a34a;
+  color: #16A34A;
 }
 
 .kpi-trend.negative {
@@ -130,11 +135,13 @@
 }
 
 .event-page-title {
-  font-size: 22px;
-  font-weight: 700;
-  color: #0f172a;
+  font-family: 'Inter', sans-serif;
+  font-size: 48px;
+  font-weight: 600;
+  color: #111111;
   margin: 0;
   letter-spacing: -0.02em;
+  line-height: 56px;
 }
 
 .event-date-selector {
@@ -571,6 +578,20 @@
   background: #fef2f2;
   border-color: #fecaca;
   color: #dc2626;
+}
+
+.status-badge-pill.sold-out,
+.status-badge-pill.sold {
+  background: #fee2e2;
+  border-color: #fecaca;
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.status-badge-pill.waiting-for-approval {
+  background: #fef9c3;
+  border-color: #fde047;
+  color: #854d0e;
 }
 
 .status-check-icon {
