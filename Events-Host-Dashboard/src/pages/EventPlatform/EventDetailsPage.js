@@ -868,6 +868,103 @@ const EventDetailsPage = () => {
     }
   };
 
+  const togglePackageSoldOut = async (pkg, nextChecked) => {
+    try {
+      const targetId = event?.id || eventId;
+      if (!targetId) return;
+
+      let updatedEvent = { ...event };
+      let updatedField = {};
+
+      if (pkg.sourceField === 'packages' && Array.isArray(event?.packages)) {
+        const nextPackages = event.packages.map((item, i) => {
+          const match = (pkg.rawId && item.id === pkg.rawId) || i === pkg.index;
+          if (!match) return item;
+          return {
+            ...item,
+            isSoldOut: nextChecked,
+            soldOut: nextChecked,
+            status: nextChecked ? 'Sold Out' : 'Available',
+          };
+        });
+        updatedField = { packages: nextPackages };
+        updatedEvent.packages = nextPackages;
+      } else if (pkg.sourceField === 'tiers' && Array.isArray(event?.tiers)) {
+        const nextTiers = event.tiers.map((item, i) => {
+          const match = (pkg.rawId && item.id === pkg.rawId) || i === pkg.index;
+          if (!match) return item;
+          return {
+            ...item,
+            isSoldOut: nextChecked,
+            soldOut: nextChecked,
+            status: nextChecked ? 'Sold Out' : 'Available',
+          };
+        });
+        updatedField = { tiers: nextTiers };
+        updatedEvent.tiers = nextTiers;
+      } else if (pkg.sourceField === 'tickets' && Array.isArray(event?.tickets)) {
+        const nextTickets = event.tickets.map((item, i) => {
+          const match = (pkg.rawId && item.id === pkg.rawId) || i === pkg.index;
+          if (!match) return item;
+          return {
+            ...item,
+            isSoldOut: nextChecked,
+            soldOut: nextChecked,
+            status: nextChecked ? 'Sold Out' : 'Available',
+          };
+        });
+        updatedField = { tickets: nextTickets };
+        updatedEvent.tickets = nextTickets;
+      } else if (pkg.sourceField === 'addons' && Array.isArray(event?.addons)) {
+        const nextAddons = event.addons.map((item, i) => {
+          const match = (pkg.rawId && item.id === pkg.rawId) || i === pkg.index;
+          if (!match) return item;
+          return {
+            ...item,
+            isSoldOut: nextChecked,
+            soldOut: nextChecked,
+            status: nextChecked ? 'Sold Out' : 'Available',
+          };
+        });
+        updatedField = { addons: nextAddons };
+        updatedEvent.addons = nextAddons;
+      } else {
+        // Fallback for default single ticket package
+        updatedField = {
+          isSoldOut: nextChecked,
+          soldOut: nextChecked,
+        };
+        updatedEvent = { ...updatedEvent, ...updatedField };
+      }
+
+      // Check if ALL packages in the event are sold out
+      const allPkgs = updatedEvent.packages || updatedEvent.tiers || updatedEvent.tickets || [];
+      if (allPkgs.length > 0) {
+        const allSold = allPkgs.every((p) => p.isSoldOut || p.soldOut || p.status === 'Sold Out' || p.status === 'Sold');
+        if (allSold && updatedEvent.status !== 'Sold Out') {
+          updatedField.status = 'Sold Out';
+          updatedEvent.status = 'Sold Out';
+        } else if (!allSold && updatedEvent.status === 'Sold Out') {
+          updatedField.status = 'Published';
+          updatedEvent.status = 'Published';
+        }
+      }
+
+      // Optimistically update local state immediately
+      setEvent(updatedEvent);
+
+      // Persist to Firestore
+      await updateEvent(targetId, updatedField);
+
+      setMessage(`Package "${pkg.name}" marked as ${nextChecked ? 'Sold Out' : 'Available'}.`);
+      setTimeout(() => setMessage(''), 3000);
+    } catch (err) {
+      console.warn('Error updating package sold status:', err);
+      setMessage(`Package "${pkg.name}" marked as ${nextChecked ? 'Sold Out' : 'Available'} (Local state).`);
+      setTimeout(() => setMessage(''), 3000);
+    }
+  };
+
   const exportEventReport = () => {
     downloadCsv(
       `${event.title || 'event'}-participants.csv`,
@@ -1140,12 +1237,16 @@ const EventDetailsPage = () => {
     });
 
     let rawPkgs = [];
+    let sourceField = 'packages';
     if (Array.isArray(event?.packages) && event.packages.length > 0) {
       rawPkgs = event.packages;
+      sourceField = 'packages';
     } else if (Array.isArray(event?.tiers) && event.tiers.length > 0) {
       rawPkgs = event.tiers;
+      sourceField = 'tiers';
     } else if (Array.isArray(event?.tickets) && event.tickets.length > 0) {
       rawPkgs = event.tickets;
+      sourceField = 'tickets';
     }
 
     const getBookingTickets = (b) => {
@@ -1290,16 +1391,30 @@ const EventDetailsPage = () => {
         const explicitSoldCount = Number(pkg.soldCount || pkg.sold || 0);
         const eventCountFallback = rawPkgs.length === 1 ? allParticipantsList.length : 0;
         const sold = Math.max(explicitSoldCount, soldFromBookings, soldFromRegistrations, eventCountFallback);
-        const remaining = capacity > 0 ? Math.max(0, capacity - sold) : 0;
+
+        // Check if package is marked as sold out manually or via capacity
+        const isManualSoldOut = Boolean(
+          pkg.isSoldOut ||
+          pkg.soldOut ||
+          pkg.status === 'Sold Out' ||
+          pkg.status === 'Sold'
+        );
+        const isCapacitySoldOut = capacity > 0 && sold >= capacity;
+        const isSoldOut = isManualSoldOut || isCapacitySoldOut;
+
+        const remaining = isSoldOut ? 0 : (capacity > 0 ? Math.max(0, capacity - sold) : 0);
 
         const bookingRevenue = matchedBookings.reduce((sum, b) => sum + getBookingAmount(b), 0);
         const revenue = Number(pkg.revenue || 0) || bookingRevenue || (sold * price);
         const unsoldAmount = remaining * price;
-        const pct = capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : (sold > 0 ? 100 : 0);
-        const unsoldPct = capacity > 0 ? Math.max(0, Math.round((remaining / capacity) * 100)) : 0;
+        const pct = isSoldOut ? 100 : (capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : (sold > 0 ? 100 : 0));
+        const unsoldPct = isSoldOut ? 0 : (capacity > 0 ? Math.max(0, Math.round((remaining / capacity) * 100)) : 0);
 
         return {
           id: pkg.id || `pkg-${idx}`,
+          rawId: pkg.id,
+          index: idx,
+          sourceField,
           name: pkgName,
           price,
           capacity,
@@ -1309,6 +1424,8 @@ const EventDetailsPage = () => {
           unsoldAmount,
           pct,
           unsoldPct,
+          isSoldOut,
+          isManualSoldOut,
         };
       });
     }
@@ -1326,15 +1443,27 @@ const EventDetailsPage = () => {
         totalRegTickets
       );
 
-      const remaining = capacity > 0 ? Math.max(0, capacity - sold) : 0;
+      const isManualSoldOut = Boolean(
+        event?.isSoldOut ||
+        event?.soldOut ||
+        event?.status === 'Sold Out' ||
+        event?.status === 'Sold'
+      );
+      const isCapacitySoldOut = capacity > 0 && sold >= capacity;
+      const isSoldOut = isManualSoldOut || isCapacitySoldOut;
+
+      const remaining = isSoldOut ? 0 : (capacity > 0 ? Math.max(0, capacity - sold) : 0);
       const totalBookingRevenue = activeBookings.reduce((sum, b) => sum + getBookingAmount(b), 0);
       const revenue = Number(event?.revenue || 0) || totalBookingRevenue || (sold * price);
       const unsoldAmount = remaining * price;
-      const pct = capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : (sold > 0 ? 100 : 0);
-      const unsoldPct = capacity > 0 ? Math.max(0, Math.round((remaining / capacity) * 100)) : 0;
+      const pct = isSoldOut ? 100 : (capacity > 0 ? Math.min(100, Math.round((sold / capacity) * 100)) : (sold > 0 ? 100 : 0));
+      const unsoldPct = isSoldOut ? 0 : (capacity > 0 ? Math.max(0, Math.round((remaining / capacity) * 100)) : 0);
 
       pkgs.push({
         id: 'default-ticket',
+        rawId: 'default-ticket',
+        index: -1,
+        sourceField: 'default',
         name: primaryName,
         price,
         capacity,
@@ -1344,22 +1473,35 @@ const EventDetailsPage = () => {
         unsoldAmount,
         pct,
         unsoldPct,
+        isSoldOut,
+        isManualSoldOut,
       });
 
       if (event?.addons && Array.isArray(event.addons) && event.addons.length > 0) {
         event.addons.forEach((addon, idx) => {
           const addonPrice = Number(addon.price || 0);
+          const isAddonManualSold = Boolean(
+            addon.isSoldOut ||
+            addon.soldOut ||
+            addon.status === 'Sold Out' ||
+            addon.status === 'Sold'
+          );
           pkgs.push({
             id: addon.id || `addon-${idx}`,
+            rawId: addon.id,
+            index: idx,
+            sourceField: 'addons',
             name: addon.name || `Add-on ${idx + 1}`,
             price: addonPrice,
             capacity: capacity || 50,
             sold: 0,
-            remaining: capacity || 50,
+            remaining: isAddonManualSold ? 0 : (capacity || 50),
             revenue: 0,
-            unsoldAmount: (capacity || 50) * addonPrice,
-            pct: 0,
-            unsoldPct: 100,
+            unsoldAmount: isAddonManualSold ? 0 : (capacity || 50) * addonPrice,
+            pct: isAddonManualSold ? 100 : 0,
+            unsoldPct: isAddonManualSold ? 0 : 100,
+            isSoldOut: isAddonManualSold,
+            isManualSoldOut: isAddonManualSold,
           });
         });
       }
@@ -1373,9 +1515,9 @@ const EventDetailsPage = () => {
 
     let filteredPackages = packageMeterData;
     if (meterFilter === 'Sold') {
-      filteredPackages = packageMeterData.filter((p) => p.sold > 0);
+      filteredPackages = packageMeterData.filter((p) => p.sold > 0 || p.isSoldOut);
     } else if (meterFilter === 'Unsold') {
-      filteredPackages = packageMeterData.filter((p) => p.remaining > 0 || p.sold === 0);
+      filteredPackages = packageMeterData.filter((p) => !p.isSoldOut && (p.remaining > 0 || p.sold === 0));
     }
 
     return (
@@ -1403,33 +1545,59 @@ const EventDetailsPage = () => {
             </div>
           ) : (
             filteredPackages.map((pkg, idx) => (
-              <div key={pkg.id} className="ticket-meter-item">
+              <div key={pkg.id} className={`ticket-meter-item ${pkg.isSoldOut ? 'is-sold-out' : ''}`}>
                 <div className="ticket-meter-item-head">
-                  <span className="ticket-meter-item-name">{pkg.name}</span>
-                  <span className="ticket-meter-item-amount">
-                    {meterFilter === 'Unsold' ? (
-                      <>
-                        {currency(pkg.unsoldAmount)}
-                        <span className="ticket-meter-item-sub">
-                          {' '}• {pkg.remaining} remains not sold {pkg.capacity ? `(${pkg.unsoldPct}% available)` : ''}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        {currency(pkg.revenue)}
-                        <span className="ticket-meter-item-sub">
-                          {' '}• {pkg.remaining} remains not sold ({pkg.sold} sold)
-                        </span>
-                      </>
+                  <div className="ticket-meter-item-left">
+                    <span className="ticket-meter-item-name">{pkg.name}</span>
+                    {pkg.isSoldOut && (
+                      <span className="ticket-meter-sold-pill">Sold Out</span>
                     )}
-                  </span>
+                  </div>
+                  <div className="ticket-meter-item-right">
+                    <span className="ticket-meter-item-amount">
+                      {meterFilter === 'Unsold' ? (
+                        <>
+                          {currency(pkg.unsoldAmount)}
+                          <span className="ticket-meter-item-sub">
+                            {' '}• {pkg.remaining} remains not sold {pkg.capacity ? `(${pkg.unsoldPct}% available)` : ''}
+                          </span>
+                        </>
+                      ) : (
+                        <>
+                          {currency(pkg.revenue)}
+                          <span className="ticket-meter-item-sub">
+                            {' '}• {pkg.isSoldOut ? 'Sold Out' : `${pkg.remaining} remains not sold`} ({pkg.sold} sold)
+                          </span>
+                        </>
+                      )}
+                    </span>
+                    <label
+                      className={`ticket-meter-sold-label ${pkg.isSoldOut ? 'is-checked' : ''} ${!isHost ? 'disabled' : ''}`}
+                      title={
+                        !isHost
+                          ? 'Only the event host or admin can toggle sold out'
+                          : pkg.isSoldOut
+                          ? `Package "${pkg.name}" is marked as Sold Out (click to reopen)`
+                          : `Mark package "${pkg.name}" as Sold Out`
+                      }
+                    >
+                      <input
+                        type="checkbox"
+                        className="ticket-meter-sold-checkbox"
+                        checked={Boolean(pkg.isSoldOut)}
+                        disabled={!isHost}
+                        onChange={(e) => togglePackageSoldOut(pkg, e.target.checked)}
+                      />
+                      <span className="ticket-meter-checkbox-text">Sold Out</span>
+                    </label>
+                  </div>
                 </div>
                 <div className="ticket-meter-track">
                   <div
-                    className="ticket-meter-fill"
+                    className={`ticket-meter-fill ${pkg.isSoldOut ? 'sold-out-fill' : ''}`}
                     style={{
-                      width: `${meterFilter === 'Unsold' ? pkg.unsoldPct : pkg.pct}%`,
-                      backgroundColor: meterColors[idx % meterColors.length],
+                      width: `${meterFilter === 'Unsold' ? pkg.unsoldPct : (pkg.isSoldOut ? 100 : pkg.pct)}%`,
+                      backgroundColor: pkg.isSoldOut ? '#ef4444' : meterColors[idx % meterColors.length],
                     }}
                   />
                 </div>

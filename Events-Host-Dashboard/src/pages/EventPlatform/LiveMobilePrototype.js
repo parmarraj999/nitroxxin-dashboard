@@ -98,8 +98,14 @@ const LiveMobilePrototype = ({ form = {}, files = {} }) => {
   // Category
   const category = form?.category || 'Night Rides';
 
-  // Check Sold Out status
-  const isSoldOut = form?.status === 'Sold Out' || form?.status === 'Sold';
+  // Check Sold Out status (Event-level status OR when all defined packages are sold out)
+  const isSoldOut = useMemo(() => {
+    if (form?.status === 'Sold Out' || form?.status === 'Sold') return true;
+    if (Array.isArray(form?.packages) && form.packages.length > 0) {
+      return form.packages.every((p) => p.isSoldOut || p.soldOut || p.status === 'Sold Out' || p.status === 'Sold');
+    }
+    return false;
+  }, [form?.status, form?.packages]);
 
   // Date and Time
   const dateTimeDisplay = formatPreviewDateTime(form?.startDate, form?.startTime);
@@ -133,12 +139,16 @@ const LiveMobilePrototype = ({ form = {}, files = {} }) => {
     ];
   }, [form?.itinerary]);
 
-  // Price calculation
+  // Price calculation (prefers active available packages)
   const priceDisplay = useMemo(() => {
     if (form?.ticketType === 'Free') return 'Free';
     if (Array.isArray(form?.packages) && form.packages.length > 0) {
-      const validPrices = form.packages
-        .map((p) => Number(p.price))
+      const availablePackages = form.packages.filter(
+        (p) => !p.isSoldOut && !p.soldOut && p.status !== 'Sold Out' && p.status !== 'Sold'
+      );
+      const targetPackages = availablePackages.length > 0 ? availablePackages : form.packages;
+      const validPrices = targetPackages
+        .map((p) => Number(p.discountPrice || p.price))
         .filter((n) => !isNaN(n) && n >= 0);
       if (validPrices.length > 0) {
         const minPrice = Math.min(...validPrices);

@@ -1984,24 +1984,115 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 15px;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  line-height: 20px;
+}
+
+.ticket-meter-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .ticket-meter-item-name {
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
   font-weight: 600;
-  color: #475569;
+  line-height: 20px;
+  color: #2F2F2F;
+}
+
+.ticket-meter-sold-pill {
+  display: inline-flex;
+  align-items: center;
+  background: #fef2f2;
+  color: #dc2626;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 14px;
+  padding: 2px 7px;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid #fecaca;
+}
+
+.ticket-meter-item-right {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
 }
 
 .ticket-meter-item-amount {
-  font-weight: 700;
-  color: #0f172a;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 20px;
+  color: #111111;
   letter-spacing: -0.01em;
 }
 
 .ticket-meter-item-sub {
-  font-weight: 600;
-  color: #64748b;
+  font-family: 'Inter', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  line-height: 16px;
+  color: #8A8A8A;
   margin-left: 4px;
+}
+
+/* Sold Out Checkbox Component */
+.ticket-meter-sold-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  user-select: none;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #e5e7eb;
+  background: #f9fafb;
+  transition: all 0.15s ease;
+}
+
+.ticket-meter-sold-label:hover {
+  background: #f3f4f6;
+  border-color: #d1d5db;
+}
+
+.ticket-meter-sold-label.is-checked {
+  background: #fef2f2;
+  border-color: #fca5a5;
+}
+
+.ticket-meter-sold-label.disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.ticket-meter-sold-checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: #dc2626;
+  cursor: pointer;
+  margin: 0;
+}
+
+.ticket-meter-checkbox-text {
+  font-family: 'Inter', sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 18px;
+  color: #333333;
+}
+
+.ticket-meter-sold-label.is-checked .ticket-meter-checkbox-text {
+  color: #dc2626;
+  font-weight: 600;
 }
 
 .ticket-meter-track {
@@ -2017,6 +2108,10 @@
   height: 100%;
   border-radius: 9999px;
   transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.ticket-meter-fill.sold-out-fill {
+  background: linear-gradient(90deg, #ef4444 0%, #dc2626 100%) !important;
 }
 
 .ticket-meter-empty {
@@ -2039,7 +2134,15 @@
   }
 
   .ticket-meter-item-head {
-    font-size: 13.5px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .ticket-meter-item-right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 8px;
   }
 }
 
