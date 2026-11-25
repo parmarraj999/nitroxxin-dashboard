@@ -13,7 +13,9 @@ import {
   XCircle,
   Clock,
   Calendar,
-  Sparkles
+  Sparkles,
+  AlertCircle,
+  Check
 } from 'lucide-react';
 import { 
   collection, 
@@ -184,6 +186,18 @@ const isEventComplete = (ev) => {
   return eventEnd.getTime() < Date.now();
 };
 
+// Check if an event is waiting for admin approval (e.g. created by a host)
+const isWaitingForApproval = (ev) => {
+  if (isEventComplete(ev)) return false;
+  const s = (ev.status || '').toLowerCase().trim();
+  return (
+    s === 'waiting for approval' ||
+    s === 'waiting_for_approval' ||
+    s === 'pending_approval' ||
+    s === 'pending'
+  );
+};
+
 // SVG Crimson Pie Chart Indicator matching screenshot
 const SoldPieIndicator = ({ sold = 16, total = 20 }) => {
   const safeTotal = total > 0 ? total : 20;
@@ -279,6 +293,32 @@ export default function EventsManagement() {
     }
   };
 
+  // Approve and publish event submitted by a host
+  const handleApproveEvent = async (ev, e) => {
+    e.stopPropagation();
+    const eventTitle = ev.title || ev.name || 'Untitled Event';
+    if (ev.id && ev.id.startsWith('demo-')) {
+      alert(`Demo event "${eventTitle}" approved and published!`);
+      setEvents((prev) =>
+        prev.map((item) => (item.id === ev.id ? { ...item, status: 'published' } : item))
+      );
+      return;
+    }
+    if (window.confirm(`Approve and publish "${eventTitle}"? This will make the event live for riders on the platform.`)) {
+      try {
+        await updateDoc(doc(db, 'events', ev.id), {
+          status: 'published',
+          approvedAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        alert(`Event "${eventTitle}" has been approved and published successfully!`);
+      } catch (err) {
+        console.error('Error approving event:', err);
+        alert('Failed to approve event: ' + err.message);
+      }
+    }
+  };
+
   // Seed sample demo events into Firestore if collection is empty
   const handleSeedDemoEvents = async () => {
     if (seeding) return;
@@ -356,9 +396,10 @@ export default function EventsManagement() {
     document.body.removeChild(link);
   };
 
-  // Render Status pill with distinctive colors for Complete, Published, Draft, Cancelled
+  // Render Status pill with distinctive colors for Complete, Published, Draft, Cancelled, Waiting Approval
   const renderStatus = (ev) => {
     const isComplete = isEventComplete(ev);
+    const isWaiting = isWaitingForApproval(ev);
     const s = (ev.status || 'draft').toLowerCase();
 
     if (s === 'cancelled') {
@@ -375,6 +416,15 @@ export default function EventsManagement() {
         <span className="event-status-pill complete">
           <CheckCircle2 size={12} strokeWidth={2.5} />
           <span>Complete</span>
+        </span>
+      );
+    }
+
+    if (isWaiting) {
+      return (
+        <span className="event-status-pill waiting" title="Submitted by Host - Waiting for Admin Approval">
+          <AlertCircle size={12} strokeWidth={2.4} />
+          <span>Waiting Approval</span>
         </span>
       );
     }
@@ -415,11 +465,13 @@ export default function EventsManagement() {
         desc.toLowerCase().includes(term);
 
       const complete = isEventComplete(ev);
+      const isWaiting = isWaitingForApproval(ev);
       const matchesStatus = 
         statusFilter === 'all' ||
+        (statusFilter === 'waiting' && isWaiting) ||
         (statusFilter === 'complete' && complete) ||
-        (statusFilter === 'published' && !complete && (ev.status || '').toLowerCase() === 'published') ||
-        (statusFilter === 'draft' && !complete && (ev.status || 'draft').toLowerCase() === 'draft') ||
+        (statusFilter === 'published' && !complete && !isWaiting && (ev.status || '').toLowerCase() === 'published') ||
+        (statusFilter === 'draft' && !complete && !isWaiting && (ev.status || 'draft').toLowerCase() === 'draft') ||
         (statusFilter === 'cancelled' && (ev.status || '').toLowerCase() === 'cancelled');
 
       return matchesSearch && matchesStatus;
@@ -459,8 +511,9 @@ export default function EventsManagement() {
   // Stats calculation
   const totalCount = sourceList.length;
   const completedCount = sourceList.filter(isEventComplete).length;
-  const publishedCount = sourceList.filter((e) => !isEventComplete(e) && (e.status || '').toLowerCase() === 'published').length;
-  const draftCount = sourceList.filter((e) => !isEventComplete(e) && (e.status || 'draft').toLowerCase() === 'draft').length;
+  const waitingApprovalCount = sourceList.filter(isWaitingForApproval).length;
+  const publishedCount = sourceList.filter((e) => !isEventComplete(e) && !isWaitingForApproval(e) && (e.status || '').toLowerCase() === 'published').length;
+  const draftCount = sourceList.filter((e) => !isEventComplete(e) && !isWaitingForApproval(e) && (e.status || 'draft').toLowerCase() === 'draft').length;
   const featuredCount = sourceList.filter((e) => e.featuredForYou).length;
 
   return (
@@ -501,13 +554,19 @@ export default function EventsManagement() {
           <span>Total Events</span>
           <strong>{loading ? '...' : totalCount}</strong>
         </div>
-        <div className="event-metric-card">
-          <span>Complete</span>
-          <strong style={{ color: '#047857' }}>{loading ? '...' : completedCount}</strong>
+        <div className={`event-metric-card ${waitingApprovalCount > 0 ? 'highlight-amber' : ''}`}>
+          <span>Waiting Approval</span>
+          <strong style={{ color: waitingApprovalCount > 0 ? '#d97706' : '#64748b' }}>
+            {loading ? '...' : waitingApprovalCount}
+          </strong>
         </div>
         <div className="event-metric-card">
           <span>Published</span>
           <strong>{loading ? '...' : publishedCount}</strong>
+        </div>
+        <div className="event-metric-card">
+          <span>Complete</span>
+          <strong style={{ color: '#047857' }}>{loading ? '...' : completedCount}</strong>
         </div>
         <div className="event-metric-card">
           <span>Drafts</span>
@@ -537,10 +596,10 @@ export default function EventsManagement() {
           </button>
           <button
             type="button"
-            className={`event-tab-btn ${statusFilter === 'complete' ? 'active' : ''}`}
-            onClick={() => setStatusFilter('complete')}
+            className={`event-tab-btn ${statusFilter === 'waiting' ? 'active' : ''} ${waitingApprovalCount > 0 ? 'has-badge-waiting' : ''}`}
+            onClick={() => setStatusFilter('waiting')}
           >
-            Complete ({completedCount})
+            Waiting Approval ({waitingApprovalCount})
           </button>
           <button
             type="button"
@@ -548,6 +607,13 @@ export default function EventsManagement() {
             onClick={() => setStatusFilter('published')}
           >
             Published ({publishedCount})
+          </button>
+          <button
+            type="button"
+            className={`event-tab-btn ${statusFilter === 'complete' ? 'active' : ''}`}
+            onClick={() => setStatusFilter('complete')}
+          >
+            Complete ({completedCount})
           </button>
           <button
             type="button"
@@ -682,6 +748,17 @@ export default function EventsManagement() {
                       <div className="event-column-cell event-actions-col">
                         <span className="event-column-label">Actions</span>
                         <div className="event-actions-row">
+                          {isWaitingForApproval(ev) && (
+                            <button
+                              type="button"
+                              className="event-quick-approve-btn"
+                              title="Approve and Publish Event Now"
+                              onClick={(e) => handleApproveEvent(ev, e)}
+                            >
+                              <CheckCircle2 size={13} strokeWidth={2.4} />
+                              <span>Approve</span>
+                            </button>
+                          )}
                           <button
                             type="button"
                             className="event-icon-btn"

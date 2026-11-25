@@ -115,6 +115,92 @@
   border-color: #e05e00;
 }
 
+.btn-header-action.approve-btn {
+  background: #059669;
+  border-color: #047857;
+  color: #ffffff;
+  box-shadow: 0 1px 3px rgba(5, 150, 105, 0.25);
+}
+
+.btn-header-action.approve-btn:hover {
+  background: #047857;
+  border-color: #065f46;
+}
+
+/* Event Approval Alert Banner */
+.event-approval-alert-banner {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 6px rgba(217, 119, 6, 0.08);
+  flex-wrap: wrap;
+}
+
+.approval-alert-content {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.approval-alert-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: #d97706;
+}
+
+.approval-alert-title {
+  margin: 0 0 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  color: #92400e;
+}
+
+.approval-alert-text {
+  margin: 0;
+  font-size: 0.88rem;
+  color: #78350f;
+  line-height: 1.45;
+}
+
+.btn-approve-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: #059669;
+  color: #ffffff;
+  border: 1px solid #047857;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.25);
+}
+
+.btn-approve-banner:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(5, 150, 105, 0.35);
+}
+
+.booking-status-pill.waiting-for-approval,
+.booking-status-pill.waiting {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+  font-weight: 700;
+}
+
 .btn-header-action.danger {
   color: #dc2626;
   border-color: #fecaca;

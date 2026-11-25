@@ -401,6 +401,17 @@
   border: 1px solid #bfdbfe;
 }
 
+.event-status-pill.waiting {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+  font-weight: 700;
+}
+
+.event-status-pill.waiting svg {
+  color: #d97706;
+}
+
 .event-status-pill.draft {
   background: #fdf2f2;
   color: #1e293b;
@@ -411,6 +422,44 @@
   background: #fee2e2;
   color: #991b1b;
   border: 1px solid #fecaca;
+}
+
+/* Quick Approve Button in Event Row */
+.event-quick-approve-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #059669;
+  color: #ffffff;
+  border: 1px solid #047857;
+  padding: 4px 9px;
+  border-radius: 6px;
+  font-size: 11.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-shadow: 0 1px 2px rgba(5, 150, 105, 0.2);
+}
+
+.event-quick-approve-btn:hover {
+  background: #047857;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(5, 150, 105, 0.3);
+}
+
+.event-quick-approve-btn:active {
+  transform: translateY(0);
+}
+
+.event-metric-card.highlight-amber {
+  border-color: #fde68a;
+  background: linear-gradient(180deg, #ffffff 0%, #fffbeb 100%);
+}
+
+.event-tab-btn.has-badge-waiting {
+  position: relative;
+  color: #b45309;
+  font-weight: 700;
 }
 
 /* 7. Actions Column */

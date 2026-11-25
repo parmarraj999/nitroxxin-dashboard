@@ -577,7 +577,35 @@ export default function EventDetails() {
   const fullAddress = [event.address, event.venue, event.city, event.state].filter(Boolean).join(', ');
 
   // Status computation
-  const effectiveStatus = isEventCompleted ? 'complete' : (event.status || 'draft').toLowerCase();
+  const rawStatus = (event.status || 'draft').toLowerCase().trim();
+  const isWaitingApproval = !isEventCompleted && (
+    rawStatus === 'waiting for approval' ||
+    rawStatus === 'waiting_for_approval' ||
+    rawStatus === 'pending_approval' ||
+    rawStatus === 'pending'
+  );
+  const effectiveStatus = isEventCompleted 
+    ? 'complete' 
+    : isWaitingApproval 
+    ? 'waiting for approval' 
+    : rawStatus;
+
+  // Approve and publish event
+  const handleApproveEvent = async () => {
+    if (window.confirm(`Approve and publish "${title}"? This will make the event live on the platform for riders to register.`)) {
+      try {
+        await updateDoc(doc(db, 'events', eventId), {
+          status: 'published',
+          approvedAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+        alert(`Event "${title}" has been approved and published successfully!`);
+      } catch (err) {
+        console.error('Failed to approve event:', err);
+        alert('Failed to approve event: ' + err.message);
+      }
+    }
+  };
 
   return (
     <div className="event-details-container">
@@ -596,15 +624,29 @@ export default function EventDetails() {
         </div>
 
         <div className="event-header-actions">
+          {/* Quick Approve Button if waiting for approval */}
+          {isWaitingApproval && (
+            <button
+              type="button"
+              className="btn-header-action primary approve-btn"
+              onClick={handleApproveEvent}
+              title="Verify & approve event to publish live"
+            >
+              <CheckCircle2 size={16} />
+              <span>Approve & Publish</span>
+            </button>
+          )}
+
           {/* Quick Status Dropdown */}
           <div className="status-dropdown-wrap">
             <select
-              className={`status-select-native ${effectiveStatus}`}
+              className={`status-select-native ${effectiveStatus.replace(/\s+/g, '-')}`}
               value={effectiveStatus}
               onChange={(e) => handleQuickStatusChange(e.target.value)}
               title="Change event publishing status"
             >
               <option value="published">● Published</option>
+              <option value="waiting for approval">● Waiting Approval</option>
               <option value="draft">● Draft</option>
               <option value="complete">● Complete</option>
               <option value="cancelled">● Cancelled</option>
@@ -657,6 +699,30 @@ export default function EventDetails() {
         </div>
       </div>
 
+      {/* ── Approval Alert Banner (When event is submitted by Host and waiting approval) ── */}
+      {isWaitingApproval && (
+        <div className="event-approval-alert-banner">
+          <div className="approval-alert-content">
+            <AlertCircle size={24} className="approval-alert-icon" />
+            <div>
+              <h4 className="approval-alert-title">Host Event Submission Awaiting Verification</h4>
+              <p className="approval-alert-text">
+                This event was created by <strong>{hostName}</strong> and requires super admin verification.
+                Inspect the itinerary, ticket pricing, and host terms below. Once verified, click <strong>Approve & Publish</strong> to make it live for users.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            className="btn-approve-banner"
+            onClick={handleApproveEvent}
+          >
+            <CheckCircle2 size={16} />
+            <span>Approve & Publish Event</span>
+          </button>
+        </div>
+      )}
+
       {/* ── 2. Hero Header Box ───────────────────────────────────────────── */}
       <div className="event-hero-header">
         <div className="event-hero-title-box">
@@ -683,11 +749,14 @@ export default function EventDetails() {
           <div className="event-hero-badges">
             {event.category && <span className="badge-tag category">{event.category}</span>}
             {event.subCategory && <span className="badge-tag subcategory">{event.subCategory}</span>}
-            <span className={`booking-status-pill ${effectiveStatus}`}>
+            <span className={`booking-status-pill ${effectiveStatus.replace(/\s+/g, '-')}`}>
               {effectiveStatus === 'complete' && <CheckCircle2 size={12} />}
               {effectiveStatus === 'published' && <Clock size={12} />}
               {effectiveStatus === 'cancelled' && <XCircle size={12} />}
-              <span style={{ textTransform: 'capitalize' }}>{effectiveStatus}</span>
+              {isWaitingApproval && <AlertCircle size={12} />}
+              <span style={{ textTransform: 'capitalize' }}>
+                {isWaitingApproval ? 'Waiting Approval' : effectiveStatus}
+              </span>
             </span>
           </div>
         </div>

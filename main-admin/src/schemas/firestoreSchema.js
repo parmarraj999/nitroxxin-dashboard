@@ -37,7 +37,9 @@ export const COLLECTIONS = {
   organizerLogos: 'organizer_logos',
   hostApplications: 'host_applications',
   ticketTemplates: 'ticket_tamplate',
-  ticket_tamplate: 'ticket_tamplate'
+  ticket_tamplate: 'ticket_tamplate',
+  affiliateCreator: 'affiliate_creator',
+  affiliate_creator: 'affiliate_creator'
 };
 
 export const PRODUCT_STATUSES = {
@@ -191,5 +193,6 @@ export const collectionStructure = {
   return_policies: '{policyId}: vendorId, windowDays, terms',
   certifications: '{certificationId}: vendorId, productId, type, documentUrl',
   bike_compatibility: '{compatibilityId}: vendorId, productId, make, model, yearRange',
-  ticket_tamplate: '{templateId}: title, image (1080x1920), category, description, status, isDefault, theme, dimensions'
+  ticket_tamplate: '{templateId}: title, image (1080x1920), category, description, status, isDefault, theme, dimensions',
+  affiliate_creator: '{applicationId}: name, email, phone, instagramUsername, instagramDashboardScreenshot, socialLinks, viralVideoLink, shortDescription, status, type'
 };
